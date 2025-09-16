@@ -1,5 +1,5 @@
 // --- ВАЖЛИВЕ НАЛАШТУВАННЯ ---
-const SCRIPT_URL = "СЮДИ_ВСТАВИТИ_URL_АДРЕСУ_ВАШОГО_ВЕБ_ДОДАТКУ";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFlBN5_L1dr0fncI39EZuMoxnBqtW03g1--BkU9IosROoSxgqqRlTFFFrdp7GZN22M/exec";
 // ------------------------------
 
 document.addEventListener('DOMContentLoaded', function() {
