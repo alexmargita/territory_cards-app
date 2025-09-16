@@ -1,5 +1,5 @@
 // --- ВАЖЛИВЕ НАЛАШТУВАННЯ ---
-const SCRIPT_URL = "СЮДИ_ВСТАВИТИ_URL_АДРЕСУ_ВАШОГО_ВЕБ_ДОДАТКУ";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFlBN5_L1dr0fncI39EZuMoxnBqtW03g1--BkU9IosROoSxgqqRlTFFFrdp7GZN22M/exec";
 // ------------------------------
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 ? `<img class="territory-photo" src="${t.photoUrl}" alt="Фото території">`
                 : `<div class="placeholder-photo">Немає фото</div>`;
 
-            // --- ЗМІНА: Додаємо data-id до кнопки ---
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
@@ -40,24 +39,20 @@ document.addEventListener('DOMContentLoaded', function() {
             territoryList.appendChild(item);
         });
 
-        // --- НОВА ЛОГІКА: Додаємо обробники натискань на кнопки ---
         document.querySelectorAll('.btn-book').forEach(button => {
             button.addEventListener('click', function() {
                 const territoryId = this.dataset.id;
                 const userId = tg.initDataUnsafe.user.id;
                 
-                // Показуємо вікно підтвердження
                 tg.showConfirm(`Ви впевнені, що хочете взяти територію ${territoryId}?`, (isConfirmed) => {
                     if (isConfirmed) {
                         tg.showPopup({title: 'Бронювання...', message: 'Будь ласка, зачекайте.'});
 
-                        // Надсилаємо запит на бронювання
                         fetch(`${SCRIPT_URL}?action=book&territoryId=${territoryId}&userId=${userId}`)
                             .then(response => response.json())
                             .then(result => {
                                 if (result.ok) {
                                     tg.showPopup({title: 'Успіх!', message: result.message});
-                                    // Робимо картку неактивною
                                     button.closest('.territory-item').classList.add('booked');
                                 } else {
                                     tg.showAlert(result.message);
@@ -70,7 +65,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // ... (решта коду залишається без змін) ...
     loader.style.display = 'block';
     fetch(SCRIPT_URL)
         .then(response => response.json())
@@ -88,6 +82,17 @@ document.addEventListener('DOMContentLoaded', function() {
             territoryList.innerHTML = `<p>Критична помилка: ${error.message}</p>`;
         });
 
-    filterUrbanBtn.addEventListener('click', () => { /* ... */ });
-    filterRuralBtn.addEventListener('click', () => { /* ... */ });
+    // --- ВИПРАВЛЕНО: Додано логіку для фільтрів ---
+    filterUrbanBtn.addEventListener('click', () => {
+        displayTerritories('міська');
+        filterUrbanBtn.classList.add('active');
+        filterRuralBtn.classList.remove('active');
+    });
+
+    filterRuralBtn.addEventListener('click', () => {
+        displayTerritories('сільська');
+        filterRuralBtn.classList.add('active');
+        filterUrbanBtn.classList.remove('active');
+    });
+    // ------------------------------------------
 });
