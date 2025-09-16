@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoryList = document.getElementById('territory-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     
-    let allTerritories = [];
+    let allFreeTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
     const tabs = document.querySelectorAll('.tab-button');
@@ -84,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
         freeTerritoryList.innerHTML = '';
         freeTerritoriesTitle.style.display = 'block';
         
-        const filtered = allTerritories.filter(t => t.type === filter && t.status === 'вільна');
+        const filtered = allFreeTerritories.filter(t => t.type === filter && t.status === 'вільна');
 
         if (filtered.length === 0) {
             freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>';
@@ -124,11 +124,7 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.btn-book').forEach(button => {
             button.addEventListener('click', function() {
                 const territoryId = this.dataset.id;
-                tg.showConfirm(`Ви впевнені, що хочете взяти територію ${territoryId}?`, (isConfirmed) => {
-                    if (isConfirmed) {
-                        bookTerritory(territoryId);
-                    }
-                });
+                requestTerritory(territoryId, this);
             });
         });
     }
@@ -152,16 +148,15 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    function bookTerritory(territoryId) {
-        tg.MainButton.setText("Бронювання...").show().enable();
-        fetch(`${SCRIPT_URL}?action=bookTerritory&territoryId=${territoryId}&userId=${userId}`)
+    function requestTerritory(territoryId, buttonElement) {
+        tg.MainButton.setText("Надсилаю запит...").show().enable();
+        fetch(`${SCRIPT_URL}?action=requestTerritory&territoryId=${territoryId}&userId=${userId}`)
             .then(response => response.json())
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) {
-                    const successMessage = result.message + "\n\nПам'ятайте, що термін опрацювання території - 4 місяці.";
-                    tg.showAlert(successMessage);
-                    fetchAllData();
+                    tg.showAlert(result.message);
+                    buttonElement.closest('.territory-item').classList.add('booked');
                 } else {
                     tg.showAlert(result.message);
                 }
@@ -176,7 +171,6 @@ document.addEventListener('DOMContentLoaded', function() {
         loader.style.display = 'block';
         myTerritoryList.innerHTML = '';
         
-        // Запит на отримання МОЇХ та ВСІХ територій
         Promise.all([
             fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`).then(res => res.json()),
             fetch(SCRIPT_URL).then(res => res.json())
@@ -188,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (freeData.ok) {
-                allTerritories = freeData.territories;
+                allFreeTerritories = freeData.territories;
                 const activeFilter = document.querySelector('.filter-btn.active');
                 if (activeFilter) {
                     displayFreeTerritories(activeFilter.dataset.filter);
