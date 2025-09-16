@@ -142,17 +142,15 @@ document.addEventListener('DOMContentLoaded', function() {
     function returnTerritory(territoryId) {
         tg.MainButton.setText("Повернення...").show().enable();
         fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
-            .then(response => {
-                if (!response.ok) { throw new Error('Помилка мережі або сервера.'); }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
                     fetchAllData();
                 } else {
-                    tg.showAlert(result.message || 'Сталася невідома помилка.');
+                    // ВИПРАВЛЕНО: Показуємо або result.message, або result.error
+                    tg.showAlert(result.message || result.error || 'Сталася невідома помилка.');
                 }
             })
             .catch(error => {
@@ -164,10 +162,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function bookTerritory(territoryId) {
         tg.MainButton.setText("Бронювання...").show().enable();
         fetch(`${SCRIPT_URL}?action=bookTerritory&territoryId=${territoryId}&userId=${userId}`)
-            .then(response => {
-                if (!response.ok) { throw new Error('Помилка мережі або сервера.'); }
-                return response.json();
-            })
+            .then(response => response.json())
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) {
@@ -175,7 +170,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     tg.showAlert(successMessage);
                     fetchAllData();
                 } else {
-                    tg.showAlert(result.message || 'Сталася невідома помилка.');
+                     // ВИПРАВЛЕНО: Показуємо або result.message, або result.error
+                    tg.showAlert(result.message || result.error || 'Сталася невідома помилка.');
                 }
             })
             .catch(error => {
@@ -200,7 +196,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (freeData.ok) {
-                allFreeTerritories = freeData.territories;
+                allTerritories = freeData.territories;
                 const activeFilter = document.querySelector('.filter-btn.active');
                 if (activeFilter) {
                     displayFreeTerritories(activeFilter.dataset.filter);
