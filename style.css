@@ -51,3 +51,16 @@
 #my-territory-list .territory-item {
     background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
 }
+
+/* --- НОВИЙ СТИЛЬ ДЛЯ КНОПКИ ПОВЕРНЕННЯ --- */
+.btn-return {
+    flex-grow: 1;
+    padding: 20px 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #dc3545; /* Червоний колір */
+    color: #ffffff;
+    height: 100%;
+}

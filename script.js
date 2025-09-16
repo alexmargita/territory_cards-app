@@ -9,6 +9,143 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoryList = document.getElementById('territory-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     
+    let allTerritories = []; // Тепер тут зберігаються ВСІ території
+    const userId = tg.initDataUnsafe.user.id;
+
+    // --- ЛОГІКА ДЛЯ ВКЛАДОК ---
+    // ... (без змін) ...
+
+    // --- ЛОГІКА ДЛЯ ФІЛЬТРІВ ---
+    // ... (без змін) ...
+
+    // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ ---
+    function displayMyTerritories() {
+        myTerritoryList.innerHTML = '';
+        const myTerritories = allTerritories.filter(t => t.assignee_id == userId);
+
+        if (myTerritories.length === 0) {
+            myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>';
+            return;
+        }
+        myTerritories.forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'territory-item';
+            const photoBlock = t.photoUrl ? `<img class="territory-photo" src="${t.photoUrl}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
+            item.innerHTML = `
+                <div class="territory-title">📍 ${t.id}. ${t.name}</div>
+                <div class="territory-content">
+                    ${photoBlock}
+                    <button class="btn-return" data-id="${t.id}">↩️ Здати</button>
+                </div>
+            `;
+            myTerritoryList.appendChild(item);
+        });
+        addReturnListeners();
+    }
+
+    function isAvailable(territory) {
+        if (territory.status === 'вільна') return true;
+        if (territory.status === 'повернена') {
+            if (!territory.date_completed) return true; // Якщо дати немає, вважаємо вільною
+            const completedDate = new Date(territory.date_completed);
+            const oneMonthAgo = new Date();
+            oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+            return completedDate < oneMonthAgo;
+        }
+        return false;
+    }
+
+    function displayFreeTerritories(filter) {
+        freeTerritoryList.innerHTML = '';
+        freeTerritoriesTitle.style.display = 'block';
+        
+        const filtered = allTerritories.filter(t => t.type === filter && isAvailable(t));
+
+        if (filtered.length === 0) {
+            freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>';
+            return;
+        }
+
+        filtered.forEach(t => {
+            // ... (код створення картки території без змін) ...
+        });
+        addBookingListeners();
+    }
+
+    // --- ОБРОБНИКИ ПОДІЙ ---
+    function addReturnListeners() {
+        document.querySelectorAll('.btn-return').forEach(button => {
+            button.addEventListener('click', function() {
+                const territoryId = this.dataset.id;
+                tg.showConfirm(`Ви впевнені, що хочете здати територію ${territoryId}?`, (isConfirmed) => {
+                    if (isConfirmed) {
+                        returnTerritory(territoryId, this);
+                    }
+                });
+            });
+        });
+    }
+
+    function addBookingListeners() { /* ... без змін ... */ }
+
+    // --- ФУНКЦІЇ ЗВ'ЯЗКУ З API ---
+    function returnTerritory(territoryId, buttonElement) {
+        tg.MainButton.setText("Повернення...").show();
+        fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
+            .then(response => response.json())
+            .then(result => {
+                tg.MainButton.hide();
+                if (result.ok) {
+                    tg.showAlert(result.message);
+                    // Перезавантажуємо всі дані, щоб оновити обидва списки
+                    fetchAllTerritories();
+                } else {
+                    tg.showAlert(result.message);
+                }
+            })
+            .catch(error => {
+                tg.MainButton.hide();
+                tg.showAlert(`Сталася помилка: ${error.message}`);
+            });
+    }
+
+    function bookTerritory(territoryId, buttonElement) { /* ... без змін ... */ }
+
+    // --- ЗАВАНТАЖЕННЯ ДАНИХ ---
+    function fetchAllTerritories() {
+        loader.style.display = 'block';
+        myTerritoryList.innerHTML = '';
+        freeTerritoryList.innerHTML = '';
+
+        fetch(SCRIPT_URL)
+            .then(response => response.json())
+            .then(data => {
+                loader.style.display = 'none';
+                if (data.ok) {
+                    allTerritories = data.territories;
+                    displayMyTerritories(); // Оновлюємо вкладку "Мої території"
+                    // Оновлюємо вкладку "Обрати" (якщо є активний фільтр)
+                    const activeFilter = document.querySelector('.filter-btn.active');
+                    if (activeFilter) {
+                        displayFreeTerritories(activeFilter.dataset.filter);
+                    }
+                } else {
+                    document.body.innerHTML = `<p>Помилка завантаження даних: ${data.error}</p>`;
+                }
+            });
+    }
+    
+    fetchAllTerritories();
+});
+document.addEventListener('DOMContentLoaded', function() {
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    const loader = document.getElementById('loader');
+    const myTerritoryList = document.getElementById('my-territory-list');
+    const freeTerritoryList = document.getElementById('territory-list');
+    const freeTerritoriesTitle = document.getElementById('free-territories-title');
+    
     let allFreeTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
