@@ -9,10 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoryList = document.getElementById('territory-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     
-    let allFreeTerritories = [];
+    let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
-    // --- ЛОГІКА ДЛЯ ВКЛАДОК ---
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => {
@@ -25,7 +24,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- ЛОГІКА ДЛЯ ФІЛЬТРІВ ---
     const filterButtons = document.querySelectorAll('.filter-btn');
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -36,11 +34,10 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- НОВА ФУНКЦІЯ: Розрахунок залишку днів ---
     function calculateDaysRemaining(assignDateStr) {
-        if (!assignDateStr) return null;
-        const assigned = new Date(assignDateStr); // ISO формат тепер парситься правильно
-        if (isNaN(assigned)) return null; // Перевірка на невалідну дату
+        if (!assignDateStr || typeof assignDateStr !== 'string') return null;
+        const assigned = new Date(assignDateStr);
+        if (isNaN(assigned.getTime())) return null;
         
         const deadline = new Date(assigned.getTime());
         deadline.setDate(deadline.getDate() + 120);
@@ -51,7 +48,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return diffDays > 0 ? diffDays : 0;
     }
 
-    // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ ---
     function displayMyTerritories(territories) {
         myTerritoryList.innerHTML = '';
         if (territories.length === 0) {
@@ -88,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
         freeTerritoryList.innerHTML = '';
         freeTerritoriesTitle.style.display = 'block';
         
-        const filtered = allFreeTerritories.filter(t => t.type === filter);
+        const filtered = allTerritories.filter(t => t.type === filter && t.status === 'вільна');
 
         if (filtered.length === 0) {
             freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>';
@@ -111,7 +107,6 @@ document.addEventListener('DOMContentLoaded', function() {
         addBookingListeners();
     }
 
-    // --- ОБРОБНИКИ ПОДІЙ ---
     function addReturnListeners() {
         document.querySelectorAll('.btn-return').forEach(button => {
             button.addEventListener('click', function() {
@@ -138,7 +133,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- ФУНКЦІЇ ЗВ'ЯЗКУ З API ---
     function returnTerritory(territoryId) {
         tg.MainButton.setText("Повернення...").show().enable();
         fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
@@ -146,8 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) {
-                    const successMessage = result.message;
-                    tg.showAlert(successMessage);
+                    tg.showAlert(result.message);
                     fetchAllData();
                 } else {
                     tg.showAlert(result.message);
@@ -179,39 +172,35 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // --- ЗАВАНТАЖЕННЯ ДАНИХ ---
     function fetchAllData() {
         loader.style.display = 'block';
         myTerritoryList.innerHTML = '';
-        freeTerritoryList.innerHTML = '';
-        freeTerritoriesTitle.style.display = 'none';
         
-        // Запит на отримання МОЇХ територій
-        fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`)
-            .then(response => response.json())
-            .then(data => {
-                if (data.ok) {
-                    displayMyTerritories(data.territories);
-                }
-            });
+        // Запит на отримання МОЇХ та ВСІХ територій
+        Promise.all([
+            fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`).then(res => res.json()),
+            fetch(SCRIPT_URL).then(res => res.json())
+        ]).then(([myData, freeData]) => {
+            loader.style.display = 'none';
 
-        // Запит на отримання ВІЛЬНИХ територій
-        fetch(SCRIPT_URL)
-            .then(response => response.json())
-            .then(data => {
-                loader.style.display = 'none';
-                if (data.ok) {
-                    allFreeTerritories = data.territories;
-                    const activeFilter = document.querySelector('.filter-btn.active');
-                    if (activeFilter) {
-                        displayFreeTerritories(activeFilter.dataset.filter);
-                    }
-                } else {
-                    document.body.innerHTML = `<p>Помилка завантаження даних: ${data.error}</p>`;
+            if (myData.ok) {
+                displayMyTerritories(myData.territories);
+            }
+            
+            if (freeData.ok) {
+                allTerritories = freeData.territories;
+                const activeFilter = document.querySelector('.filter-btn.active');
+                if (activeFilter) {
+                    displayFreeTerritories(activeFilter.dataset.filter);
                 }
-            });
+            } else {
+                 document.body.innerHTML = `<p>Помилка завантаження даних: ${freeData.error}</p>`;
+            }
+        }).catch(error => {
+            loader.style.display = 'none';
+            document.body.innerHTML = `<p>Критична помилка: ${error.message}</p>`;
+        });
     }
     
-    // Запускаємо завантаження всіх даних при старті
     fetchAllData();
 });

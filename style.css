@@ -131,18 +131,16 @@ h2 {
     padding: 20px;
     font-size: 18px;
 }
-
-/* --- НОВІ СТИЛІ ДЛЯ ЛІЧИЛЬНИКА ДНІВ --- */
 .days-remaining {
     text-align: center;
     font-size: 14px;
     font-weight: bold;
     color: #ffffff;
-    background-color: #ff9800; /* Помаранчевий колір */
+    background-color: #ff9800;
     padding: 8px;
     border-radius: 8px;
-    margin-top: 10px; /* Відступ від блоку з фото */
+    margin-top: 10px;
 }
 .days-remaining.ending-soon {
-    background-color: #f44336; /* Червоний, якщо залишилось мало часу */
+    background-color: #f44336;
 }
