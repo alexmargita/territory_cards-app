@@ -9,9 +9,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoryList = document.getElementById('territory-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     
-    let allFreeTerritories = [];
+    let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
+    // --- ЛОГІКА ДЛЯ ВКЛАДОК ---
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => {
@@ -24,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // --- ЛОГІКА ДЛЯ ФІЛЬТРІВ ---
     const filterButtons = document.querySelectorAll('.filter-btn');
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -34,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // --- ФУНКЦІЯ: Розрахунок залишку днів ---
     function calculateDaysRemaining(assignDateStr) {
         if (!assignDateStr || typeof assignDateStr !== 'string') return null;
         const assigned = new Date(assignDateStr);
@@ -48,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return diffDays > 0 ? diffDays : 0;
     }
 
+    // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ ---
     function displayMyTerritories(territories) {
         myTerritoryList.innerHTML = '';
         if (territories.length === 0) {
@@ -84,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
         freeTerritoryList.innerHTML = '';
         freeTerritoriesTitle.style.display = 'block';
         
-        const filtered = allFreeTerritories.filter(t => t.type === filter && t.status === 'вільна');
+        const filtered = allTerritories.filter(t => t.type === filter && t.status === 'вільна');
 
         if (filtered.length === 0) {
             freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>';
@@ -107,6 +111,7 @@ document.addEventListener('DOMContentLoaded', function() {
         addBookingListeners();
     }
 
+    // --- ОБРОБНИКИ ПОДІЙ ---
     function addReturnListeners() {
         document.querySelectorAll('.btn-return').forEach(button => {
             button.addEventListener('click', function() {
@@ -124,49 +129,62 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.btn-book').forEach(button => {
             button.addEventListener('click', function() {
                 const territoryId = this.dataset.id;
-                requestTerritory(territoryId, this);
+                tg.showConfirm(`Ви впевнені, що хочете взяти територію ${territoryId}?`, (isConfirmed) => {
+                    if (isConfirmed) {
+                        bookTerritory(territoryId);
+                    }
+                });
             });
         });
     }
 
+    // --- ФУНКЦІЇ ЗВ'ЯЗКУ З API (ВИПРАВЛЕНО) ---
     function returnTerritory(territoryId) {
         tg.MainButton.setText("Повернення...").show().enable();
         fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) { throw new Error('Помилка мережі або сервера.'); }
+                return response.json();
+            })
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
                     fetchAllData();
                 } else {
-                    tg.showAlert(result.message);
+                    tg.showAlert(result.message || 'Сталася невідома помилка.');
                 }
             })
             .catch(error => {
                 tg.MainButton.hide();
-                tg.showAlert(`Сталася помилка: ${error.message}`);
+                tg.showAlert('Сталася критична помилка. Спробуйте пізніше.');
             });
     }
 
-    function requestTerritory(territoryId, buttonElement) {
-        tg.MainButton.setText("Надсилаю запит...").show().enable();
-        fetch(`${SCRIPT_URL}?action=requestTerritory&territoryId=${territoryId}&userId=${userId}`)
-            .then(response => response.json())
+    function bookTerritory(territoryId) {
+        tg.MainButton.setText("Бронювання...").show().enable();
+        fetch(`${SCRIPT_URL}?action=bookTerritory&territoryId=${territoryId}&userId=${userId}`)
+            .then(response => {
+                if (!response.ok) { throw new Error('Помилка мережі або сервера.'); }
+                return response.json();
+            })
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) {
-                    tg.showAlert(result.message);
-                    buttonElement.closest('.territory-item').classList.add('booked');
+                    const successMessage = result.message + "\n\nПам'ятайте, що термін опрацювання території - 4 місяці.";
+                    tg.showAlert(successMessage);
+                    fetchAllData();
                 } else {
-                    tg.showAlert(result.message);
+                    tg.showAlert(result.message || 'Сталася невідома помилка.');
                 }
             })
             .catch(error => {
                 tg.MainButton.hide();
-                tg.showAlert(`Сталася помилка: ${error.message}`);
+                tg.showAlert('Сталася критична помилка. Спробуйте пізніше.');
             });
     }
 
+    // --- ЗАВАНТАЖЕННЯ ДАНИХ ---
     function fetchAllData() {
         loader.style.display = 'block';
         myTerritoryList.innerHTML = '';
@@ -192,7 +210,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }).catch(error => {
             loader.style.display = 'none';
-            document.body.innerHTML = `<p>Критична помилка: ${error.message}</p>`;
+            document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані.</p>`;
         });
     }
     
