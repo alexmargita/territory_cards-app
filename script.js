@@ -9,9 +9,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoryList = document.getElementById('territory-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     
-    let allTerritories = [];
+    let allFreeTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
+    // --- ЛОГІКА ДЛЯ ВКЛАДОК ---
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => {
@@ -24,6 +25,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // --- ЛОГІКА ДЛЯ ФІЛЬТРІВ ---
     const filterButtons = document.querySelectorAll('.filter-btn');
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -34,6 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // --- ФУНКЦІЯ: Розрахунок залишку днів ---
     function calculateDaysRemaining(assignDateStr) {
         if (!assignDateStr || typeof assignDateStr !== 'string') return null;
         const assigned = new Date(assignDateStr);
@@ -48,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return diffDays > 0 ? diffDays : 0;
     }
 
+    // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ ---
     function displayMyTerritories(territories) {
         myTerritoryList.innerHTML = '';
         if (territories.length === 0) {
@@ -84,7 +88,7 @@ document.addEventListener('DOMContentLoaded', function() {
         freeTerritoryList.innerHTML = '';
         freeTerritoriesTitle.style.display = 'block';
         
-        const filtered = allTerritories.filter(t => t.type === filter && t.status === 'вільна');
+        const filtered = allFreeTerritories.filter(t => t.type === filter);
 
         if (filtered.length === 0) {
             freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>';
@@ -107,13 +111,14 @@ document.addEventListener('DOMContentLoaded', function() {
         addBookingListeners();
     }
 
+    // --- ОБРОБНИКИ ПОДІЙ ---
     function addReturnListeners() {
         document.querySelectorAll('.btn-return').forEach(button => {
             button.addEventListener('click', function() {
                 const territoryId = this.dataset.id;
-                tg.showConfirm(`Ви впевнені, що хочете здати територію ${territoryId}?`, (isConfirmed) => {
+                tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
                     if (isConfirmed) {
-                        returnTerritory(territoryId);
+                        returnTerritory(territoryId, this);
                     }
                 });
             });
@@ -124,21 +129,21 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.btn-book').forEach(button => {
             button.addEventListener('click', function() {
                 const territoryId = this.dataset.id;
-                // --- ЗМІНА: Немає підтвердження тут, бо воно буде в адміна ---
                 requestTerritory(territoryId, this);
             });
         });
     }
 
-    function returnTerritory(territoryId) {
-        tg.MainButton.setText("Повернення...").show().enable();
-        fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
+    // --- ФУНКЦІЇ ЗВ'ЯЗКУ З API ---
+    function returnTerritory(territoryId, buttonElement) {
+        tg.MainButton.setText("Надсилаю запит...").show().enable();
+        fetch(`${SCRIPT_URL}?action=requestReturn&territoryId=${territoryId}&userId=${userId}`)
             .then(response => response.json())
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
-                    fetchAllData();
+                    buttonElement.closest('.territory-item').classList.add('booked'); // Робимо картку неактивною
                 } else {
                     tg.showAlert(result.message || result.error || 'Сталася невідома помилка.');
                 }
@@ -149,7 +154,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // --- ФУНКЦІЯ bookTerritory ПЕРЕЙМЕНОВАНА НА requestTerritory ---
     function requestTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show().enable();
         fetch(`${SCRIPT_URL}?action=requestTerritory&territoryId=${territoryId}&userId=${userId}`)
@@ -169,6 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    // --- ЗАВАНТАЖЕННЯ ДАНИХ ---
     function fetchAllData() {
         loader.style.display = 'block';
         myTerritoryList.innerHTML = '';
@@ -184,7 +189,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (freeData.ok) {
-                allTerritories = freeData.territories;
+                allFreeTerritories = freeData.territories;
                 const activeFilter = document.querySelector('.filter-btn.active');
                 if (activeFilter) {
                     displayFreeTerritories(activeFilter.dataset.filter);
