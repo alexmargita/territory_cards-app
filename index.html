@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Вибір території</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Вільні території</h1>
+            <div class="filters">
+                <button id="filter-urban" class="filter-btn active">Міські</button>
+                <button id="filter-rural" class="filter-btn">Сільські</button>
+            </div>
+        </div>
+        <div id="loader" class="loader">Завантаження...</div>
+        <div id="territory-list" class="territory-list">
+            </div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

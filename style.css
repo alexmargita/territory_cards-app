@@ -1,0 +1,109 @@
+/* Базові стилі */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 15px;
+    background-color: var(--tg-theme-bg-color, #ffffff);
+    color: var(--tg-theme-text-color, #000000);
+}
+
+.container {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.header {
+    margin-bottom: 20px;
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+/* Фільтри */
+.filters {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.filter-btn {
+    flex-grow: 1;
+    padding: 10px;
+    border: 1px solid var(--tg-theme-button-color, #007bff);
+    background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+    color: var(--tg-theme-button-text-color, #007bff);
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+}
+
+.filter-btn.active {
+    background-color: var(--tg-theme-button-color, #007bff);
+    color: var(--tg-theme-button-text-color, #ffffff);
+}
+
+/* Список територій */
+.territory-item {
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    background-color: var(--tg-theme-secondary-bg-color, #f9f9f9);
+    border: 1px solid #eee;
+}
+
+.territory-item:nth-child(odd) {
+    background-color: var(--tg-theme-bg-color, #ffffff);
+}
+
+.territory-title {
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+
+/* --- НОВІ СТИЛІ --- */
+.territory-content {
+    display: flex;
+    align-items: center;
+    gap: 15px; /* Відступ між фото та кнопкою */
+}
+
+.territory-photo {
+    width: 65%; /* Ширина фото */
+    height: auto;
+    border-radius: 8px;
+    display: block;
+}
+
+.placeholder-photo {
+    width: 65%;
+    height: 80px;
+    border-radius: 8px;
+    background-color: #efefef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    font-size: 14px;
+}
+
+.btn-book {
+    flex-grow: 1; /* Кнопка займає решту місця */
+    padding: 20px 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: var(--tg-theme-button-color, #28a745);
+    color: var(--tg-theme-button-text-color, #ffffff);
+    height: 100%;
+}
+/* ------------------- */
+
+.loader {
+    text-align: center;
+    padding: 20px;
+    font-size: 18px;
+}
