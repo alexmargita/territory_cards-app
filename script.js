@@ -1,34 +1,70 @@
-// --- ВАЖЛИВЕ НАЛАШТУВАННЯ ---
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFlBN5_L1dr0fncI39EZuMoxnBqtW03g1--BkU9IosROoSxgqqRlTFFFrdp7GZN22M/exec";
-// ------------------------------
 
 document.addEventListener('DOMContentLoaded', function() {
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    const territoryList = document.getElementById('territory-list');
     const loader = document.getElementById('loader');
-    const filterUrbanBtn = document.getElementById('filter-urban');
-    const filterRuralBtn = document.getElementById('filter-rural');
-    let allTerritories = [];
+    const myTerritoryList = document.getElementById('my-territory-list');
+    const freeTerritoryList = document.getElementById('territory-list');
+    const freeTerritoriesTitle = document.getElementById('free-territories-title');
     
-    function displayTerritories(filter) {
-        territoryList.innerHTML = '';
-        const filtered = allTerritories.filter(t => t.type === filter);
+    let allFreeTerritories = [];
+    const userId = tg.initDataUnsafe.user.id;
+
+    // --- ЛОГІКА ДЛЯ ВКЛАДОК ---
+    const tabs = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    tabs.forEach(tab => {
+        tab.addEventListener('click', () => {
+            tabs.forEach(item => item.classList.remove('active'));
+            tab.classList.add('active');
+            const targetTab = document.getElementById(tab.dataset.tab);
+            tabContents.forEach(content => content.classList.remove('active'));
+            targetTab.classList.add('active');
+        });
+    });
+
+    // --- ЛОГІКА ДЛЯ ФІЛЬТРІВ ---
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            filterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            const filter = button.dataset.filter;
+            displayFreeTerritories(filter);
+        });
+    });
+
+    // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ ---
+    function displayMyTerritories(territories) {
+        myTerritoryList.innerHTML = '';
+        if (territories.length === 0) {
+            myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>';
+            return;
+        }
+        territories.forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'territory-item';
+            item.innerHTML = `<div class="territory-title">📍 ${t.id}. ${t.name}</div>`;
+            myTerritoryList.appendChild(item);
+        });
+    }
+
+    function displayFreeTerritories(filter) {
+        freeTerritoryList.innerHTML = '';
+        freeTerritoriesTitle.style.display = 'block';
+        const filtered = allFreeTerritories.filter(t => t.type === filter);
 
         if (filtered.length === 0) {
-            territoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>';
+            freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>';
             return;
         }
 
         filtered.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-            
-            const photoBlock = t.photoUrl
-                ? `<img class="territory-photo" src="${t.photoUrl}" alt="Фото території">`
-                : `<div class="placeholder-photo">Немає фото</div>`;
-
+            const photoBlock = t.photoUrl ? `<img class="territory-photo" src="${t.photoUrl}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
@@ -36,63 +72,70 @@ document.addEventListener('DOMContentLoaded', function() {
                     <button class="btn-book" data-id="${t.id}">✅ Обрати</button>
                 </div>
             `;
-            territoryList.appendChild(item);
+            freeTerritoryList.appendChild(item);
         });
+        addBookingListeners();
+    }
 
+    function addBookingListeners() {
         document.querySelectorAll('.btn-book').forEach(button => {
             button.addEventListener('click', function() {
                 const territoryId = this.dataset.id;
-                const userId = tg.initDataUnsafe.user.id;
-                
                 tg.showConfirm(`Ви впевнені, що хочете взяти територію ${territoryId}?`, (isConfirmed) => {
                     if (isConfirmed) {
-                        tg.showPopup({title: 'Бронювання...', message: 'Будь ласка, зачекайте.'});
-
-                        fetch(`${SCRIPT_URL}?action=book&territoryId=${territoryId}&userId=${userId}`)
-                            .then(response => response.json())
-                            .then(result => {
-                                if (result.ok) {
-                                    tg.showPopup({title: 'Успіх!', message: result.message});
-                                    button.closest('.territory-item').classList.add('booked');
-                                } else {
-                                    tg.showAlert(result.message);
-                                }
-                            })
-                            .catch(error => tg.showAlert(`Сталася помилка: ${error.message}`));
+                        bookTerritory(territoryId, this);
                     }
                 });
             });
         });
     }
 
+    function bookTerritory(territoryId, buttonElement) {
+        tg.MainButton.setText("Бронювання...").show();
+        fetch(`${SCRIPT_URL}?action=bookTerritory&territoryId=${territoryId}&userId=${userId}`)
+            .then(response => response.json())
+            .then(result => {
+                tg.MainButton.hide();
+                if (result.ok) {
+                    tg.showAlert(result.message);
+                    buttonElement.closest('.territory-item').classList.add('booked');
+                    // Оновлюємо список моїх територій
+                    fetchMyTerritories();
+                } else {
+                    tg.showAlert(result.message);
+                }
+            })
+            .catch(error => {
+                tg.MainButton.hide();
+                tg.showAlert(`Сталася помилка: ${error.message}`);
+            });
+    }
+
+    // --- ЗАВАНТАЖЕННЯ ДАНИХ ---
+    function fetchMyTerritories() {
+        fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.ok) {
+                    displayMyTerritories(data.territories);
+                }
+            });
+    }
+
+    function fetchAllFreeTerritories() {
+        fetch(SCRIPT_URL)
+            .then(response => response.json())
+            .then(data => {
+                loader.style.display = 'none';
+                if (data.ok) {
+                    allFreeTerritories = data.territories;
+                } else {
+                    document.body.innerHTML = `<p>Помилка завантаження даних: ${data.error}</p>`;
+                }
+            });
+    }
+
     loader.style.display = 'block';
-    fetch(SCRIPT_URL)
-        .then(response => response.json())
-        .then(data => {
-            loader.style.display = 'none';
-            if (data.ok) {
-                allTerritories = data.territories;
-                displayTerritories('міська');
-            } else {
-                territoryList.innerHTML = `<p>Помилка завантаження даних: ${data.error}</p>`;
-            }
-        })
-        .catch(error => {
-            loader.style.display = 'none';
-            territoryList.innerHTML = `<p>Критична помилка: ${error.message}</p>`;
-        });
-
-    // --- ВИПРАВЛЕНО: Додано логіку для фільтрів ---
-    filterUrbanBtn.addEventListener('click', () => {
-        displayTerritories('міська');
-        filterUrbanBtn.classList.add('active');
-        filterRuralBtn.classList.remove('active');
-    });
-
-    filterRuralBtn.addEventListener('click', () => {
-        displayTerritories('сільська');
-        filterRuralBtn.classList.add('active');
-        filterUrbanBtn.classList.remove('active');
-    });
-    // ------------------------------------------
+    fetchMyTerritories();
+    fetchAllFreeTerritories();
 });

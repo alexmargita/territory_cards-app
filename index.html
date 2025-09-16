@@ -3,23 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Вибір території</title>
+    <title>Території</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Вільні території</h1>
-            <div class="filters">
-                <button id="filter-urban" class="filter-btn active">Міські</button>
-                <button id="filter-rural" class="filter-btn">Сільські</button>
-            </div>
+    <div class="app-container">
+        <div class="tabs">
+            <button class="tab-button active" data-tab="my-territories">Мої території</button>
+            <button class="tab-button" data-tab="select-territory">Обрати територію</button>
         </div>
-        <div id="loader" class="loader">Завантаження...</div>
-        <div id="territory-list" class="territory-list">
-            </div>
-    </div>
 
+        <div id="my-territories" class="tab-content active">
+            <h2>Закріплені за вами:</h2>
+            <div id="my-territory-list"></div>
+        </div>
+
+        <div id="select-territory" class="tab-content">
+            <h2>Оберіть населений пункт:</h2>
+            <div class="filters">
+                <button class="filter-btn" data-filter="Тернопіль">Тернопіль</button>
+                <button class="filter-btn" data-filter="Березовиця">Березовиця</button>
+                <button class="filter-btn" data-filter="Острів">Острів</button>
+                <button class="filter-btn" data-filter="Мишковичі">Мишковичі</button>
+                <button class="filter-btn" data-filter="Берем'яни">Берем'яни</button>
+                <button class="filter-btn" data-filter="Жнибороди">Жнибороди</button>
+                <button class="filter-btn" data-filter="Новосілка">Новосілка</button>
+                <button class="filter-btn" data-filter="Дуліби">Дуліби</button>
+                <button class="filter-btn" data-filter="Велика Лука">Велика Лука</button>
+                <button class="filter-btn" data-filter="Настасів">Настасів</button>
+                <button class="filter-btn" data-filter="Йосипівка">Йосипівка</button>
+                <button class="filter-btn" data-filter="Прошова">Прошова</button>
+                <button class="filter-btn" data-filter="Остальці">Остальці</button>
+                <button class="filter-btn" data-filter="Сущин">Сущин</button>
+            </div>
+            <h2 id="free-territories-title" style="display: none;">Вільні території:</h2>
+            <div id="territory-list"></div>
+        </div>
+        
+        <div id="loader" class="loader">Завантаження...</div>
+    </div>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="script.js"></script>
 </body>
