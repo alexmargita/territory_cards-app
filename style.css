@@ -51,6 +51,7 @@ h1 {
     margin-bottom: 10px;
     background-color: var(--tg-theme-secondary-bg-color, #f9f9f9);
     border: 1px solid #eee;
+    transition: opacity 0.3s ease; /* Плавне зникнення */
 }
 
 .territory-item:nth-child(odd) {
@@ -63,7 +64,7 @@ h1 {
     margin-bottom: 10px;
 }
 
-/* --- НОВІ СТИЛІ --- */
+/* Блок з фото та кнопкою */
 .territory-content {
     display: flex;
     align-items: center;
@@ -100,10 +101,15 @@ h1 {
     color: var(--tg-theme-button-text-color, #ffffff);
     height: 100%;
 }
-/* ------------------- */
 
 .loader {
     text-align: center;
     padding: 20px;
     font-size: 18px;
+}
+
+/* Стиль для заброньованої території */
+.territory-item.booked {
+    opacity: 0.5;
+    pointer-events: none; /* Робить елемент неактивним */
 }
