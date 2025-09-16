@@ -1,6 +1,22 @@
-/* ... (весь ваш попередній код) ... */
+/* Базові стилі */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 15px;
+    background-color: var(--tg-theme-bg-color, #ffffff);
+    color: var(--tg-theme-text-color, #000000);
+}
+.app-container {
+    max-width: 100%;
+    margin: 0 auto;
+}
+h2 {
+    font-size: 20px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
 
-/* --- НОВІ СТИЛІ ДЛЯ ВКЛАДОК --- */
+/* Стилі для вкладок */
 .tabs {
     display: flex;
     border-bottom: 1px solid #ddd;
@@ -27,19 +43,22 @@
     display: block;
 }
 
-/* --- ОНОВЛЕНІ СТИЛІ ФІЛЬТРІВ --- */
+/* Стилі фільтрів */
 .filters {
     display: flex;
-    flex-wrap: wrap; /* Дозволяє кнопкам переноситись на новий рядок */
+    flex-wrap: wrap;
     gap: 10px;
     margin-bottom: 20px;
 }
 .filter-btn {
-    flex-grow: 0; /* Вимикаємо розтягування */
+    flex-grow: 0;
     padding: 8px 12px;
     background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
     color: var(--tg-theme-text-color, #000);
     border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
 }
 .filter-btn.active {
     background-color: var(--tg-theme-button-color, #007bff);
@@ -47,20 +66,68 @@
     border-color: var(--tg-theme-button-color, #007bff);
 }
 
-/* --- СТИЛІ ДЛЯ СПИСКУ "МОЇ ТЕРИТОРІЇ" --- */
-#my-territory-list .territory-item {
-    background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+/* Стилі для карток територій */
+.territory-item {
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    background-color: var(--tg-theme-secondary-bg-color, #f9f9f9);
+    border: 1px solid #eee;
+    transition: opacity 0.3s ease;
 }
-
-/* --- НОВИЙ СТИЛЬ ДЛЯ КНОПКИ ПОВЕРНЕННЯ --- */
-.btn-return {
+#select-territory .territory-item:nth-child(odd) {
+    background-color: var(--tg-theme-bg-color, #ffffff);
+}
+.territory-title {
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 10px;
+}
+.territory-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.territory-photo {
+    width: 120px;
+    height: 90px;
+    border-radius: 8px;
+    display: block;
+    object-fit: cover;
+}
+.placeholder-photo {
+    width: 120px;
+    height: 90px;
+    border-radius: 8px;
+    background-color: #efefef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    font-size: 14px;
+}
+.btn-book, .btn-return {
     flex-grow: 1;
     padding: 20px 10px;
     border-radius: 8px;
     border: none;
     font-size: 16px;
     cursor: pointer;
-    background-color: #dc3545; /* Червоний колір */
     color: #ffffff;
     height: 100%;
+}
+.btn-book {
+    background-color: var(--tg-theme-button-color, #28a745);
+}
+.btn-return {
+    background-color: #dc3545;
+}
+.territory-item.booked {
+    opacity: 0.5;
+    pointer-events: none;
+}
+.loader {
+    text-align: center;
+    padding: 20px;
+    font-size: 18px;
 }

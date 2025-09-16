@@ -9,7 +9,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoryList = document.getElementById('territory-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     
-    let allFreeTerritories = []; // Тепер тут зберігаються лише вільні території
+    let allFreeTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
     // --- ЛОГІКА ДЛЯ ВКЛАДОК ---
@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const territoryId = this.dataset.id;
                 tg.showConfirm(`Ви впевнені, що хочете здати територію ${territoryId}?`, (isConfirmed) => {
                     if (isConfirmed) {
-                        returnTerritory(territoryId, this);
+                        returnTerritory(territoryId);
                     }
                 });
             });
@@ -106,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const territoryId = this.dataset.id;
                 tg.showConfirm(`Ви впевнені, що хочете взяти територію ${territoryId}?`, (isConfirmed) => {
                     if (isConfirmed) {
-                        bookTerritory(territoryId, this);
+                        bookTerritory(territoryId);
                     }
                 });
             });
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- ФУНКЦІЇ ЗВ'ЯЗКУ З API ---
-    function returnTerritory(territoryId, buttonElement) {
+    function returnTerritory(territoryId) {
         tg.MainButton.setText("Повернення...").show().enable();
         fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
             .then(response => response.json())
@@ -122,7 +122,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
-                    // Перезавантажуємо всі дані, щоб оновити обидва списки
                     fetchAllData();
                 } else {
                     tg.showAlert(result.message);
@@ -134,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    function bookTerritory(territoryId, buttonElement) {
+    function bookTerritory(territoryId) {
         tg.MainButton.setText("Бронювання...").show().enable();
         fetch(`${SCRIPT_URL}?action=bookTerritory&territoryId=${territoryId}&userId=${userId}`)
             .then(response => response.json())
@@ -142,7 +141,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
-                    // Просто перезавантажуємо всі дані
                     fetchAllData();
                 } else {
                     tg.showAlert(result.message);
@@ -155,10 +153,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // --- ЗАВАНТАЖЕННЯ ДАНИХ ---
-    function fetchMyTerritories() {
-        // Ця функція більше не потрібна окремо, все завантажується в fetchAllData
-    }
-
     function fetchAllData() {
         loader.style.display = 'block';
         myTerritoryList.innerHTML = '';
@@ -181,10 +175,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 loader.style.display = 'none';
                 if (data.ok) {
                     allFreeTerritories = data.territories;
-                    // Перевіряємо, який фільтр активний, і показуємо відповідні території
                     const activeFilter = document.querySelector('.filter-btn.active');
                     if (activeFilter) {
                         displayFreeTerritories(activeFilter.dataset.filter);
+                    } else {
+                        // Якщо жоден фільтр не активний, можна нічого не показувати або показати щось за замовчуванням
+                        freeTerritoriesTitle.style.display = 'none';
                     }
                 } else {
                     document.body.innerHTML = `<p>Помилка завантаження даних: ${data.error}</p>`;
