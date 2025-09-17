@@ -94,6 +94,14 @@ h2 {
     border-radius: 8px;
     display: block;
     object-fit: cover;
+    cursor: pointer;
+    /* --- НОВІ ВЛАСТИВОСТІ ДЛЯ БЛОКУВАННЯ МЕНЮ --- */
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
+    -moz-user-select: none; /* Old Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently supported by Chrome, Opera and Firefox */
 }
 .placeholder-photo {
     width: 120px;
@@ -143,4 +151,37 @@ h2 {
 }
 .days-remaining.ending-soon {
     background-color: #f44336;
+}
+
+/* --- НОВІ СТИЛІ ДЛЯ ВІКНА ПЕРЕГЛЯДУ ЗОБРАЖЕНЬ --- */
+.image-modal {
+    display: none; /* Приховано за замовчуванням */
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.85);
+    justify-content: center;
+    align-items: center;
+}
+.image-modal.active {
+    display: flex; /* Показуємо при кліку */
+}
+.modal-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 90%;
+}
+.modal-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
 }

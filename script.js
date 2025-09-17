@@ -9,9 +9,15 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoryList = document.getElementById('territory-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     
+    // Елементи для перегляду фото
+    const imageModal = document.getElementById('image-modal');
+    const fullImage = document.getElementById('full-image');
+    const closeModalBtn = document.querySelector('.modal-close-btn');
+
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
+    // --- ЛОГІКА ДЛЯ ВКЛАДОК ---
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => {
@@ -24,6 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // --- ЛОГІКА ДЛЯ ФІЛЬТРІВ ---
     const filterButtons = document.querySelectorAll('.filter-btn');
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -34,6 +41,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // --- ФУНКЦІЯ: Розрахунок залишку днів ---
     function calculateDaysRemaining(assignDateStr) {
         if (!assignDateStr || typeof assignDateStr !== 'string') return null;
         const assigned = new Date(assignDateStr);
@@ -48,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
         return diffDays > 0 ? diffDays : 0;
     }
 
+    // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ ---
     function displayMyTerritories(territories) {
         myTerritoryList.innerHTML = '';
         if (territories.length === 0) {
@@ -57,16 +66,13 @@ document.addEventListener('DOMContentLoaded', function() {
         territories.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-
             const remainingDays = calculateDaysRemaining(t.date_assigned);
             let daysBlock = '';
             if (remainingDays !== null) {
                 const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
                 daysBlock = `<div class="days-remaining ${endingSoonClass}">Залишилось днів: ${remainingDays}</div>`;
             }
-
             const photoBlock = t.picture_id ? `<img class="territory-photo" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
-            
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
@@ -77,13 +83,12 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             myTerritoryList.appendChild(item);
         });
-        addReturnListeners();
+        addEventListeners();
     }
 
     function displayFreeTerritories(filter) {
         freeTerritoryList.innerHTML = '';
         freeTerritoriesTitle.style.display = 'block';
-        
         const filtered = allTerritories.filter(t => t.type === filter && t.status === 'вільна');
 
         if (filtered.length === 0) {
@@ -104,32 +109,52 @@ document.addEventListener('DOMContentLoaded', function() {
             `;
             freeTerritoryList.appendChild(item);
         });
-        addBookingListeners();
+        addEventListeners();
     }
 
-    function addReturnListeners() {
+    // --- ОБРОБНИКИ ПОДІЙ ---
+    function addEventListeners() {
         document.querySelectorAll('.btn-return').forEach(button => {
-            button.addEventListener('click', function() {
-                const territoryId = this.dataset.id;
-                tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
-                    if (isConfirmed) {
-                        returnTerritory(territoryId, this);
-                    }
-                });
-            });
+            button.addEventListener('click', handleReturnClick);
         });
-    }
-
-    function addBookingListeners() {
         document.querySelectorAll('.btn-book').forEach(button => {
-            button.addEventListener('click', function() {
-                const territoryId = this.dataset.id;
-                requestTerritory(territoryId, this);
-            });
+            button.addEventListener('click', handleBookClick);
+        });
+        document.querySelectorAll('.territory-photo').forEach(photo => {
+            photo.addEventListener('click', handlePhotoClick);
+            photo.addEventListener('contextmenu', e => e.preventDefault());
         });
     }
 
-    // --- ОНОВЛЕНА ФУНКЦІЯ ПОВЕРНЕННЯ ---
+    function handleReturnClick() {
+        const territoryId = this.dataset.id;
+        tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
+            if (isConfirmed) {
+                returnTerritory(territoryId, this);
+            }
+        });
+    }
+
+    function handleBookClick() {
+        const territoryId = this.dataset.id;
+        requestTerritory(territoryId, this);
+    }
+    
+    function handlePhotoClick() {
+        fullImage.src = this.src;
+        imageModal.classList.add('active');
+    }
+
+    closeModalBtn.addEventListener('click', () => {
+        imageModal.classList.remove('active');
+    });
+    imageModal.addEventListener('click', (e) => {
+        if (e.target === imageModal) {
+            imageModal.classList.remove('active');
+        }
+    });
+
+    // --- ФУНКЦІЇ ЗВ'ЯЗКУ З API ---
     function returnTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show().enable();
         fetch(`${SCRIPT_URL}?action=requestReturn&territoryId=${territoryId}&userId=${userId}`)
@@ -168,6 +193,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    // --- ЗАВАНТАЖЕННЯ ДАНИХ ---
     function fetchAllData() {
         loader.style.display = 'block';
         myTerritoryList.innerHTML = '';
