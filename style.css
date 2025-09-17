@@ -94,6 +94,7 @@ h2 {
     border-radius: 8px;
     display: block;
     object-fit: cover;
+    cursor: pointer; /* Додамо курсор, щоб було зрозуміло, що фото клікабельне */
 }
 .placeholder-photo {
     width: 120px;
@@ -122,10 +123,6 @@ h2 {
 .btn-return {
     background-color: #dc3545;
 }
-.territory-item.booked {
-    opacity: 0.5;
-    pointer-events: none;
-}
 .loader {
     text-align: center;
     padding: 20px;
@@ -143,4 +140,52 @@ h2 {
 }
 .days-remaining.ending-soon {
     background-color: #f44336;
+}
+
+/* Стилі для модального вікна */
+.image-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+}
+.image-modal.active {
+    display: flex;
+}
+.modal-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 80%;
+}
+.modal-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.modal-actions {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.modal-btn {
+    padding: 10px 20px;
+    background-color: var(--tg-theme-button-color, #007bff);
+    color: var(--tg-theme-button-text-color, #ffffff);
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
 }
