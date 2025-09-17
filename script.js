@@ -10,6 +10,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     
     let allFreeTerritories = [];
+    let allMyTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
     // --- ЛОГІКА ДЛЯ ВКЛАДОК ---
@@ -137,13 +138,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- ФУНКЦІЇ ЗВ'ЯЗКУ З API ---
     function returnTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show().enable();
-        fetch(`${SCRIPT_URL}?action=requestReturn&territoryId=${territoryId}&userId=${userId}`)
+        fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
             .then(response => response.json())
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
-                    buttonElement.closest('.territory-item').classList.add('booked'); // Робимо картку неактивною
+                    buttonElement.closest('.territory-item').classList.add('booked');
                 } else {
                     tg.showAlert(result.message || result.error || 'Сталася невідома помилка.');
                 }
