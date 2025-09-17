@@ -1,3 +1,7 @@
+// --- URL-адреса до папки з зображеннями на GitHub ---
+const GITHUB_BASE_URL = "https://raw.githubusercontent.com/alexmargita/territory_cards-app/main/images/";
+// --------------------
+
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFlBN5_L1dr0fncI39EZuMoxnBqtW03g1--BkU9IosROoSxgqqRlTFFFrdp7GZN22M/exec";
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -31,14 +35,27 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    /**
+     * Створює HTML-блок для фотографії.
+     * @param {object} territory - Об'єкт з даними про територію.
+     * @returns {string} HTML-рядок.
+     */
+    function createPhotoBlock(territory) {
+        if (!territory.picture_id) {
+            return `<div class="placeholder-photo">Немає фото</div>`;
+        }
+        // Формуємо повну URL-адресу до фото та передаємо всі дані в data-атрибут
+        const imageUrl = GITHUB_BASE_URL + territory.picture_id;
+        const territoryData = JSON.stringify(territory);
+        return `<img class="territory-photo" data-territory='${territoryData}' src="${imageUrl}" alt="Фото">`;
+    }
+    
     function calculateDaysRemaining(assignDateStr) {
         if (!assignDateStr || typeof assignDateStr !== 'string') return null;
         const assigned = new Date(assignDateStr);
         if (isNaN(assigned.getTime())) return null;
-        
         const deadline = new Date(assigned.getTime());
         deadline.setDate(deadline.getDate() + 120);
-        
         const today = new Date();
         const diffTime = deadline - today;
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -54,10 +71,8 @@ document.addEventListener('DOMContentLoaded', function() {
         territories.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-
             const remainingDays = calculateDaysRemaining(t.date_assigned);
             let daysBlock = '';
-
             if (remainingDays !== null) {
                 const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
                 const progressPercent = Math.min((remainingDays / 120) * 100, 100);
@@ -67,20 +82,15 @@ document.addEventListener('DOMContentLoaded', function() {
                             <div class="progress-bar-fill" style="width: ${progressPercent}%;"></div>
                         </div>
                         <span class="progress-bar-text">Залишилось днів: ${remainingDays}</span>
-                    </div>
-                `;
+                    </div>`;
             }
-
-            const photoBlock = t.picture_id ? `<img class="territory-photo" data-id="${t.id}" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
-            
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
-                    ${photoBlock}
+                    ${createPhotoBlock(t)}
                     <button class="btn-return" data-id="${t.id}">↩️ Здати</button>
                 </div>
-                ${daysBlock}
-            `;
+                ${daysBlock}`;
             myTerritoryList.appendChild(item);
         });
     }
@@ -89,23 +99,19 @@ document.addEventListener('DOMContentLoaded', function() {
         freeTerritoryList.innerHTML = '';
         freeTerritoriesTitle.style.display = 'block';
         const filtered = allTerritories.filter(t => t.type === filter && t.category === 'territory' && t.status === 'вільна');
-
         if (filtered.length === 0) {
             freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>';
             return;
         }
-
         filtered.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-            const photoBlock = t.picture_id ? `<img class="territory-photo" data-id="${t.id}" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
-                    ${photoBlock}
+                    ${createPhotoBlock(t)}
                     <button class="btn-book" data-id="${t.id}">✅ Обрати</button>
-                </div>
-            `;
+                </div>`;
             freeTerritoryList.appendChild(item);
         });
     }
@@ -113,21 +119,16 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayGeneralMaps() {
         generalMapsList.innerHTML = '';
         const maps = allTerritories.filter(t => t.category === 'map');
-        
         if (maps.length === 0) {
             generalMapsList.innerHTML = '<p>Загальні карти відсутні.</p>';
             return;
         }
-
         maps.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-            const photoBlock = t.picture_id ? `<img class="territory-photo" data-id="${t.id}" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
-            
             item.innerHTML = `
                 <div class="territory-title">🗺️ ${t.name}</div>
-                ${photoBlock}
-            `;
+                ${createPhotoBlock(t)}`;
             generalMapsList.appendChild(item);
         });
     }
@@ -139,31 +140,21 @@ document.addEventListener('DOMContentLoaded', function() {
             button.className = 'filter-btn';
             button.dataset.filter = filter;
             button.textContent = filter;
-            if (index === 0) {
-                button.classList.add('active');
-            }
+            if (index === 0) button.classList.add('active');
             filtersContainer.appendChild(button);
         });
     }
 
     document.body.addEventListener('click', function(event) {
         const target = event.target;
-        
-        if (target.classList.contains('territory-photo')) {
-            handlePhotoClick(target);
-        }
-
+        if (target.classList.contains('territory-photo')) handlePhotoClick(target);
         if (target.classList.contains('btn-return')) {
             const territoryId = target.dataset.id;
             tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
                 if (isConfirmed) returnTerritory(territoryId);
             });
         }
-
-        if (target.classList.contains('btn-book')) {
-            requestTerritory(target.dataset.id);
-        }
-
+        if (target.classList.contains('btn-book')) requestTerritory(target.dataset.id);
         if (target.classList.contains('filter-btn')) {
             filtersContainer.querySelector('.active')?.classList.remove('active');
             target.classList.add('active');
@@ -172,51 +163,50 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function handlePhotoClick(photoElement) {
+        const territoryData = JSON.parse(photoElement.dataset.territory);
         fullImage.src = photoElement.src;
-        imageModal.dataset.imageUrl = photoElement.src;
-        imageModal.dataset.territoryId = photoElement.dataset.id;
+        imageModal.dataset.photoId = territoryData.picture_id; // Тепер тут назва файлу
+        imageModal.dataset.caption = `📍 ${territoryData.id ? territoryData.id + '.' : ''} ${territoryData.name}`; // Додано перевірку наявності ID
         imageModal.classList.add('active');
     }
 
-    closeModalBtn.addEventListener('click', () => {
-        imageModal.classList.remove('active');
-    });
-
+    closeModalBtn.addEventListener('click', () => imageModal.classList.remove('active'));
     imageModal.addEventListener('click', (e) => {
-        if (e.target === imageModal) {
-            imageModal.classList.remove('active');
-        }
+        if (e.target === imageModal) imageModal.classList.remove('active');
     });
-    
-    // --- ОНОВЛЕНО: Логіка кнопки завантаження ---
-    modalDownloadBtn.addEventListener('click', () => {
-        const imageUrl = imageModal.dataset.imageUrl;
-        const territoryId = imageModal.dataset.territoryId;
-        
-        tg.showPopup({title: 'Завантаження...', message: 'Готуємо файл...'});
 
-        fetch(imageUrl)
-            .then(response => response.blob())
-            .then(blob => {
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.style.display = 'none';
-                a.href = url;
-                // Надаємо ім'я файлу для завантаження
-                a.download = `territory_${territoryId}.jpg`;
-                
-                document.body.appendChild(a);
-                a.click(); // Імітуємо клік по посиланню, що ініціює завантаження
-                
-                // Очищуємо та видаляємо елемент
-                window.URL.revokeObjectURL(url);
-                a.remove();
-                
-                tg.closePopup();
+    modalDownloadBtn.addEventListener('click', () => {
+        const photoId = imageModal.dataset.photoId; // Отримуємо назву файлу
+        const caption = imageModal.dataset.caption;
+
+        if (!photoId || !caption) {
+            tg.showAlert('Не вдалося отримати дані для надсилання.');
+            return;
+        }
+
+        tg.MainButton.setText("Надсилаю фото в чат...").showProgress();
+
+        const params = new URLSearchParams({
+            action: 'sendPhotoToUser',
+            userId: userId,
+            photoId: photoId, // Надсилаємо назву файлу
+            caption: caption
+        });
+
+        fetch(`${SCRIPT_URL}?${params.toString()}`)
+            .then(response => response.json())
+            .then(result => {
+                tg.MainButton.hide(); // Прибираємо прогрес і кнопку
+                if (result.ok) {
+                    tg.showAlert('Фото успішно надіслано у ваш чат з ботом!');
+                    imageModal.classList.remove('active');
+                } else {
+                    tg.showAlert(result.error || 'Сталася помилка під час надсилання.');
+                }
             })
-            .catch(() => {
-                tg.closePopup();
-                tg.showAlert('Не вдалося завантажити файл. Спробуйте зберегти його вручну, відкривши в новому вікні.');
+            .catch(error => {
+                tg.MainButton.hide();
+                tg.showAlert('Критична помилка. Не вдалося виконати запит.');
             });
     });
 
@@ -269,19 +259,15 @@ document.addEventListener('DOMContentLoaded', function() {
             fetch(SCRIPT_URL).then(res => res.json())
         ]).then(([myData, allData]) => {
             loader.style.display = 'none';
-
-            if (myData.ok) {
-                displayMyTerritories(myData.territories);
-            }
+            if (myData.ok) displayMyTerritories(myData.territories);
             
             if (allData.ok) {
                 allTerritories = allData.territories;
-
                 const predefinedOrder = ["Тернопіль", "Березовиця", "Острів", "Буцнів"];
-                function getDistance(name) {
+                const getDistance = name => {
                     const match = name.match(/\((\d+)км\)/);
                     return match ? parseInt(match[1], 10) : Infinity;
-                }
+                };
                 const sortedFilters = allData.filters.sort((a, b) => {
                     const indexA = predefinedOrder.indexOf(a);
                     const indexB = predefinedOrder.indexOf(b);
@@ -290,14 +276,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (indexB !== -1) return 1;
                     return getDistance(a) - getDistance(b);
                 });
-
                 displayFilters(sortedFilters);
                 displayGeneralMaps();
-
                 const activeFilter = document.querySelector('.filter-btn.active');
-                if (activeFilter) {
-                    displayFreeTerritories(activeFilter.dataset.filter);
-                }
+                if (activeFilter) displayFreeTerritories(activeFilter.dataset.filter);
             } else {
                  document.body.innerHTML = `<p>Помилка завантаження даних: ${allData.error}</p>`;
             }
