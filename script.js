@@ -1,7 +1,7 @@
 // Реєстрація Service Worker для кешування
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.service-worker.register('sw.js').then(registration => {
+    navigator.serviceWorker.register('sw.js').then(registration => {
       console.log('ServiceWorker registration successful with scope: ', registration.scope);
     }, err => {
       console.log('ServiceWorker registration failed: ', err);
@@ -30,7 +30,6 @@ document.addEventListener('DOMContentLoaded', function() {
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
-    // Слухаємо події, надіслані від бота для миттєвого оновлення
     tg.onEvent('customEvent', function(eventData) {
         if (eventData.type === 'reload_my_territories') {
             fetchAllData();
@@ -40,7 +39,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     
-    // --- ОНОВЛЕНО: Логіка перемикання вкладок ---
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(item => item.classList.remove('active'));
@@ -49,20 +47,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetTabContent = document.getElementById(targetTabId);
             tabContents.forEach(content => content.classList.remove('active'));
             targetTabContent.classList.add('active');
-
-            // Якщо користувач перейшов на вкладку "Мої території", оновлюємо її
             if (targetTabId === 'my-territories') {
                 fetchMyTerritories();
             }
         });
     });
 
-    /**
-     * НОВА ФУНКЦІЯ: Отримує та відображає лише список "Моїх територій".
-     */
     function fetchMyTerritories() {
         myTerritoryList.innerHTML = `<div class="loader" style="font-size: 16px;">Оновлення...</div>`;
-        
         fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`)
             .then(res => res.json())
             .then(myData => {
@@ -78,16 +70,10 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function createPhotoBlock(territory) {
-        if (!territory.picture_id) {
-            return `<div class="placeholder-photo">Немає фото</div>`;
-        }
+        if (!territory.picture_id) { return `<div class="placeholder-photo">Немає фото</div>`; }
         const imageUrl = GITHUB_BASE_URL + territory.picture_id;
         const caption = `📍 ${territory.id ? territory.id + '.' : ''} ${territory.name}`;
-        return `<img class="territory-photo" 
-                     src="${imageUrl}" 
-                     data-photo-id="${territory.picture_id}"
-                     data-caption="${caption}"
-                     alt="Фото">`;
+        return `<img class="territory-photo" src="${imageUrl}" data-photo-id="${territory.picture_id}" data-caption="${caption}" alt="Фото">`;
     }
     
     function calculateDaysRemaining(assignDateStr) {
@@ -104,10 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function displayMyTerritories(territories) {
         myTerritoryList.innerHTML = '';
-        if (territories.length === 0) {
-            myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>';
-            return;
-        }
+        if (territories.length === 0) { myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>'; return; }
         territories.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
@@ -116,21 +99,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (remainingDays !== null) {
                 const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
                 const progressPercent = Math.min((remainingDays / 120) * 100, 100);
-                daysBlock = `
-                    <div class="progress-bar-container ${endingSoonClass}">
-                        <div class="progress-bar-track">
-                            <div class="progress-bar-fill" style="width: ${progressPercent}%;"></div>
-                        </div>
-                        <span class="progress-bar-text">Залишилось днів: ${remainingDays}</span>
-                    </div>`;
+                daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
             }
-            item.innerHTML = `
-                <div class="territory-title">📍 ${t.id}. ${t.name}</div>
-                <div class="territory-content">
-                    ${createPhotoBlock(t)}
-                    <button class="btn-return" data-id="${t.id}">↩️ Здати</button>
-                </div>
-                ${daysBlock}`;
+            item.innerHTML = `<div class="territory-title">📍 ${t.id}. ${t.name}</div><div class="territory-content">${createPhotoBlock(t)}<button class="btn-return" data-id="${t.id}">↩️ Здати</button></div>${daysBlock}`;
             myTerritoryList.appendChild(item);
         });
     }
@@ -139,19 +110,11 @@ document.addEventListener('DOMContentLoaded', function() {
         freeTerritoryList.innerHTML = '';
         freeTerritoriesTitle.style.display = 'block';
         const filtered = allTerritories.filter(t => t.type === filter && t.category === 'territory' && t.status === 'вільна');
-        if (filtered.length === 0) {
-            freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>';
-            return;
-        }
+        if (filtered.length === 0) { freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>'; return; }
         filtered.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-            item.innerHTML = `
-                <div class="territory-title">📍 ${t.id}. ${t.name}</div>
-                <div class="territory-content">
-                    ${createPhotoBlock(t)}
-                    <button class="btn-book" data-id="${t.id}">✅ Обрати</button>
-                </div>`;
+            item.innerHTML = `<div class="territory-title">📍 ${t.id}. ${t.name}</div><div class="territory-content">${createPhotoBlock(t)}<button class="btn-book" data-id="${t.id}">✅ Обрати</button></div>`;
             freeTerritoryList.appendChild(item);
         });
     }
@@ -159,16 +122,11 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayGeneralMaps() {
         generalMapsList.innerHTML = '';
         const maps = allTerritories.filter(t => t.category === 'map');
-        if (maps.length === 0) {
-            generalMapsList.innerHTML = '<p>Загальні карти відсутні.</p>';
-            return;
-        }
+        if (maps.length === 0) { generalMapsList.innerHTML = '<p>Загальні карти відсутні.</p>'; return; }
         maps.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-            item.innerHTML = `
-                <div class="territory-title">🗺️ ${t.name}</div>
-                ${createPhotoBlock(t)}`;
+            item.innerHTML = `<div class="territory-title">🗺️ ${t.name}</div>${createPhotoBlock(t)}`;
             generalMapsList.appendChild(item);
         });
     }
@@ -191,10 +149,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.classList.contains('btn-return')) {
             const territoryId = target.dataset.id;
             tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
-                if (isConfirmed) returnTerritory(territoryId);
+                if (isConfirmed) returnTerritory(territoryId, target);
             });
         }
-        if (target.classList.contains('btn-book')) requestTerritory(target.dataset.id);
+        if (target.classList.contains('btn-book')) {
+            requestTerritory(target.dataset.id, target);
+        }
         if (target.classList.contains('filter-btn')) {
             filtersContainer.querySelector('.active')?.classList.remove('active');
             target.classList.add('active');
@@ -248,7 +208,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    function returnTerritory(territoryId) {
+    function returnTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show().enable();
         fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
             .then(response => response.json())
@@ -256,7 +216,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
-                    fetchAllData();
+                    // --- ВИДАЛЕНО: fetchAllData() ---
+                    // Натомість робимо кнопку неактивною
+                    buttonElement.textContent = 'Очікує...';
+                    buttonElement.disabled = true;
                 } else {
                     tg.showAlert(result.message || result.error || 'Сталася невідома помилка.');
                 }
@@ -267,7 +230,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    function requestTerritory(territoryId) {
+    function requestTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show().enable();
         fetch(`${SCRIPT_URL}?action=requestTerritory&territoryId=${territoryId}&userId=${userId}`)
             .then(response => response.json())
@@ -275,7 +238,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
-                    fetchAllData();
+                    // --- ВИДАЛЕНО: fetchAllData() ---
+                    // Натомість робимо кнопку неактивною
+                    buttonElement.textContent = 'Очікує...';
+                    buttonElement.disabled = true;
                 } else {
                     tg.showAlert(result.message || result.error || 'Сталася невідома помилка.');
                 }
