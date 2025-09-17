@@ -13,8 +13,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const imageModal = document.getElementById('image-modal');
     const fullImage = document.getElementById('full-image');
     const closeModalBtn = document.querySelector('.modal-close-btn');
+    const modalDownloadBtn = document.getElementById('modal-download-btn');
+    const modalShareBtn = document.getElementById('modal-share-btn');
 
     let allTerritories = [];
+    let myTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
     // --- ЛОГІКА ДЛЯ ВКЛАДОК ---
@@ -58,6 +61,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ ---
     function displayMyTerritories(territories) {
+        myTerritories = territories;
         myTerritoryList.innerHTML = '';
         if (territories.length === 0) {
             myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>';
@@ -66,13 +70,16 @@ document.addEventListener('DOMContentLoaded', function() {
         territories.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
+
             const remainingDays = calculateDaysRemaining(t.date_assigned);
             let daysBlock = '';
             if (remainingDays !== null) {
                 const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
                 daysBlock = `<div class="days-remaining ${endingSoonClass}">Залишилось днів: ${remainingDays}</div>`;
             }
-            const photoBlock = t.picture_id ? `<img class="territory-photo" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
+
+            const photoBlock = t.picture_id ? `<img class="territory-photo" data-id="${t.id}" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
+            
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
@@ -99,7 +106,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filtered.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-            const photoBlock = t.picture_id ? `<img class="territory-photo" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
+            const photoBlock = t.picture_id ? `<img class="territory-photo" data-id="${t.id}" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
@@ -114,12 +121,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- ОБРОБНИКИ ПОДІЙ ---
     function addEventListeners() {
-        document.querySelectorAll('.btn-return').forEach(button => {
-            button.addEventListener('click', handleReturnClick);
-        });
-        document.querySelectorAll('.btn-book').forEach(button => {
-            button.addEventListener('click', handleBookClick);
-        });
+        document.querySelectorAll('.btn-return').forEach(button => button.addEventListener('click', handleReturnClick));
+        document.querySelectorAll('.btn-book').forEach(button => button.addEventListener('click', handleBookClick));
         document.querySelectorAll('.territory-photo').forEach(photo => {
             photo.addEventListener('click', handlePhotoClick);
             photo.addEventListener('contextmenu', e => e.preventDefault());
@@ -141,7 +144,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function handlePhotoClick() {
-        fullImage.src = this.src;
+        const photoSrc = this.src;
+        const territoryId = this.dataset.id;
+        
+        fullImage.src = photoSrc;
+        modalDownloadBtn.href = photoSrc;
+        modalDownloadBtn.download = `territory_${territoryId}.jpg`;
+
         imageModal.classList.add('active');
     }
 
@@ -153,11 +162,26 @@ document.addEventListener('DOMContentLoaded', function() {
             imageModal.classList.remove('active');
         }
     });
+    
+    modalShareBtn.addEventListener('click', () => {
+        const imageUrl = fullImage.src;
+        const territoryId = modalDownloadBtn.download.split('.')[0].replace('territory_', '');
+
+        if (navigator.share) {
+            navigator.share({
+                title: `Територія ${territoryId}`,
+                text: `Фото картки для території ${territoryId}`,
+                url: window.location.href // Поширюємо посилання на сам додаток
+            }).catch(error => console.log('Помилка поширення', error));
+        } else {
+            tg.showAlert('На жаль, ваш пристрій не підтримує цю функцію.');
+        }
+    });
 
     // --- ФУНКЦІЇ ЗВ'ЯЗКУ З API ---
     function returnTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show().enable();
-        fetch(`${SCRIPT_URL}?action=requestReturn&territoryId=${territoryId}&userId=${userId}`)
+        fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
             .then(response => response.json())
             .then(result => {
                 tg.MainButton.hide();
