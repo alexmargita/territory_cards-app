@@ -81,6 +81,15 @@ document.addEventListener('DOMContentLoaded', function() {
                      loading="lazy">`;
     }
     
+    function createNoteIcon(territory) {
+        // --- ОНОВЛЕНО: Тепер перевіряємо поле 'info' ---
+        if (territory.info && territory.info.trim() !== '') {
+            const noteText = territory.info.replace(/"/g, '&quot;');
+            return `<span class="note-icon" data-note="${noteText}">i</span>`;
+        }
+        return '';
+    }
+
     function calculateDaysRemaining(assignDateStr) {
         if (!assignDateStr || typeof assignDateStr !== 'string') return null;
         const assigned = new Date(assignDateStr);
@@ -106,7 +115,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 const progressPercent = Math.min((remainingDays / 120) * 100, 100);
                 daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
             }
-            item.innerHTML = `<div class="territory-title">📍 ${t.id}. ${t.name}</div><div class="territory-content">${createPhotoBlock(t)}<button class="btn-return" data-id="${t.id}">↩️ Здати</button></div>${daysBlock}`;
+            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<button class="btn-return" data-id="${t.id}">↩️ Здати</button></div>${daysBlock}`;
             myTerritoryList.appendChild(item);
         });
     }
@@ -119,7 +128,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filtered.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-            item.innerHTML = `<div class="territory-title">📍 ${t.id}. ${t.name}</div><div class="territory-content">${createPhotoBlock(t)}<button class="btn-book" data-id="${t.id}">✅ Обрати</button></div>`;
+            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<button class="btn-book" data-id="${t.id}">✅ Обрати</button></div>`;
             freeTerritoryList.appendChild(item);
         });
     }
@@ -131,7 +140,7 @@ document.addEventListener('DOMContentLoaded', function() {
         maps.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-            item.innerHTML = `<div class="territory-title">🗺️ ${t.name}</div>${createPhotoBlock(t)}`;
+            item.innerHTML = `<div class="territory-title"><span>🗺️ ${t.name}</span> ${createNoteIcon(t)}</div>${createPhotoBlock(t)}`;
             generalMapsList.appendChild(item);
         });
     }
@@ -150,6 +159,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     document.body.addEventListener('click', function(event) {
         const target = event.target;
+        if (target.classList.contains('note-icon')) {
+            const noteText = target.dataset.note;
+            if (noteText) {
+                tg.showAlert(noteText);
+            }
+        }
         if (target.classList.contains('territory-photo')) handlePhotoClick(target);
         if (target.classList.contains('btn-return')) {
             const territoryId = target.dataset.id;
@@ -233,7 +248,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // --- ОНОВЛЕНО: Функція requestTerritory ---
     function requestTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show().enable();
         fetch(`${SCRIPT_URL}?action=requestTerritory&territoryId=${territoryId}&userId=${userId}`)
@@ -242,14 +256,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
-                    // Знаходимо батьківську картку території
                     const territoryItem = buttonElement.closest('.territory-item');
                     if (territoryItem) {
-                        // Плавно ховаємо картку і потім видаляємо її
                         territoryItem.style.opacity = '0';
                         setTimeout(() => {
                             territoryItem.remove();
-                        }, 300); // Час має відповідати анімації в CSS
+                        }, 300);
                     }
                 } else {
                     tg.showAlert(result.message || result.error || 'Сталася невідома помилка.');

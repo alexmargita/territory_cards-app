@@ -89,7 +89,32 @@ h2 {
     font-weight: bold;
     font-size: 18px;
     margin-bottom: 10px;
+    /* Оновлено для позиціонування іконки */
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
 }
+
+/* --- НОВІ СТИЛІ: Іконка для приміток --- */
+.note-icon {
+    font-family: 'Georgia', serif;
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--tg-theme-button-color, #007bff);
+    background-color: var(--tg-theme-secondary-bg-color, #e9ecef);
+    border: 1px solid var(--tg-theme-button-color, #007bff);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0; /* Щоб іконка не стискалася */
+    user-select: none; /* Заборона виділення тексту "і" */
+}
+
 .territory-content {
     display: flex;
     align-items: center;
@@ -136,7 +161,7 @@ h2 {
     font-size: 18px;
 }
 
-/* --- ОНОВЛЕНО: Стилі прогрес-бару --- */
+/* Стилі прогрес-бару */
 .progress-bar-container {
     position: relative;
     width: 100%;
@@ -149,7 +174,7 @@ h2 {
     background-color: #e9ecef;
     border-radius: 8px;
     overflow: hidden;
-    border: 1px solid #ccc; /* Додано загальний контур */
+    border: 1px solid #ccc;
 }
 .progress-bar-fill {
     height: 100%;
@@ -165,7 +190,7 @@ h2 {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    color: #000000; /* Змінено колір тексту на чорний */
+    color: #000000;
     font-weight: bold;
     font-size: 14px;
 }
