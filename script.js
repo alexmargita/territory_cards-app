@@ -9,11 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoryList = document.getElementById('territory-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     
-    let allFreeTerritories = [];
-    let allMyTerritories = [];
+    let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
-    // --- ЛОГІКА ДЛЯ ВКЛАДОК ---
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     tabs.forEach(tab => {
@@ -26,7 +24,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- ЛОГІКА ДЛЯ ФІЛЬТРІВ ---
     const filterButtons = document.querySelectorAll('.filter-btn');
     filterButtons.forEach(button => {
         button.addEventListener('click', () => {
@@ -37,7 +34,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- ФУНКЦІЯ: Розрахунок залишку днів ---
     function calculateDaysRemaining(assignDateStr) {
         if (!assignDateStr || typeof assignDateStr !== 'string') return null;
         const assigned = new Date(assignDateStr);
@@ -52,7 +48,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return diffDays > 0 ? diffDays : 0;
     }
 
-    // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ ---
     function displayMyTerritories(territories) {
         myTerritoryList.innerHTML = '';
         if (territories.length === 0) {
@@ -89,7 +84,7 @@ document.addEventListener('DOMContentLoaded', function() {
         freeTerritoryList.innerHTML = '';
         freeTerritoriesTitle.style.display = 'block';
         
-        const filtered = allFreeTerritories.filter(t => t.type === filter);
+        const filtered = allTerritories.filter(t => t.type === filter && t.status === 'вільна');
 
         if (filtered.length === 0) {
             freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>';
@@ -112,14 +107,13 @@ document.addEventListener('DOMContentLoaded', function() {
         addBookingListeners();
     }
 
-    // --- ОБРОБНИКИ ПОДІЙ ---
     function addReturnListeners() {
         document.querySelectorAll('.btn-return').forEach(button => {
             button.addEventListener('click', function() {
                 const territoryId = this.dataset.id;
-                tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
+                tg.showConfirm(`Ви впевнені, що хочете здати територію ${territoryId}?`, (isConfirmed) => {
                     if (isConfirmed) {
-                        returnTerritory(territoryId, this);
+                        returnTerritory(territoryId);
                     }
                 });
             });
@@ -135,16 +129,15 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- ФУНКЦІЇ ЗВ'ЯЗКУ З API ---
-    function returnTerritory(territoryId, buttonElement) {
-        tg.MainButton.setText("Надсилаю запит...").show().enable();
+    function returnTerritory(territoryId) {
+        tg.MainButton.setText("Повернення...").show().enable();
         fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
             .then(response => response.json())
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
-                    buttonElement.closest('.territory-item').classList.add('booked');
+                    fetchAllData();
                 } else {
                     tg.showAlert(result.message || result.error || 'Сталася невідома помилка.');
                 }
@@ -174,7 +167,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // --- ЗАВАНТАЖЕННЯ ДАНИХ ---
     function fetchAllData() {
         loader.style.display = 'block';
         myTerritoryList.innerHTML = '';
@@ -190,7 +182,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (freeData.ok) {
-                allFreeTerritories = freeData.territories;
+                allTerritories = freeData.territories;
                 const activeFilter = document.querySelector('.filter-btn.active');
                 if (activeFilter) {
                     displayFreeTerritories(activeFilter.dataset.filter);
