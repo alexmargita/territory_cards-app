@@ -1,7 +1,15 @@
-// --- URL-адреса до папки з зображеннями на GitHub ---
-const GITHUB_BASE_URL = "https://raw.githubusercontent.com/alexmargita/territory_cards-app/main/images/";
-// --------------------
+// Реєстрація Service Worker для кешування
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').then(registration => {
+      console.log('ServiceWorker registration successful with scope: ', registration.scope);
+    }, err => {
+      console.log('ServiceWorker registration failed: ', err);
+    });
+  });
+}
 
+const GITHUB_BASE_URL = "https://raw.githubusercontent.com/alexmargita/territory_cards-app/main/images/";
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFlBN5_L1dr0fncI39EZuMoxnBqtW03g1--BkU9IosROoSxgqqRlTFFFrdp7GZN22M/exec";
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -14,7 +22,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const generalMapsList = document.getElementById('general-maps-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     const filtersContainer = document.getElementById('filters-container');
-    
     const imageModal = document.getElementById('image-modal');
     const fullImage = document.getElementById('full-image');
     const closeModalBtn = document.querySelector('.modal-close-btn');
@@ -22,6 +29,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
+
+    // Слухаємо події, надіслані від бота для миттєвого оновлення
+    tg.onEvent('customEvent', function(eventData) {
+        if (eventData.type === 'reload_my_territories') {
+            fetchAllData();
+        }
+    });
 
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -39,10 +53,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!territory.picture_id) {
             return `<div class="placeholder-photo">Немає фото</div>`;
         }
-        
         const imageUrl = GITHUB_BASE_URL + territory.picture_id;
         const caption = `📍 ${territory.id ? territory.id + '.' : ''} ${territory.name}`;
-
         return `<img class="territory-photo" 
                      src="${imageUrl}" 
                      data-photo-id="${territory.picture_id}"
@@ -177,23 +189,17 @@ document.addEventListener('DOMContentLoaded', function() {
     modalDownloadBtn.addEventListener('click', () => {
         const photoId = imageModal.dataset.photoId;
         const caption = imageModal.dataset.caption;
-
         if (!photoId || !caption) {
             tg.showAlert('Не вдалося отримати дані для надсилання.');
             return;
         }
-
         tg.MainButton.setText("Надсилаю фото в чат...").showProgress();
-
-        // --- ОНОВЛЕНО: Кодуємо назву файлу перед відправкою ---
         const payload = {
             action: 'sendPhotoToUser',
             userId: userId,
-            // encodeURIComponent перетворює [ на %5B, ] на %5D і т.д.
             photoId: encodeURIComponent(photoId), 
             caption: caption
         };
-
         fetch(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify(payload)
