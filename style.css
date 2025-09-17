@@ -152,7 +152,7 @@ h2 {
     background-color: #f44336;
 }
 
-/* --- НОВІ СТИЛІ ДЛЯ ВІКНА ПЕРЕГЛЯДУ ЗОБРАЖЕНЬ --- */
+/* Стилі для вікна перегляду зображень */
 .image-modal {
     display: none;
     position: fixed;

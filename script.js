@@ -14,7 +14,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const fullImage = document.getElementById('full-image');
     const closeModalBtn = document.querySelector('.modal-close-btn');
     const modalDownloadBtn = document.getElementById('modal-download-btn');
-    const modalShareBtn = document.getElementById('modal-share-btn');
 
     let allTerritories = [];
     let myTerritories = [];
@@ -160,21 +159,6 @@ document.addEventListener('DOMContentLoaded', function() {
     imageModal.addEventListener('click', (e) => {
         if (e.target === imageModal) {
             imageModal.classList.remove('active');
-        }
-    });
-    
-    modalShareBtn.addEventListener('click', () => {
-        const imageUrl = fullImage.src;
-        const territoryId = modalDownloadBtn.download.split('.')[0].replace('territory_', '');
-
-        if (navigator.share) {
-            navigator.share({
-                title: `Територія ${territoryId}`,
-                text: `Фото картки для території ${territoryId}`,
-                url: window.location.href // Поширюємо посилання на сам додаток
-            }).catch(error => console.log('Помилка поширення', error));
-        } else {
-            tg.showAlert('На жаль, ваш пристрій не підтримує цю функцію.');
         }
     });
 
