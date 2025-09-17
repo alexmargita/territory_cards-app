@@ -9,12 +9,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoryList = document.getElementById('territory-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     
-    // --- НОВІ ЕЛЕМЕНТИ ДЛЯ ПЕРЕГЛЯДУ ФОТО ---
     const imageModal = document.getElementById('image-modal');
     const fullImage = document.getElementById('full-image');
     const closeModalBtn = document.querySelector('.modal-close-btn');
+    const modalDownloadBtn = document.getElementById('modal-download-btn');
 
     let allTerritories = [];
+    let myTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
     // --- ЛОГІКА ДЛЯ ВКЛАДОК ---
@@ -41,7 +42,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- ФУНКЦІЯ: Розрахунок залишку днів ---
     function calculateDaysRemaining(assignDateStr) {
         if (!assignDateStr || typeof assignDateStr !== 'string') return null;
         const assigned = new Date(assignDateStr);
@@ -56,8 +56,8 @@ document.addEventListener('DOMContentLoaded', function() {
         return diffDays > 0 ? diffDays : 0;
     }
 
-    // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ ---
     function displayMyTerritories(territories) {
+        myTerritories = territories;
         myTerritoryList.innerHTML = '';
         if (territories.length === 0) {
             myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>';
@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 daysBlock = `<div class="days-remaining ${endingSoonClass}">Залишилось днів: ${remainingDays}</div>`;
             }
 
-            const photoBlock = t.picture_id ? `<img class="territory-photo" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
+            const photoBlock = t.picture_id ? `<img class="territory-photo" data-id="${t.id}" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
             
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
@@ -102,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filtered.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-            const photoBlock = t.picture_id ? `<img class="territory-photo" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
+            const photoBlock = t.picture_id ? `<img class="territory-photo" data-id="${t.id}" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
@@ -115,25 +115,15 @@ document.addEventListener('DOMContentLoaded', function() {
         addEventListeners();
     }
 
-    // --- НОВА ФУНКЦІЯ: Додає всі обробники подій ---
     function addEventListeners() {
-        // Обробник для кнопок "Здати"
-        document.querySelectorAll('.btn-return').forEach(button => {
-            button.addEventListener('click', handleReturnClick);
-        });
-        // Обробник для кнопок "Обрати"
-        document.querySelectorAll('.btn-book').forEach(button => {
-            button.addEventListener('click', handleBookClick);
-        });
-        // Обробник для фотографій (мініатюр)
+        document.querySelectorAll('.btn-return').forEach(button => button.addEventListener('click', handleReturnClick));
+        document.querySelectorAll('.btn-book').forEach(button => button.addEventListener('click', handleBookClick));
         document.querySelectorAll('.territory-photo').forEach(photo => {
             photo.addEventListener('click', handlePhotoClick);
-            // Блокуємо контекстне меню при довгому натисканні
             photo.addEventListener('contextmenu', e => e.preventDefault());
         });
     }
 
-    // --- ОБРОБНИКИ ПОДІЙ ---
     function handleReturnClick() {
         const territoryId = this.dataset.id;
         tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
@@ -149,18 +139,50 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function handlePhotoClick() {
-        fullImage.src = this.src;
+        const photoSrc = this.src;
+        const territoryId = this.dataset.id;
+        
+        fullImage.src = photoSrc;
+        // Зберігаємо дані для кнопки завантаження
+        imageModal.dataset.imageUrl = photoSrc;
+        imageModal.dataset.territoryId = territoryId;
+        
         imageModal.classList.add('active');
     }
 
-    // Закриття вікна перегляду
     closeModalBtn.addEventListener('click', () => {
         imageModal.classList.remove('active');
     });
     imageModal.addEventListener('click', (e) => {
-        if (e.target === imageModal) { // Закриваємо тільки при кліку на фон
+        if (e.target === imageModal) {
             imageModal.classList.remove('active');
         }
+    });
+
+    // --- НОВА УНІВЕРСАЛЬНА ЛОГІКА ЗАВАНТАЖЕННЯ ---
+    modalDownloadBtn.addEventListener('click', () => {
+        const imageUrl = imageModal.dataset.imageUrl;
+        const territoryId = imageModal.dataset.territoryId;
+        
+        tg.showPopup({title: 'Завантаження...', message: 'Готуємо файл...'});
+
+        fetch(imageUrl)
+            .then(response => response.blob())
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                a.download = `territory_${territoryId}.jpg`;
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                tg.closePopup();
+            })
+            .catch(() => {
+                tg.showAlert('Не вдалося завантажити файл. Спробуйте зберегти його вручну.');
+            });
     });
 
     // --- ФУНКЦІЇ ЗВ'ЯЗКУ З API ---
