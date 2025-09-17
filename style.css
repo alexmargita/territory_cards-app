@@ -95,12 +95,13 @@ h2 {
     display: block;
     object-fit: cover;
     cursor: pointer;
-    -webkit-touch-callout: none;
-    -webkit-user-select: none;
-    -khtml-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
+    /* --- НОВІ ВЛАСТИВОСТІ ДЛЯ БЛОКУВАННЯ МЕНЮ --- */
+    -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+    -khtml-user-select: none; /* Konqueror HTML */
+    -moz-user-select: none; /* Old Firefox */
+    -ms-user-select: none; /* Internet Explorer/Edge */
+    user-select: none; /* Non-prefixed version, currently supported by Chrome, Opera and Firefox */
 }
 .placeholder-photo {
     width: 120px;
@@ -152,9 +153,9 @@ h2 {
     background-color: #f44336;
 }
 
-/* Стилі для вікна перегляду зображень */
+/* --- НОВІ СТИЛІ ДЛЯ ВІКНА ПЕРЕГЛЯДУ ЗОБРАЖЕНЬ --- */
 .image-modal {
-    display: none;
+    display: none; /* Приховано за замовчуванням */
     position: fixed;
     z-index: 9999;
     left: 0;
@@ -163,18 +164,17 @@ h2 {
     height: 100%;
     overflow: auto;
     background-color: rgba(0,0,0,0.85);
-    flex-direction: column;
     justify-content: center;
     align-items: center;
 }
 .image-modal.active {
-    display: flex;
+    display: flex; /* Показуємо при кліку */
 }
 .modal-content {
     margin: auto;
     display: block;
     max-width: 90%;
-    max-height: 80%;
+    max-height: 90%;
 }
 .modal-close-btn {
     position: absolute;
@@ -184,20 +184,4 @@ h2 {
     font-size: 40px;
     font-weight: bold;
     cursor: pointer;
-}
-.modal-actions {
-    display: flex;
-    gap: 15px;
-    margin-top: 20px;
-}
-.modal-btn {
-    padding: 10px 20px;
-    font-size: 16px;
-    font-weight: bold;
-    color: #fff;
-    background-color: #333;
-    border: 1px solid #555;
-    border-radius: 8px;
-    cursor: pointer;
-    text-decoration: none;
 }

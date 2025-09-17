@@ -9,14 +9,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoryList = document.getElementById('territory-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     
-    // Елементи для перегляду фото
+    // --- НОВІ ЕЛЕМЕНТИ ДЛЯ ПЕРЕГЛЯДУ ФОТО ---
     const imageModal = document.getElementById('image-modal');
     const fullImage = document.getElementById('full-image');
     const closeModalBtn = document.querySelector('.modal-close-btn');
-    const modalDownloadBtn = document.getElementById('modal-download-btn');
 
     let allTerritories = [];
-    let myTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
     // --- ЛОГІКА ДЛЯ ВКЛАДОК ---
@@ -60,7 +58,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ ---
     function displayMyTerritories(territories) {
-        myTerritories = territories;
         myTerritoryList.innerHTML = '';
         if (territories.length === 0) {
             myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>';
@@ -77,7 +74,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 daysBlock = `<div class="days-remaining ${endingSoonClass}">Залишилось днів: ${remainingDays}</div>`;
             }
 
-            const photoBlock = t.picture_id ? `<img class="territory-photo" data-id="${t.id}" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
+            const photoBlock = t.picture_id ? `<img class="territory-photo" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
             
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
@@ -105,7 +102,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filtered.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-            const photoBlock = t.picture_id ? `<img class="territory-photo" data-id="${t.id}" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
+            const photoBlock = t.picture_id ? `<img class="territory-photo" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
@@ -118,16 +115,25 @@ document.addEventListener('DOMContentLoaded', function() {
         addEventListeners();
     }
 
-    // --- ОБРОБНИКИ ПОДІЙ ---
+    // --- НОВА ФУНКЦІЯ: Додає всі обробники подій ---
     function addEventListeners() {
-        document.querySelectorAll('.btn-return').forEach(button => button.addEventListener('click', handleReturnClick));
-        document.querySelectorAll('.btn-book').forEach(button => button.addEventListener('click', handleBookClick));
+        // Обробник для кнопок "Здати"
+        document.querySelectorAll('.btn-return').forEach(button => {
+            button.addEventListener('click', handleReturnClick);
+        });
+        // Обробник для кнопок "Обрати"
+        document.querySelectorAll('.btn-book').forEach(button => {
+            button.addEventListener('click', handleBookClick);
+        });
+        // Обробник для фотографій (мініатюр)
         document.querySelectorAll('.territory-photo').forEach(photo => {
             photo.addEventListener('click', handlePhotoClick);
+            // Блокуємо контекстне меню при довгому натисканні
             photo.addEventListener('contextmenu', e => e.preventDefault());
         });
     }
 
+    // --- ОБРОБНИКИ ПОДІЙ ---
     function handleReturnClick() {
         const territoryId = this.dataset.id;
         tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
@@ -143,21 +149,16 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function handlePhotoClick() {
-        const photoSrc = this.src;
-        const territoryId = this.dataset.id;
-        
-        fullImage.src = photoSrc;
-        modalDownloadBtn.href = photoSrc;
-        modalDownloadBtn.download = `territory_${territoryId}.jpg`;
-
+        fullImage.src = this.src;
         imageModal.classList.add('active');
     }
 
+    // Закриття вікна перегляду
     closeModalBtn.addEventListener('click', () => {
         imageModal.classList.remove('active');
     });
     imageModal.addEventListener('click', (e) => {
-        if (e.target === imageModal) {
+        if (e.target === imageModal) { // Закриваємо тільки при кліку на фон
             imageModal.classList.remove('active');
         }
     });
