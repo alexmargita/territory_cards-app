@@ -39,8 +39,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!territory.picture_id) {
             return `<div class="placeholder-photo">Немає фото</div>`;
         }
+        
         const imageUrl = GITHUB_BASE_URL + territory.picture_id;
         const caption = `📍 ${territory.id ? territory.id + '.' : ''} ${territory.name}`;
+
         return `<img class="territory-photo" 
                      src="${imageUrl}" 
                      data-photo-id="${territory.picture_id}"
@@ -172,7 +174,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === imageModal) imageModal.classList.remove('active');
     });
 
-    // --- ОНОВЛЕНО: Надсилання фото через POST-запит ---
     modalDownloadBtn.addEventListener('click', () => {
         const photoId = imageModal.dataset.photoId;
         const caption = imageModal.dataset.caption;
@@ -184,10 +185,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
         tg.MainButton.setText("Надсилаю фото в чат...").showProgress();
 
+        // --- ОНОВЛЕНО: Кодуємо назву файлу перед відправкою ---
         const payload = {
             action: 'sendPhotoToUser',
             userId: userId,
-            photoId: photoId,
+            // encodeURIComponent перетворює [ на %5B, ] на %5D і т.д.
+            photoId: encodeURIComponent(photoId), 
             caption: caption
         };
 
