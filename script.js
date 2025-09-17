@@ -143,7 +143,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const territoryId = this.dataset.id;
         
         fullImage.src = photoSrc;
-        // Зберігаємо дані для кнопки завантаження
         imageModal.dataset.imageUrl = photoSrc;
         imageModal.dataset.territoryId = territoryId;
         
@@ -159,7 +158,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- НОВА УНІВЕРСАЛЬНА ЛОГІКА ЗАВАНТАЖЕННЯ ---
     modalDownloadBtn.addEventListener('click', () => {
         const imageUrl = imageModal.dataset.imageUrl;
         const territoryId = imageModal.dataset.territoryId;
@@ -185,7 +183,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     });
 
-    // --- ФУНКЦІЇ ЗВ'ЯЗКУ З API ---
     function returnTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show().enable();
         fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
@@ -224,7 +221,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    // --- ЗАВАНТАЖЕННЯ ДАНИХ ---
     function fetchAllData() {
         loader.style.display = 'block';
         myTerritoryList.innerHTML = '';
