@@ -16,21 +16,30 @@ h2 {
     margin-bottom: 10px;
 }
 
-/* Стилі для вкладок */
+/* --- ОНОВЛЕНО: Стилі для вкладок --- */
 .tabs {
     display: flex;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 1px solid var(--tg-theme-hint-color, #ddd);
     margin-bottom: 15px;
+    /* Закріплення зверху */
+    position: sticky;
+    top: 0;
+    background-color: var(--tg-theme-bg-color, #ffffff);
+    z-index: 100;
+    padding-top: 10px; /* Невеликий відступ зверху */
 }
 .tab-button {
     flex-grow: 1;
-    padding: 15px 10px;
+    padding: 15px 5px; /* Зменшено горизонтальний padding для 3 кнопок */
     border: none;
     background-color: transparent;
-    font-size: 16px;
+    /* Збільшено шрифт і жирність */
+    font-size: 17px;
+    font-weight: 600;
     cursor: pointer;
     color: var(--tg-theme-hint-color, #888);
-    border-bottom: 2px solid transparent;
+    border-bottom: 3px solid transparent; /* Зроблено лінію товстішою */
+    text-align: center;
 }
 .tab-button.active {
     color: var(--tg-theme-link-color, #007bff);
@@ -94,7 +103,7 @@ h2 {
     border-radius: 8px;
     display: block;
     object-fit: cover;
-    cursor: pointer; /* Додамо курсор, щоб було зрозуміло, що фото клікабельне */
+    cursor: pointer;
 }
 .placeholder-photo {
     width: 120px;
@@ -128,19 +137,41 @@ h2 {
     padding: 20px;
     font-size: 18px;
 }
-.days-remaining {
-    text-align: center;
-    font-size: 14px;
-    font-weight: bold;
-    color: #ffffff;
-    background-color: #ff9800;
-    padding: 8px;
-    border-radius: 8px;
+
+/* --- НОВІ СТИЛІ: Прогрес-бар --- */
+.progress-bar-container {
+    position: relative;
+    width: 100%;
     margin-top: 10px;
+    text-align: center;
 }
-.days-remaining.ending-soon {
-    background-color: #f44336;
+.progress-bar-track {
+    width: 100%;
+    height: 28px;
+    background-color: #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
 }
+.progress-bar-fill {
+    height: 100%;
+    background-color: #ff9800; /* Помаранчевий за замовчуванням */
+    border-radius: 8px;
+    transition: width 0.5s ease-in-out;
+}
+.ending-soon .progress-bar-fill {
+    background-color: #f44336; /* Червоний, коли мало часу */
+}
+.progress-bar-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #ffffff;
+    font-weight: bold;
+    font-size: 14px;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5); /* Тінь для кращої читабельності */
+}
+
 
 /* Стилі для модального вікна */
 .image-modal {

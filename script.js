@@ -8,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loader = document.getElementById('loader');
     const myTerritoryList = document.getElementById('my-territory-list');
     const freeTerritoryList = document.getElementById('territory-list');
+    const generalMapsList = document.getElementById('general-maps-list'); // Новий список
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     const filtersContainer = document.getElementById('filters-container');
     
@@ -59,9 +60,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const remainingDays = calculateDaysRemaining(t.date_assigned);
             let daysBlock = '';
+
+            // --- ОНОВЛЕНО: Генерація прогрес-бару ---
             if (remainingDays !== null) {
                 const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
-                daysBlock = `<div class="days-remaining ${endingSoonClass}">Залишилось днів: ${remainingDays}</div>`;
+                const progressPercent = Math.min((remainingDays / 120) * 100, 100);
+                daysBlock = `
+                    <div class="progress-bar-container ${endingSoonClass}">
+                        <div class="progress-bar-track">
+                            <div class="progress-bar-fill" style="width: ${progressPercent}%;"></div>
+                        </div>
+                        <span class="progress-bar-text">Залишилось днів: ${remainingDays}</span>
+                    </div>
+                `;
             }
 
             const photoBlock = t.picture_id ? `<img class="territory-photo" data-id="${t.id}" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
@@ -81,7 +92,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function displayFreeTerritories(filter) {
         freeTerritoryList.innerHTML = '';
         freeTerritoriesTitle.style.display = 'block';
-        const filtered = allTerritories.filter(t => t.type === filter && t.status === 'вільна');
+        // Фільтруємо за типом та категорією 'territory'
+        const filtered = allTerritories.filter(t => t.type === filter && t.category === 'territory' && t.status === 'вільна');
 
         if (filtered.length === 0) {
             freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>';
@@ -103,6 +115,30 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // --- НОВА ФУНКЦІЯ: Відображення загальних карт ---
+    function displayGeneralMaps() {
+        generalMapsList.innerHTML = '';
+        const maps = allTerritories.filter(t => t.category === 'map');
+        
+        if (maps.length === 0) {
+            generalMapsList.innerHTML = '<p>Загальні карти відсутні.</p>';
+            return;
+        }
+
+        maps.forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'territory-item';
+            const photoBlock = t.picture_id ? `<img class="territory-photo" data-id="${t.id}" src="./images/${t.picture_id}" alt="Фото">` : `<div class="placeholder-photo">Немає фото</div>`;
+            
+            // Спрощений вигляд без кнопок
+            item.innerHTML = `
+                <div class="territory-title">🗺️ ${t.name}</div>
+                ${photoBlock}
+            `;
+            generalMapsList.appendChild(item);
+        });
+    }
+
     function displayFilters(filters) {
         filtersContainer.innerHTML = '';
         filters.forEach((filter, index) => {
@@ -111,40 +147,38 @@ document.addEventListener('DOMContentLoaded', function() {
             button.dataset.filter = filter;
             button.textContent = filter;
             if (index === 0) {
-                button.classList.add('active'); // Робимо перший фільтр активним
+                button.classList.add('active');
             }
             filtersContainer.appendChild(button);
         });
     }
 
     // --- ОБРОБНИКИ ПОДІЙ (ДЕЛЕГУВАННЯ) ---
-    myTerritoryList.addEventListener('click', function(event) {
+    // Єдиний обробник на body для всіх кліків
+    document.body.addEventListener('click', function(event) {
         const target = event.target;
+        
+        // Клік по фотографії (у будь-якій вкладці)
+        if (target.classList.contains('territory-photo')) {
+            handlePhotoClick(target);
+        }
+
+        // Клік по кнопці "Здати"
         if (target.classList.contains('btn-return')) {
             const territoryId = target.dataset.id;
             tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
-                if (isConfirmed) {
-                    returnTerritory(territoryId);
-                }
+                if (isConfirmed) returnTerritory(territoryId);
             });
-        } else if (target.classList.contains('territory-photo')) {
-            handlePhotoClick(target);
         }
-    });
 
-    freeTerritoryList.addEventListener('click', function(event) {
-        const target = event.target;
+        // Клік по кнопці "Обрати"
         if (target.classList.contains('btn-book')) {
             requestTerritory(target.dataset.id);
-        } else if (target.classList.contains('territory-photo')) {
-            handlePhotoClick(target);
         }
-    });
-    
-    filtersContainer.addEventListener('click', function(event) {
-        const target = event.target;
+
+        // Клік по кнопці фільтра
         if (target.classList.contains('filter-btn')) {
-            document.querySelectorAll('.filter-btn').forEach(btn => btn.classList.remove('active'));
+            filtersContainer.querySelector('.active')?.classList.remove('active');
             target.classList.add('active');
             displayFreeTerritories(target.dataset.filter);
         }
@@ -234,10 +268,11 @@ document.addEventListener('DOMContentLoaded', function() {
         loader.style.display = 'block';
         myTerritoryList.innerHTML = '';
         freeTerritoryList.innerHTML = '';
+        generalMapsList.innerHTML = ''; // Очищуємо новий список
         
         Promise.all([
             fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`).then(res => res.json()),
-            fetch(SCRIPT_URL).then(res => res.json()) // Отримуємо всі території та фільтри
+            fetch(SCRIPT_URL).then(res => res.json())
         ]).then(([myData, allData]) => {
             loader.style.display = 'none';
 
@@ -248,31 +283,24 @@ document.addEventListener('DOMContentLoaded', function() {
             if (allData.ok) {
                 allTerritories = allData.territories;
 
-                // --- НОВА ЛОГІКА СОРТУВАННЯ ФІЛЬТРІВ ---
+                // --- СОРТУВАННЯ ФІЛЬТРІВ ---
                 const predefinedOrder = ["Тернопіль", "Березовиця", "Острів", "Буцнів"];
-
                 function getDistance(name) {
                     const match = name.match(/\((\d+)км\)/);
                     return match ? parseInt(match[1], 10) : Infinity;
                 }
-
                 const sortedFilters = allData.filters.sort((a, b) => {
                     const indexA = predefinedOrder.indexOf(a);
                     const indexB = predefinedOrder.indexOf(b);
-
                     if (indexA !== -1 && indexB !== -1) return indexA - indexB;
                     if (indexA !== -1) return -1;
                     if (indexB !== -1) return 1;
-                    
-                    const distanceA = getDistance(a);
-                    const distanceB = getDistance(b);
-                    
-                    return distanceA - distanceB;
+                    return getDistance(a) - getDistance(b);
                 });
-                // --- КІНЕЦЬ ЛОГІКИ СОРТУВАННЯ ---
 
-                displayFilters(sortedFilters); // Передаємо відсортований масив
-                
+                displayFilters(sortedFilters);
+                displayGeneralMaps(); // Викликаємо функцію для відображення карт
+
                 const activeFilter = document.querySelector('.filter-btn.active');
                 if (activeFilter) {
                     displayFreeTerritories(activeFilter.dataset.filter);
