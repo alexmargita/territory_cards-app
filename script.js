@@ -73,7 +73,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!territory.picture_id) { return `<div class="placeholder-photo">Немає фото</div>`; }
         const imageUrl = GITHUB_BASE_URL + territory.picture_id;
         const caption = `📍 ${territory.id ? territory.id + '.' : ''} ${territory.name}`;
-        return `<img class="territory-photo" src="${imageUrl}" data-photo-id="${territory.picture_id}" data-caption="${caption}" alt="Фото">`;
+        return `<img class="territory-photo" 
+                     src="${imageUrl}" 
+                     data-photo-id="${territory.picture_id}"
+                     data-caption="${caption}"
+                     alt="Фото"
+                     loading="lazy">`;
     }
     
     function calculateDaysRemaining(assignDateStr) {
@@ -216,8 +221,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
-                    // --- ВИДАЛЕНО: fetchAllData() ---
-                    // Натомість робимо кнопку неактивною
                     buttonElement.textContent = 'Очікує...';
                     buttonElement.disabled = true;
                 } else {
@@ -230,6 +233,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    // --- ОНОВЛЕНО: Функція requestTerritory ---
     function requestTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show().enable();
         fetch(`${SCRIPT_URL}?action=requestTerritory&territoryId=${territoryId}&userId=${userId}`)
@@ -238,10 +242,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
-                    // --- ВИДАЛЕНО: fetchAllData() ---
-                    // Натомість робимо кнопку неактивною
-                    buttonElement.textContent = 'Очікує...';
-                    buttonElement.disabled = true;
+                    // Знаходимо батьківську картку території
+                    const territoryItem = buttonElement.closest('.territory-item');
+                    if (territoryItem) {
+                        // Плавно ховаємо картку і потім видаляємо її
+                        territoryItem.style.opacity = '0';
+                        setTimeout(() => {
+                            territoryItem.remove();
+                        }, 300); // Час має відповідати анімації в CSS
+                    }
                 } else {
                     tg.showAlert(result.message || result.error || 'Сталася невідома помилка.');
                 }
