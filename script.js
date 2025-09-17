@@ -39,6 +39,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     
+    // --- ОНОВЛЕНО: Логіка перемикання вкладок з автооновленням ---
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(item => item.classList.remove('active'));
@@ -47,12 +48,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetTabContent = document.getElementById(targetTabId);
             tabContents.forEach(content => content.classList.remove('active'));
             targetTabContent.classList.add('active');
+
             if (targetTabId === 'my-territories') {
                 fetchMyTerritories();
+            }
+            // Якщо користувач перейшов на вкладку "Обрати територію", оновлюємо її
+            if (targetTabId === 'select-territory') {
+                fetchFreeTerritories();
             }
         });
     });
 
+    /**
+     * Отримує та відображає лише список "Моїх територій".
+     */
     function fetchMyTerritories() {
         myTerritoryList.innerHTML = `<div class="loader" style="font-size: 16px;">Оновлення...</div>`;
         fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`)
@@ -69,6 +78,32 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    /**
+     * НОВА ФУНКЦІЯ: Отримує та відображає лише список вільних територій.
+     */
+    function fetchFreeTerritories() {
+        freeTerritoryList.innerHTML = `<div class="loader" style="font-size: 16px;">Оновлення...</div>`;
+        fetch(SCRIPT_URL)
+            .then(res => res.json())
+            .then(allData => {
+                if (allData.ok) {
+                    allTerritories = allData.territories;
+                    const activeFilter = document.querySelector('.filter-btn.active');
+                    if (activeFilter) {
+                        displayFreeTerritories(activeFilter.dataset.filter);
+                    } else {
+                        // Якщо активного фільтра немає, показуємо для першого
+                        displayFreeTerritories(allData.filters[0]);
+                    }
+                } else {
+                    freeTerritoryList.innerHTML = '<p>Не вдалося оновити дані.</p>';
+                }
+            })
+            .catch(error => {
+                freeTerritoryList.innerHTML = '<p>Помилка мережі. Спробуйте пізніше.</p>';
+            });
+    }
+
     function createPhotoBlock(territory) {
         if (!territory.picture_id) { return `<div class="placeholder-photo">Немає фото</div>`; }
         const imageUrl = GITHUB_BASE_URL + territory.picture_id;
@@ -82,7 +117,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function createNoteIcon(territory) {
-        // --- ОНОВЛЕНО: Тепер перевіряємо поле 'info' ---
         if (territory.info && territory.info.trim() !== '') {
             const noteText = territory.info.replace(/"/g, '&quot;');
             return `<span class="note-icon" data-note="${noteText}">i</span>`;
@@ -161,9 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const target = event.target;
         if (target.classList.contains('note-icon')) {
             const noteText = target.dataset.note;
-            if (noteText) {
-                tg.showAlert(noteText);
-            }
+            if (noteText) { tg.showAlert(noteText); }
         }
         if (target.classList.contains('territory-photo')) handlePhotoClick(target);
         if (target.classList.contains('btn-return')) {
@@ -197,10 +229,7 @@ document.addEventListener('DOMContentLoaded', function() {
     modalDownloadBtn.addEventListener('click', () => {
         const photoId = imageModal.dataset.photoId;
         const caption = imageModal.dataset.caption;
-        if (!photoId || !caption) {
-            tg.showAlert('Не вдалося отримати дані для надсилання.');
-            return;
-        }
+        if (!photoId || !caption) { tg.showAlert('Не вдалося отримати дані для надсилання.'); return; }
         tg.MainButton.setText("Надсилаю фото в чат...").showProgress();
         const payload = {
             action: 'sendPhotoToUser',
