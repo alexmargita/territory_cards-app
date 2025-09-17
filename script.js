@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     /**
-     * ОНОВЛЕНО: Створює HTML-блок для фотографії, використовуючи прості data-атрибути.
+     * Створює HTML-блок для фотографії, використовуючи прості data-атрибути.
      * @param {object} territory - Об'єкт з даними про територію.
      * @returns {string} HTML-рядок.
      */
@@ -90,6 +90,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span class="progress-bar-text">Залишилось днів: ${remainingDays}</span>
                     </div>`;
             }
+            // --- ВИПРАВЛЕНО: Використовуємо правильну функцію createPhotoBlock ---
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
@@ -112,6 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filtered.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
+            // --- ВИПРАВЛЕНО: Використовуємо правильну функцію createPhotoBlock ---
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
@@ -132,6 +134,7 @@ document.addEventListener('DOMContentLoaded', function() {
         maps.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
+            // --- ВИПРАВЛЕНО: Використовуємо правильну функцію createPhotoBlock ---
             item.innerHTML = `
                 <div class="territory-title">🗺️ ${t.name}</div>
                 ${createPhotoBlock(t)}`;
@@ -169,7 +172,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     /**
-     * ОНОВЛЕНО: Обробник кліку читає прості атрибути замість розбору JSON.
+     * Обробник кліку читає прості атрибути замість розбору JSON.
      * @param {HTMLElement} photoElement - Елемент <img>, на який клікнули.
      */
     function handlePhotoClick(photoElement) {
