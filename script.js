@@ -39,7 +39,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     
-    // --- ОНОВЛЕНО: Логіка перемикання вкладок з автооновленням ---
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(item => item.classList.remove('active'));
@@ -48,20 +47,15 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetTabContent = document.getElementById(targetTabId);
             tabContents.forEach(content => content.classList.remove('active'));
             targetTabContent.classList.add('active');
-
             if (targetTabId === 'my-territories') {
                 fetchMyTerritories();
             }
-            // Якщо користувач перейшов на вкладку "Обрати територію", оновлюємо її
             if (targetTabId === 'select-territory') {
                 fetchFreeTerritories();
             }
         });
     });
 
-    /**
-     * Отримує та відображає лише список "Моїх територій".
-     */
     function fetchMyTerritories() {
         myTerritoryList.innerHTML = `<div class="loader" style="font-size: 16px;">Оновлення...</div>`;
         fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`)
@@ -78,9 +72,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    /**
-     * НОВА ФУНКЦІЯ: Отримує та відображає лише список вільних територій.
-     */
     function fetchFreeTerritories() {
         freeTerritoryList.innerHTML = `<div class="loader" style="font-size: 16px;">Оновлення...</div>`;
         fetch(SCRIPT_URL)
@@ -92,7 +83,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (activeFilter) {
                         displayFreeTerritories(activeFilter.dataset.filter);
                     } else {
-                        // Якщо активного фільтра немає, показуємо для першого
                         displayFreeTerritories(allData.filters[0]);
                     }
                 } else {
@@ -106,7 +96,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function createPhotoBlock(territory) {
         if (!territory.picture_id) { return `<div class="placeholder-photo">Немає фото</div>`; }
-        const imageUrl = GITHUB_BASE_URL + territory.picture_id;
+        // Кодуємо назву файлу тут, щоб мініатюра коректно відображалася в браузері
+        const imageUrl = GITHUB_BASE_URL + encodeURIComponent(territory.picture_id);
         const caption = `📍 ${territory.id ? territory.id + '.' : ''} ${territory.name}`;
         return `<img class="territory-photo" 
                      src="${imageUrl}" 
@@ -231,10 +222,12 @@ document.addEventListener('DOMContentLoaded', function() {
         const caption = imageModal.dataset.caption;
         if (!photoId || !caption) { tg.showAlert('Не вдалося отримати дані для надсилання.'); return; }
         tg.MainButton.setText("Надсилаю фото в чат...").showProgress();
+        
+        // --- ВИПРАВЛЕНО: Надсилаємо назву файлу ЯК Є, без кодування на клієнті ---
         const payload = {
             action: 'sendPhotoToUser',
             userId: userId,
-            photoId: encodeURIComponent(photoId), 
+            photoId: photoId, 
             caption: caption
         };
         fetch(SCRIPT_URL, {
