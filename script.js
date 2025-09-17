@@ -247,9 +247,32 @@ document.addEventListener('DOMContentLoaded', function() {
             
             if (allData.ok) {
                 allTerritories = allData.territories;
-                displayFilters(allData.filters); // Створюємо фільтри
+
+                // --- НОВА ЛОГІКА СОРТУВАННЯ ФІЛЬТРІВ ---
+                const predefinedOrder = ["Тернопіль", "Березовиця", "Острів", "Буцнів"];
+
+                function getDistance(name) {
+                    const match = name.match(/\((\d+)км\)/);
+                    return match ? parseInt(match[1], 10) : Infinity;
+                }
+
+                const sortedFilters = allData.filters.sort((a, b) => {
+                    const indexA = predefinedOrder.indexOf(a);
+                    const indexB = predefinedOrder.indexOf(b);
+
+                    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                    if (indexA !== -1) return -1;
+                    if (indexB !== -1) return 1;
+                    
+                    const distanceA = getDistance(a);
+                    const distanceB = getDistance(b);
+                    
+                    return distanceA - distanceB;
+                });
+                // --- КІНЕЦЬ ЛОГІКИ СОРТУВАННЯ ---
+
+                displayFilters(sortedFilters); // Передаємо відсортований масив
                 
-                // Відображаємо території для першого (активного) фільтра
                 const activeFilter = document.querySelector('.filter-btn.active');
                 if (activeFilter) {
                     displayFreeTerritories(activeFilter.dataset.filter);
