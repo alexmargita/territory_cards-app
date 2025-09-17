@@ -36,7 +36,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     /**
-     * Створює HTML-блок для фотографії.
+     * ОНОВЛЕНО: Створює HTML-блок для фотографії, використовуючи прості data-атрибути.
      * @param {object} territory - Об'єкт з даними про територію.
      * @returns {string} HTML-рядок.
      */
@@ -44,10 +44,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!territory.picture_id) {
             return `<div class="placeholder-photo">Немає фото</div>`;
         }
-        // Формуємо повну URL-адресу до фото та передаємо всі дані в data-атрибут
+        
         const imageUrl = GITHUB_BASE_URL + territory.picture_id;
-        const territoryData = JSON.stringify(territory);
-        return `<img class="territory-photo" data-territory='${territoryData}' src="${imageUrl}" alt="Фото">`;
+        const caption = `📍 ${territory.id ? territory.id + '.' : ''} ${territory.name}`;
+
+        // Використовуємо прості атрибути data-photo-id та data-caption замість складного JSON
+        return `<img class="territory-photo" 
+                     src="${imageUrl}" 
+                     data-photo-id="${territory.picture_id}"
+                     data-caption="${caption}"
+                     alt="Фото">`;
     }
     
     function calculateDaysRemaining(assignDateStr) {
@@ -162,11 +168,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    /**
+     * ОНОВЛЕНО: Обробник кліку читає прості атрибути замість розбору JSON.
+     * @param {HTMLElement} photoElement - Елемент <img>, на який клікнули.
+     */
     function handlePhotoClick(photoElement) {
-        const territoryData = JSON.parse(photoElement.dataset.territory);
         fullImage.src = photoElement.src;
-        imageModal.dataset.photoId = territoryData.picture_id; // Тепер тут назва файлу
-        imageModal.dataset.caption = `📍 ${territoryData.id ? territoryData.id + '.' : ''} ${territoryData.name}`; // Додано перевірку наявності ID
+        // Читаємо дані напряму з простих data-атрибутів
+        imageModal.dataset.photoId = photoElement.dataset.photoId;
+        imageModal.dataset.caption = photoElement.dataset.caption;
         imageModal.classList.add('active');
     }
 
@@ -196,7 +206,7 @@ document.addEventListener('DOMContentLoaded', function() {
         fetch(`${SCRIPT_URL}?${params.toString()}`)
             .then(response => response.json())
             .then(result => {
-                tg.MainButton.hide(); // Прибираємо прогрес і кнопку
+                tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert('Фото успішно надіслано у ваш чат з ботом!');
                     imageModal.classList.remove('active');
