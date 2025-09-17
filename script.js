@@ -35,20 +35,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    /**
-     * Створює HTML-блок для фотографії, використовуючи прості data-атрибути.
-     * @param {object} territory - Об'єкт з даними про територію.
-     * @returns {string} HTML-рядок.
-     */
     function createPhotoBlock(territory) {
         if (!territory.picture_id) {
             return `<div class="placeholder-photo">Немає фото</div>`;
         }
-        
         const imageUrl = GITHUB_BASE_URL + territory.picture_id;
         const caption = `📍 ${territory.id ? territory.id + '.' : ''} ${territory.name}`;
-
-        // Використовуємо прості атрибути data-photo-id та data-caption замість складного JSON
         return `<img class="territory-photo" 
                      src="${imageUrl}" 
                      data-photo-id="${territory.picture_id}"
@@ -90,7 +82,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         <span class="progress-bar-text">Залишилось днів: ${remainingDays}</span>
                     </div>`;
             }
-            // --- ВИПРАВЛЕНО: Використовуємо правильну функцію createPhotoBlock ---
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
@@ -113,7 +104,6 @@ document.addEventListener('DOMContentLoaded', function() {
         filtered.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-            // --- ВИПРАВЛЕНО: Використовуємо правильну функцію createPhotoBlock ---
             item.innerHTML = `
                 <div class="territory-title">📍 ${t.id}. ${t.name}</div>
                 <div class="territory-content">
@@ -134,7 +124,6 @@ document.addEventListener('DOMContentLoaded', function() {
         maps.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
-            // --- ВИПРАВЛЕНО: Використовуємо правильну функцію createPhotoBlock ---
             item.innerHTML = `
                 <div class="territory-title">🗺️ ${t.name}</div>
                 ${createPhotoBlock(t)}`;
@@ -171,13 +160,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    /**
-     * Обробник кліку читає прості атрибути замість розбору JSON.
-     * @param {HTMLElement} photoElement - Елемент <img>, на який клікнули.
-     */
     function handlePhotoClick(photoElement) {
         fullImage.src = photoElement.src;
-        // Читаємо дані напряму з простих data-атрибутів
         imageModal.dataset.photoId = photoElement.dataset.photoId;
         imageModal.dataset.caption = photoElement.dataset.caption;
         imageModal.classList.add('active');
@@ -188,8 +172,9 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === imageModal) imageModal.classList.remove('active');
     });
 
+    // --- ОНОВЛЕНО: Надсилання фото через POST-запит ---
     modalDownloadBtn.addEventListener('click', () => {
-        const photoId = imageModal.dataset.photoId; // Отримуємо назву файлу
+        const photoId = imageModal.dataset.photoId;
         const caption = imageModal.dataset.caption;
 
         if (!photoId || !caption) {
@@ -199,28 +184,31 @@ document.addEventListener('DOMContentLoaded', function() {
 
         tg.MainButton.setText("Надсилаю фото в чат...").showProgress();
 
-        const params = new URLSearchParams({
+        const payload = {
             action: 'sendPhotoToUser',
             userId: userId,
-            photoId: photoId, // Надсилаємо назву файлу
+            photoId: photoId,
             caption: caption
-        });
+        };
 
-        fetch(`${SCRIPT_URL}?${params.toString()}`)
-            .then(response => response.json())
-            .then(result => {
-                tg.MainButton.hide();
-                if (result.ok) {
-                    tg.showAlert('Фото успішно надіслано у ваш чат з ботом!');
-                    imageModal.classList.remove('active');
-                } else {
-                    tg.showAlert(result.error || 'Сталася помилка під час надсилання.');
-                }
-            })
-            .catch(error => {
-                tg.MainButton.hide();
-                tg.showAlert('Критична помилка. Не вдалося виконати запит.');
-            });
+        fetch(SCRIPT_URL, {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        })
+        .then(response => response.json())
+        .then(result => {
+            tg.MainButton.hide();
+            if (result.ok) {
+                tg.showAlert('Фото успішно надіслано у ваш чат з ботом!');
+                imageModal.classList.remove('active');
+            } else {
+                tg.showAlert(result.error || 'Сталася помилка під час надсилання.');
+            }
+        })
+        .catch(error => {
+            tg.MainButton.hide();
+            tg.showAlert('Критична помилка. Не вдалося виконати запит.');
+        });
     });
 
     function returnTerritory(territoryId) {
