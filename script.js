@@ -111,9 +111,9 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.btn-return').forEach(button => {
             button.addEventListener('click', function() {
                 const territoryId = this.dataset.id;
-                tg.showConfirm(`Ви впевнені, що хочете здати територію ${territoryId}?`, (isConfirmed) => {
+                tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
                     if (isConfirmed) {
-                        returnTerritory(territoryId);
+                        returnTerritory(territoryId, this);
                     }
                 });
             });
@@ -129,15 +129,16 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function returnTerritory(territoryId) {
-        tg.MainButton.setText("Повернення...").show().enable();
-        fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
+    // --- ОНОВЛЕНА ФУНКЦІЯ ПОВЕРНЕННЯ ---
+    function returnTerritory(territoryId, buttonElement) {
+        tg.MainButton.setText("Надсилаю запит...").show().enable();
+        fetch(`${SCRIPT_URL}?action=requestReturn&territoryId=${territoryId}&userId=${userId}`)
             .then(response => response.json())
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) {
                     tg.showAlert(result.message);
-                    fetchAllData();
+                    buttonElement.closest('.territory-item').classList.add('booked');
                 } else {
                     tg.showAlert(result.message || result.error || 'Сталася невідома помилка.');
                 }
