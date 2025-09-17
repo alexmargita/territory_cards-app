@@ -187,22 +187,36 @@ document.addEventListener('DOMContentLoaded', function() {
             imageModal.classList.remove('active');
         }
     });
-
+    
     // --- ОНОВЛЕНО: Логіка кнопки завантаження ---
     modalDownloadBtn.addEventListener('click', () => {
         const imageUrl = imageModal.dataset.imageUrl;
+        const territoryId = imageModal.dataset.territoryId;
         
+        tg.showPopup({title: 'Завантаження...', message: 'Готуємо файл...'});
+
         fetch(imageUrl)
             .then(response => response.blob())
             .then(blob => {
                 const url = window.URL.createObjectURL(blob);
-                // Відкриваємо зображення в новій вкладці для надійного збереження на мобільних
-                window.open(url, '_blank');
-                // Очищуємо URL після невеликої затримки
-                setTimeout(() => window.URL.revokeObjectURL(url), 100);
+                const a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                // Надаємо ім'я файлу для завантаження
+                a.download = `territory_${territoryId}.jpg`;
+                
+                document.body.appendChild(a);
+                a.click(); // Імітуємо клік по посиланню, що ініціює завантаження
+                
+                // Очищуємо та видаляємо елемент
+                window.URL.revokeObjectURL(url);
+                a.remove();
+                
+                tg.closePopup();
             })
             .catch(() => {
-                tg.showAlert('Не вдалося завантажити файл.');
+                tg.closePopup();
+                tg.showAlert('Не вдалося завантажити файл. Спробуйте зберегти його вручну, відкривши в новому вікні.');
             });
     });
 
