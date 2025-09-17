@@ -1,7 +1,7 @@
 // Реєстрація Service Worker для кешування
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').then(registration => {
+    navigator.service-worker.register('sw.js').then(registration => {
       console.log('ServiceWorker registration successful with scope: ', registration.scope);
     }, err => {
       console.log('ServiceWorker registration failed: ', err);
@@ -39,15 +39,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
+    
+    // --- ОНОВЛЕНО: Логіка перемикання вкладок ---
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             tabs.forEach(item => item.classList.remove('active'));
             tab.classList.add('active');
-            const targetTab = document.getElementById(tab.dataset.tab);
+            const targetTabId = tab.dataset.tab;
+            const targetTabContent = document.getElementById(targetTabId);
             tabContents.forEach(content => content.classList.remove('active'));
-            targetTab.classList.add('active');
+            targetTabContent.classList.add('active');
+
+            // Якщо користувач перейшов на вкладку "Мої території", оновлюємо її
+            if (targetTabId === 'my-territories') {
+                fetchMyTerritories();
+            }
         });
     });
+
+    /**
+     * НОВА ФУНКЦІЯ: Отримує та відображає лише список "Моїх територій".
+     */
+    function fetchMyTerritories() {
+        myTerritoryList.innerHTML = `<div class="loader" style="font-size: 16px;">Оновлення...</div>`;
+        
+        fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`)
+            .then(res => res.json())
+            .then(myData => {
+                if (myData.ok) {
+                    displayMyTerritories(myData.territories);
+                } else {
+                    myTerritoryList.innerHTML = '<p>Не вдалося оновити дані.</p>';
+                }
+            })
+            .catch(error => {
+                myTerritoryList.innerHTML = '<p>Помилка мережі. Спробуйте пізніше.</p>';
+            });
+    }
 
     function createPhotoBlock(territory) {
         if (!territory.picture_id) {
