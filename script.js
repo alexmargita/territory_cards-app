@@ -30,14 +30,26 @@ document.addEventListener('DOMContentLoaded', function() {
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
-    // --- ОНОВЛЕНО: Спрощена і надійна логіка "живого" оновлення ---
+    // --- ОНОВЛЕНО: Надійна логіка "живого" оновлення ---
     tg.onEvent('customEvent', function(eventData) {
-        // Якщо відбулася дія взяття або повернення території
-        if (eventData.type === 'territory_returned' || eventData.type === 'territory_taken') {
-            // Просто оновлюємо вкладку "Мої території", якщо користувач зараз на ній
-            if (document.getElementById('my-territories').classList.contains('active')) {
-                fetchMyTerritories();
+        // Якщо підтверджено повернення території, знаходимо її картку і видаляємо
+        if (eventData.type === 'territory_returned') {
+            const territoryItem = document.querySelector(`#my-territory-list .territory-item[data-territory-id='${eventData.territoryId}']`);
+            if (territoryItem) {
+                territoryItem.style.transition = 'opacity 0.3s ease'; // Додаємо плавність
+                territoryItem.style.opacity = '0';
+                setTimeout(() => {
+                    territoryItem.remove();
+                    // Якщо після видалення список став порожнім, показуємо повідомлення
+                    if (myTerritoryList.children.length === 0) {
+                        myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>';
+                    }
+                }, 300);
             }
+        }
+        // Якщо підтверджено взяття нової території, оновлюємо вкладку "Мої території"
+        if (eventData.type === 'territory_taken') {
+            fetchMyTerritories();
         }
     });
 
