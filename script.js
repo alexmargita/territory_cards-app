@@ -16,6 +16,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const tg = window.Telegram.WebApp;
     tg.expand();
 
+    console.log("Додаток завантажено. Починаємо слухати події.");
+
     const loader = document.getElementById('loader');
     const myTerritoryList = document.getElementById('my-territory-list');
     const freeTerritoryList = document.getElementById('territory-list');
@@ -30,26 +32,19 @@ document.addEventListener('DOMContentLoaded', function() {
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
-    // --- ОНОВЛЕНО: Надійна логіка "живого" оновлення ---
+    // --- ДОДАНО ДІАГНОСТИКУ ---
     tg.onEvent('customEvent', function(eventData) {
-        // Якщо підтверджено повернення території, знаходимо її картку і видаляємо
-        if (eventData.type === 'territory_returned') {
-            const territoryItem = document.querySelector(`#my-territory-list .territory-item[data-territory-id='${eventData.territoryId}']`);
-            if (territoryItem) {
-                territoryItem.style.transition = 'opacity 0.3s ease'; // Додаємо плавність
-                territoryItem.style.opacity = '0';
-                setTimeout(() => {
-                    territoryItem.remove();
-                    // Якщо після видалення список став порожнім, показуємо повідомлення
-                    if (myTerritoryList.children.length === 0) {
-                        myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>';
-                    }
-                }, 300);
+        console.log("!!! Подію 'customEvent' отримано від бота:", eventData);
+
+        if (eventData.type === 'territory_returned' || eventData.type === 'territory_taken') {
+            console.log("Тип події правильний. Перевіряємо, чи активна вкладка 'Мої території'...");
+            
+            if (document.getElementById('my-territories').classList.contains('active')) {
+                console.log("Вкладка 'Мої території' активна! Запускаємо оновлення fetchMyTerritories()...");
+                fetchMyTerritories();
+            } else {
+                console.log("Вкладка 'Мої території' НЕ активна. Оновлення не буде.");
             }
-        }
-        // Якщо підтверджено взяття нової території, оновлюємо вкладку "Мої території"
-        if (eventData.type === 'territory_taken') {
-            fetchMyTerritories();
         }
     });
 
@@ -74,6 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
+    // ... (решта файлу залишається без змін) ...
     function fetchMyTerritories() {
         myTerritoryList.innerHTML = `<div class="loader" style="font-size: 16px;">Оновлення...</div>`;
         fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`)
