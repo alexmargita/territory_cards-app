@@ -244,8 +244,8 @@ h2 {
     cursor: pointer;
 }
 
-/* --- НОВИЙ СТИЛЬ: для пріоритетних територій --- */
+/* --- ВИПРАВЛЕНИЙ СТИЛЬ: для пріоритетних територій --- */
 .territory-item.priority {
-    background-color: rgba(138, 43, 226, 0.15); /* Світло-фіолетовий фон */
+    background-color: rgba(138, 43, 226, 0.15) !important; /* Додано !important */
     border: 1px solid rgba(138, 43, 226, 0.4);
 }
