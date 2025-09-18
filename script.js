@@ -29,15 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
-
-    tg.onEvent('customEvent', function(eventData) {
-        if (eventData.type === 'territory_returned' || eventData.type === 'territory_taken') {
-            if (document.getElementById('my-territories').classList.contains('active')) {
-                fetchMyTerritories();
-            }
-        }
-    });
-
+    
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     
@@ -227,43 +219,31 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target === imageModal) imageModal.classList.remove('active');
     });
 
-    // --- ОНОВЛЕНО: Логіка кнопки "Завантажити" ---
     modalDownloadBtn.addEventListener('click', () => {
         const photoId = imageModal.dataset.photoId;
         const caption = imageModal.dataset.caption;
-        if (!photoId || !caption) { 
-            tg.showAlert('Не вдалося отримати дані для надсилання.');
-            return;
-        }
-
-        // 1. Одразу показуємо нове сповіщення
-        tg.showAlert("Картка території з'явиться у вікні чату через декілька секунд");
+        if (!photoId || !caption) { tg.showAlert('Не вдалося отримати дані для надсилання.'); return; }
         
-        // 2. Одразу закриваємо модальне вікно
+        tg.showAlert("Картка території з'явиться у вікні чату через декілька секунд");
         imageModal.classList.remove('active');
 
-        // 3. Відправляємо запит на сервер у фоновому режимі
         const payload = {
             action: 'sendPhotoToUser',
             userId: userId,
             photoId: photoId, 
             caption: caption
         };
-
         fetch(SCRIPT_URL, {
             method: 'POST',
             body: JSON.stringify(payload)
         })
         .then(response => response.json())
         .then(result => {
-            // Успішне виконання обробляється тихо, без сповіщення.
-            // Показуємо сповіщення лише у випадку помилки.
             if (!result.ok) {
                 tg.showAlert(result.error || 'Сталася помилка під час надсилання фото.');
             }
         })
         .catch(error => {
-            // Обробляємо помилки мережі
             tg.showAlert('Критична помилка. Не вдалося виконати запит.');
         });
     });
