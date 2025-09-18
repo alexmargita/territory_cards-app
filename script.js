@@ -30,11 +30,19 @@ document.addEventListener('DOMContentLoaded', function() {
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
 
-    // --- ОНОВЛЕНО: Спрощена і надійна логіка "живого" оновлення ---
+    // --- ОНОВЛЕНО: "Слухач" подій для точкового оновлення ---
     tg.onEvent('customEvent', function(eventData) {
-        // Якщо відбулася дія взяття або повернення території
-        if (eventData.type === 'territory_returned' || eventData.type === 'territory_taken') {
-            // Просто оновлюємо вкладку "Мої території", якщо користувач зараз на ній
+        // Якщо підтверджено повернення території, знаходимо її картку і видаляємо
+        if (eventData.type === 'territory_returned') {
+            const territoryItem = document.querySelector(`.territory-item[data-territory-id='${eventData.territoryId}']`);
+            if (territoryItem) {
+                territoryItem.style.opacity = '0';
+                setTimeout(() => territoryItem.remove(), 300);
+            }
+        }
+        // Якщо підтверджено взяття території, оновлюємо вкладку "Мої території"
+        if (eventData.type === 'territory_taken') {
+            // Оновлюємо вкладку, лише якщо користувач зараз на ній
             if (document.getElementById('my-territories').classList.contains('active')) {
                 fetchMyTerritories();
             }
@@ -138,6 +146,7 @@ document.addEventListener('DOMContentLoaded', function() {
         territories.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
+            // Додаємо унікальний data-атрибут для кожної картки
             item.dataset.territoryId = t.id; 
             
             const remainingDays = calculateDaysRemaining(t.date_assigned);
@@ -160,6 +169,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filtered.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
+            // Додаємо унікальний data-атрибут для кожної картки
             item.dataset.territoryId = t.id;
 
             item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<button class="btn-book" data-id="${t.id}">✅ Обрати</button></div>`;
@@ -174,6 +184,7 @@ document.addEventListener('DOMContentLoaded', function() {
         maps.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
+            // Додаємо унікальний data-атрибут для кожної картки
             item.dataset.territoryId = t.id;
 
             item.innerHTML = `<div class="territory-title"><span>🗺️ ${t.name}</span> ${createNoteIcon(t)}</div>${createPhotoBlock(t)}`;
