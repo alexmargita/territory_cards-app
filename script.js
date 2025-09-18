@@ -88,11 +88,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     const activeFilter = document.querySelector('.filter-btn.active');
                     if (activeFilter) {
                         displayFreeTerritories(activeFilter.dataset.filter);
-                    } else {
-                        // Якщо активного фільтра немає, показуємо для першого (запобігання помилці)
-                        if (allData.filters && allData.filters.length > 0) {
-                            displayFreeTerritories(allData.filters[0]);
-                        }
+                    } else if (allData.filters && allData.filters.length > 0) {
+                        displayFreeTerritories(allData.filters[0]);
                     }
                 } else {
                     freeTerritoryList.innerHTML = '<p>Не вдалося оновити дані.</p>';
@@ -124,20 +121,14 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function calculateDaysRemaining(assignDateStr) {
-        // Перевірка, чи передана дата є об'єктом Date, а не рядком
         if (assignDateStr instanceof Date) {
             assignDateStr = assignDateStr.toLocaleDateString('uk-UA');
         }
-
         if (!assignDateStr || typeof assignDateStr !== 'string') return null;
-        
-        // Розбір дати формату dd.MM.yyyy
         const parts = assignDateStr.split('.');
         if (parts.length !== 3) return null;
         const assigned = new Date(parts[2], parts[1] - 1, parts[0]);
-
         if (isNaN(assigned.getTime())) return null;
-        
         const deadline = new Date(assigned.getTime());
         deadline.setDate(deadline.getDate() + 120);
         const today = new Date();
@@ -153,7 +144,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const item = document.createElement('div');
             item.className = 'territory-item';
             item.dataset.territoryId = t.id; 
-            
             const remainingDays = calculateDaysRemaining(t.date_assigned);
             let daysBlock = '';
             if (remainingDays !== null) {
@@ -175,7 +165,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const item = document.createElement('div');
             item.className = 'territory-item';
             item.dataset.territoryId = t.id;
-
             item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<button class="btn-book" data-id="${t.id}">✅ Обрати</button></div>`;
             freeTerritoryList.appendChild(item);
         });
@@ -189,7 +178,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const item = document.createElement('div');
             item.className = 'territory-item';
             item.dataset.territoryId = t.id;
-
             item.innerHTML = `<div class="territory-title"><span>🗺️ ${t.name}</span> ${createNoteIcon(t)}</div>${createPhotoBlock(t)}`;
             generalMapsList.appendChild(item);
         });
