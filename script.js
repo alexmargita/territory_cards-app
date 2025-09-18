@@ -161,23 +161,34 @@ function isPriorityTerritory(completedDateStr) {
         });
     }
 
- function displayFreeTerritories(filter) {
+function displayFreeTerritories(filter) {
     freeTerritoryList.innerHTML = '';
     freeTerritoriesTitle.style.display = 'block';
     const filtered = allTerritories.filter(t => t.type === filter && t.category === 'territory' && t.status === 'вільна');
     if (filtered.length === 0) { freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>'; return; }
+    
     filtered.forEach(t => {
         const item = document.createElement('div');
         item.className = 'territory-item';
         item.dataset.territoryId = t.id;
 
-        // --- ДОДАНО ---
-        if (isPriorityTerritory(t.date_completed)) {
+        // --- ЛОГІКУ ОНОВЛЕНО ---
+        const isPriority = isPriorityTerritory(t.date_completed);
+        
+        if (isPriority) {
             item.classList.add('priority');
         }
-        // --- КІНЕЦЬ ---
         
-        item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<button class="btn-book" data-id="${t.id}">✅ Обрати</button></div>`;
+        // Створюємо HTML для кнопки та примітки
+        const buttonHtml = `<button class="btn-book" data-id="${t.id}">✅ Обрати</button>`;
+        const noteHtml = isPriority ? `<div class="priority-note">Потребує опрацювання</div>` : '';
+        
+        // Обгортаємо кнопку та примітку в один контейнер
+        const actionAreaHtml = `<div class="action-area">${buttonHtml}${noteHtml}</div>`;
+
+        item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}${actionAreaHtml}</div>`;
+        // --- КІНЕЦЬ ОНОВЛЕННЯ ---
+
         freeTerritoryList.appendChild(item);
     });
 }
