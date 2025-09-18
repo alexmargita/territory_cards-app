@@ -126,6 +126,22 @@ document.addEventListener('DOMContentLoaded', function() {
         return diffDays > 0 ? diffDays : 0;
     }
 
+function isPriorityTerritory(completedDateStr) {
+    if (!completedDateStr || typeof completedDateStr !== 'string') return false;
+
+    const parts = completedDateStr.split('.');
+    if (parts.length !== 3) return false;
+
+    const completedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+    if (isNaN(completedDate.getTime())) return false;
+
+    const today = new Date();
+    const diffTime = today.getTime() - completedDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+    return diffDays >= 240;
+}
+
     function displayMyTerritories(territories) {
         myTerritoryList.innerHTML = '';
         if (territories.length === 0) { myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>'; return; }
@@ -145,19 +161,26 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function displayFreeTerritories(filter) {
-        freeTerritoryList.innerHTML = '';
-        freeTerritoriesTitle.style.display = 'block';
-        const filtered = allTerritories.filter(t => t.type === filter && t.category === 'territory' && t.status === 'вільна');
-        if (filtered.length === 0) { freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>'; return; }
-        filtered.forEach(t => {
-            const item = document.createElement('div');
-            item.className = 'territory-item';
-            item.dataset.territoryId = t.id;
-            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<button class="btn-book" data-id="${t.id}">✅ Обрати</button></div>`;
-            freeTerritoryList.appendChild(item);
-        });
-    }
+ function displayFreeTerritories(filter) {
+    freeTerritoryList.innerHTML = '';
+    freeTerritoriesTitle.style.display = 'block';
+    const filtered = allTerritories.filter(t => t.type === filter && t.category === 'territory' && t.status === 'вільна');
+    if (filtered.length === 0) { freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>'; return; }
+    filtered.forEach(t => {
+        const item = document.createElement('div');
+        item.className = 'territory-item';
+        item.dataset.territoryId = t.id;
+
+        // --- ДОДАНО ---
+        if (isPriorityTerritory(t.date_completed)) {
+            item.classList.add('priority');
+        }
+        // --- КІНЕЦЬ ---
+        
+        item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<button class="btn-book" data-id="${t.id}">✅ Обрати</button></div>`;
+        freeTerritoryList.appendChild(item);
+    });
+}
 
     function displayGeneralMaps() {
         generalMapsList.innerHTML = '';
