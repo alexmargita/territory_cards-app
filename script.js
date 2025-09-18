@@ -16,8 +16,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    console.log("Додаток завантажено. Починаємо слухати події.");
-
     const loader = document.getElementById('loader');
     const myTerritoryList = document.getElementById('my-territory-list');
     const freeTerritoryList = document.getElementById('territory-list');
@@ -31,23 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
-
-    // --- ДОДАНО ДІАГНОСТИКУ ---
-    tg.onEvent('customEvent', function(eventData) {
-        console.log("!!! Подію 'customEvent' отримано від бота:", eventData);
-
-        if (eventData.type === 'territory_returned' || eventData.type === 'territory_taken') {
-            console.log("Тип події правильний. Перевіряємо, чи активна вкладка 'Мої території'...");
-            
-            if (document.getElementById('my-territories').classList.contains('active')) {
-                console.log("Вкладка 'Мої території' активна! Запускаємо оновлення fetchMyTerritories()...");
-                fetchMyTerritories();
-            } else {
-                console.log("Вкладка 'Мої території' НЕ активна. Оновлення не буде.");
-            }
-        }
-    });
-
+    
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     
@@ -69,7 +51,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // ... (решта файлу залишається без змін) ...
     function fetchMyTerritories() {
         myTerritoryList.innerHTML = `<div class="loader" style="font-size: 16px;">Оновлення...</div>`;
         fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`)
