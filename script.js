@@ -31,8 +31,17 @@ document.addEventListener('DOMContentLoaded', function() {
     const userId = tg.initDataUnsafe.user.id;
 
     tg.onEvent('customEvent', function(eventData) {
-        if (eventData.type === 'reload_my_territories') {
-            fetchAllData();
+        if (eventData.type === 'territory_returned') {
+            const territoryItem = document.querySelector(`.territory-item[data-territory-id='${eventData.territoryId}']`);
+            if (territoryItem) {
+                territoryItem.style.opacity = '0';
+                setTimeout(() => territoryItem.remove(), 300);
+            }
+        }
+        if (eventData.type === 'territory_taken') {
+            if(document.getElementById('my-territories').classList.contains('active')){
+                fetchMyTerritories();
+            }
         }
     });
 
@@ -47,6 +56,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const targetTabContent = document.getElementById(targetTabId);
             tabContents.forEach(content => content.classList.remove('active'));
             targetTabContent.classList.add('active');
+
             if (targetTabId === 'my-territories') {
                 fetchMyTerritories();
             }
@@ -96,7 +106,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function createPhotoBlock(territory) {
         if (!territory.picture_id) { return `<div class="placeholder-photo">Немає фото</div>`; }
-        // Кодуємо назву файлу тут, щоб мініатюра коректно відображалася в браузері
         const imageUrl = GITHUB_BASE_URL + encodeURIComponent(territory.picture_id);
         const caption = `📍 ${territory.id ? territory.id + '.' : ''} ${territory.name}`;
         return `<img class="territory-photo" 
@@ -133,6 +142,8 @@ document.addEventListener('DOMContentLoaded', function() {
         territories.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
+            item.dataset.territoryId = t.id; 
+            
             const remainingDays = calculateDaysRemaining(t.date_assigned);
             let daysBlock = '';
             if (remainingDays !== null) {
@@ -222,8 +233,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const caption = imageModal.dataset.caption;
         if (!photoId || !caption) { tg.showAlert('Не вдалося отримати дані для надсилання.'); return; }
         tg.MainButton.setText("Надсилаю фото в чат...").showProgress();
-        
-        // --- ВИПРАВЛЕНО: Надсилаємо назву файлу ЯК Є, без кодування на клієнті ---
         const payload = {
             action: 'sendPhotoToUser',
             userId: userId,
