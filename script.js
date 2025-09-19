@@ -172,22 +172,19 @@ function displayFreeTerritories(filter) {
         item.className = 'territory-item';
         item.dataset.territoryId = t.id;
 
-        // --- ЛОГІКУ ОНОВЛЕНО ---
         const isPriority = isPriorityTerritory(t.date_completed);
         
         if (isPriority) {
             item.classList.add('priority');
         }
         
-        // Створюємо HTML для кнопки та примітки
-        const buttonHtml = `<button class="btn-book" data-id="${t.id}">✅ Обрати</button>`;
-        const noteHtml = isPriority ? `<div class="priority-note">Потребує опрацювання</div>` : '';
+        const territoryNameForButton = t.name.replace(/"/g, '&quot;');
+        const buttonHtml = `<button class="btn-book" data-id="${t.id}" data-name="${territoryNameForButton}">✅ Обрати</button>`;
         
-        // Обгортаємо кнопку та примітку в один контейнер
+        const noteHtml = isPriority ? `<div class="priority-note">Потребує опрацювання</div>` : '';
         const actionAreaHtml = `<div class="action-area">${buttonHtml}${noteHtml}</div>`;
 
         item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}${actionAreaHtml}</div>`;
-        // --- КІНЕЦЬ ОНОВЛЕННЯ ---
 
         freeTerritoryList.appendChild(item);
     });
@@ -232,7 +229,13 @@ function displayFreeTerritories(filter) {
             });
         }
         if (target.classList.contains('btn-book')) {
-            requestTerritory(target.dataset.id, target);
+            const territoryId = target.dataset.id;
+            const territoryName = target.dataset.name;
+            tg.showConfirm(`Ви впевнені, що хочете обрати територію "${territoryId}. ${territoryName}"?`, (isConfirmed) => {
+                if (isConfirmed) {
+                    requestTerritory(territoryId, target);
+                }
+            });
         }
         if (target.classList.contains('filter-btn')) {
             filtersContainer.querySelector('.active')?.classList.remove('active');
