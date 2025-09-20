@@ -23,13 +23,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     const filtersContainer = document.getElementById('filters-container');
     const imageModal = document.getElementById('image-modal');
-    const fullImage = document.getElementById('full-image');
     const closeModalBtn = document.querySelector('.modal-close-btn');
     const modalDownloadBtn = document.getElementById('modal-download-btn');
 
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
-    let pinchZoomInstance = null; // Змінна для зберігання екземпляра бібліотеки
+    let pinchZoomInstance = null;
     
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -244,28 +243,44 @@ document.addEventListener('DOMContentLoaded', function() {
             displayFreeTerritories(target.dataset.filter);
         }
     });
-    
-    // --- ОНОВЛЕНА ЛОГІКА МОДАЛЬНОГО ВІКНА ---
-    
+
+    // --- ПОЧАТОК НАДІЙНОЇ ЛОГІКИ МОДАЛЬНОГО ВІКНА ---
+
     function handlePhotoClick(photoElement) {
-        const imageContainer = document.getElementById('image-container');
-        
-        fullImage.src = photoElement.src;
+        const imageContainer = document.getElementById('image-zoom-container');
+        if (!imageContainer) return;
+
+        // 1. Очищуємо контейнер від попереднього зображення
+        imageContainer.innerHTML = '';
+
+        // 2. Створюємо новий елемент зображення
+        const img = document.createElement('img');
+
+        // 3. Показуємо модальне вікно. Картинка почне завантажуватися.
+        imageModal.classList.add('active');
         imageModal.dataset.photoId = photoElement.dataset.photoId;
         imageModal.dataset.caption = photoElement.dataset.caption;
-        
-        imageModal.classList.add('active');
 
-        // Ініціалізація масштабування
-        if (imageContainer) {
+        // 4. НАЙВАЖЛИВІШИЙ КРОК: ініціалізуємо бібліотеку ТІЛЬКИ ПІСЛЯ завантаження зображення
+        img.onload = function() {
+            // Коли картинка завантажилась, додаємо її в контейнер
+            imageContainer.appendChild(img);
+            // І тільки тепер запускаємо магію масштабування
             pinchZoomInstance = new PinchZoom(imageContainer, {
-                minZoom: 0.8 
+                // Додамо опції для кращої роботи
+                minZoom: 0.5,
+                maxZoom: 4,
+                tapZoomFactor: 2,
+                setOffsetsOnce: true
             });
-        }
+        };
+
+        // 5. Вказуємо шлях до зображення, щоб почати завантаження
+        img.src = photoElement.src;
     }
 
     function closeModal() {
-        // Знищуємо екземпляр, щоб очистити пам'ять
+        // Завжди знищуємо попередній екземпляр бібліотеки, щоб уникнути проблем
         if (pinchZoomInstance) {
             pinchZoomInstance.destroy();
             pinchZoomInstance = null;
@@ -273,15 +288,16 @@ document.addEventListener('DOMContentLoaded', function() {
         imageModal.classList.remove('active');
     }
 
+    // --- КІНЕЦЬ НОВОЇ ЛОГІКИ ---
+
+
     closeModalBtn.addEventListener('click', closeModal);
     imageModal.addEventListener('click', (e) => {
-        // Закриваємо тільки при кліку на темний фон, а не на саме зображення
+        // Закриваємо вікно тільки при кліку на фон
         if (e.target === imageModal) {
             closeModal();
         }
     });
-    
-    // --- КІНЕЦЬ ОНОВЛЕНОЇ ЛОГІКИ ---
 
     modalDownloadBtn.addEventListener('click', () => {
         const photoId = imageModal.dataset.photoId;
@@ -289,7 +305,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!photoId || !caption) { tg.showAlert('Не вдалося отримати дані для надсилання.'); return; }
         
         tg.showAlert("Картка території з'явиться у вікні чату через декілька секунд");
-        closeModal(); // Закриваємо модальне вікно після натискання
+        closeModal();
 
         const payload = {
             action: 'sendPhotoToUser',
