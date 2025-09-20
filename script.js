@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
+    let pinchZoomInstance = null; // Змінна для зберігання екземпляра бібліотеки
     
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -126,21 +127,21 @@ document.addEventListener('DOMContentLoaded', function() {
         return diffDays > 0 ? diffDays : 0;
     }
 
-function isPriorityTerritory(completedDateStr) {
-    if (!completedDateStr || typeof completedDateStr !== 'string') return false;
+    function isPriorityTerritory(completedDateStr) {
+        if (!completedDateStr || typeof completedDateStr !== 'string') return false;
 
-    const parts = completedDateStr.split('.');
-    if (parts.length !== 3) return false;
+        const parts = completedDateStr.split('.');
+        if (parts.length !== 3) return false;
 
-    const completedDate = new Date(parts[2], parts[1] - 1, parts[0]);
-    if (isNaN(completedDate.getTime())) return false;
+        const completedDate = new Date(parts[2], parts[1] - 1, parts[0]);
+        if (isNaN(completedDate.getTime())) return false;
 
-    const today = new Date();
-    const diffTime = today.getTime() - completedDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const today = new Date();
+        const diffTime = today.getTime() - completedDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    return diffDays >= 240;
-}
+        return diffDays >= 240;
+    }
 
     function displayMyTerritories(territories) {
         myTerritoryList.innerHTML = '';
@@ -156,40 +157,39 @@ function isPriorityTerritory(completedDateStr) {
                 const progressPercent = Math.min((remainingDays / 120) * 100, 100);
                 daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
             }
-            // --- ЗМІНЕНО ТУТ ---
             item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<div class="action-area"><button class="btn-return" data-id="${t.id}">↩️ Здати</button></div></div>${daysBlock}`;
             myTerritoryList.appendChild(item);
         });
     }
 
-function displayFreeTerritories(filter) {
-    freeTerritoryList.innerHTML = '';
-    freeTerritoriesTitle.style.display = 'block';
-    const filtered = allTerritories.filter(t => t.type === filter && t.category === 'territory' && t.status === 'вільна');
-    if (filtered.length === 0) { freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>'; return; }
-    
-    filtered.forEach(t => {
-        const item = document.createElement('div');
-        item.className = 'territory-item';
-        item.dataset.territoryId = t.id;
-
-        const isPriority = isPriorityTerritory(t.date_completed);
+    function displayFreeTerritories(filter) {
+        freeTerritoryList.innerHTML = '';
+        freeTerritoriesTitle.style.display = 'block';
+        const filtered = allTerritories.filter(t => t.type === filter && t.category === 'territory' && t.status === 'вільна');
+        if (filtered.length === 0) { freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>'; return; }
         
-        if (isPriority) {
-            item.classList.add('priority');
-        }
-        
-        const territoryNameForButton = t.name.replace(/"/g, '&quot;');
-        const buttonHtml = `<button class="btn-book" data-id="${t.id}" data-name="${territoryNameForButton}">✅ Обрати</button>`;
-        
-        const noteHtml = isPriority ? `<div class="priority-note">Потребує опрацювання</div>` : '';
-        const actionAreaHtml = `<div class="action-area">${buttonHtml}${noteHtml}</div>`;
+        filtered.forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'territory-item';
+            item.dataset.territoryId = t.id;
 
-        item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}${actionAreaHtml}</div>`;
+            const isPriority = isPriorityTerritory(t.date_completed);
+            
+            if (isPriority) {
+                item.classList.add('priority');
+            }
+            
+            const territoryNameForButton = t.name.replace(/"/g, '&quot;');
+            const buttonHtml = `<button class="btn-book" data-id="${t.id}" data-name="${territoryNameForButton}">✅ Обрати</button>`;
+            
+            const noteHtml = isPriority ? `<div class="priority-note">Потребує опрацювання</div>` : '';
+            const actionAreaHtml = `<div class="action-area">${buttonHtml}${noteHtml}</div>`;
 
-        freeTerritoryList.appendChild(item);
-    });
-}
+            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}${actionAreaHtml}</div>`;
+
+            freeTerritoryList.appendChild(item);
+        });
+    }
 
     function displayGeneralMaps() {
         generalMapsList.innerHTML = '';
@@ -244,18 +244,44 @@ function displayFreeTerritories(filter) {
             displayFreeTerritories(target.dataset.filter);
         }
     });
-
+    
+    // --- ОНОВЛЕНА ЛОГІКА МОДАЛЬНОГО ВІКНА ---
+    
     function handlePhotoClick(photoElement) {
+        const imageContainer = document.getElementById('image-container');
+        
         fullImage.src = photoElement.src;
         imageModal.dataset.photoId = photoElement.dataset.photoId;
         imageModal.dataset.caption = photoElement.dataset.caption;
+        
         imageModal.classList.add('active');
+
+        // Ініціалізація масштабування
+        if (imageContainer) {
+            pinchZoomInstance = new PinchZoom(imageContainer, {
+                minZoom: 0.8 
+            });
+        }
     }
 
-    closeModalBtn.addEventListener('click', () => imageModal.classList.remove('active'));
+    function closeModal() {
+        // Знищуємо екземпляр, щоб очистити пам'ять
+        if (pinchZoomInstance) {
+            pinchZoomInstance.destroy();
+            pinchZoomInstance = null;
+        }
+        imageModal.classList.remove('active');
+    }
+
+    closeModalBtn.addEventListener('click', closeModal);
     imageModal.addEventListener('click', (e) => {
-        if (e.target === imageModal) imageModal.classList.remove('active');
+        // Закриваємо тільки при кліку на темний фон, а не на саме зображення
+        if (e.target === imageModal) {
+            closeModal();
+        }
     });
+    
+    // --- КІНЕЦЬ ОНОВЛЕНОЇ ЛОГІКИ ---
 
     modalDownloadBtn.addEventListener('click', () => {
         const photoId = imageModal.dataset.photoId;
@@ -263,7 +289,7 @@ function displayFreeTerritories(filter) {
         if (!photoId || !caption) { tg.showAlert('Не вдалося отримати дані для надсилання.'); return; }
         
         tg.showAlert("Картка території з'явиться у вікні чату через декілька секунд");
-        imageModal.classList.remove('active');
+        closeModal(); // Закриваємо модальне вікно після натискання
 
         const payload = {
             action: 'sendPhotoToUser',
