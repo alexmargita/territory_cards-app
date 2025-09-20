@@ -89,12 +89,14 @@ h2 {
     font-weight: bold;
     font-size: 18px;
     margin-bottom: 10px;
+    /* Оновлено для позиціонування іконки */
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
 }
 
+/* --- НОВІ СТИЛІ: Іконка для приміток --- */
 .note-icon {
     font-family: 'Georgia', serif;
     font-weight: bold;
@@ -109,8 +111,8 @@ h2 {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    flex-shrink: 0;
-    user-select: none;
+    flex-shrink: 0; /* Щоб іконка не стискалася */
+    user-select: none; /* Заборона виділення тексту "і" */
 }
 
 .territory-content {
@@ -145,7 +147,7 @@ h2 {
     cursor: pointer;
     color: #ffffff;
     height: 100%;
-    width: 100%;
+    width: 100%; /* <-- ЗМІНЕНО ТУТ */
 }
 .btn-book {
     background-color: var(--tg-theme-button-color, #28a745);
@@ -193,6 +195,7 @@ h2 {
     font-size: 14px;
 }
 
+
 /* Стилі для модального вікна */
 .image-modal {
     display: none;
@@ -202,35 +205,20 @@ h2 {
     top: 0;
     width: 100%;
     height: 100%;
+    overflow: auto;
     background-color: rgba(0,0,0,0.8);
-    /* Flexbox для ідеального центрування */
     justify-content: center;
     align-items: center;
 }
 .image-modal.active {
     display: flex;
 }
-
-/* Контейнер для масштабування, він буде займати майже весь екран */
-#image-zoom-container {
-    width: 100%;
-    height: 100%;
-    /* Дозволяємо бібліотеці керувати дотиками */
-    touch-action: none;
+.modal-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 80%;
 }
-
-/* ВАЖЛИВО: Новий клас для початкового стану зображення */
-#image-zoom-container img.fit-on-screen {
-    /* Ці дві властивості гарантують, що зображення впишеться в контейнер */
-    max-width: 100%;
-    max-height: 100%;
-    /* Це потрібно для правильного розрахунку позиції бібліотекою */
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-}
-
 .modal-close-btn {
     position: absolute;
     top: 15px;
@@ -239,14 +227,12 @@ h2 {
     font-size: 40px;
     font-weight: bold;
     cursor: pointer;
-    z-index: 1001;
 }
 .modal-actions {
     position: absolute;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 1001;
 }
 .modal-btn {
     padding: 10px 20px;
@@ -258,13 +244,13 @@ h2 {
     cursor: pointer;
 }
 
-/* Стиль для пріоритетних територій */
+/* --- ВИПРАВЛЕНИЙ СТИЛЬ: для пріоритетних територій --- */
 .territory-item.priority {
-    background-color: rgba(138, 43, 226, 0.15) !important;
+    background-color: rgba(138, 43, 226, 0.15) !important; /* Додано !important */
     border: 1px solid rgba(138, 43, 226, 0.4);
 }
 
-/* Контейнер для кнопки та примітки */
+/* --- НОВІ СТИЛІ: для контейнера кнопки та примітки --- */
 .action-area {
     flex-grow: 1;
     display: flex;
@@ -276,6 +262,34 @@ h2 {
     text-align: center;
     font-size: 13px;
     font-weight: 600;
-    color: #6a0dad;
+    color: #6a0dad; /* Темно-фіолетовий */
     margin-top: 6px;
+}
+
+/* --- НОВІ СТИЛІ: для масштабування зображення --- */
+.modal-image-container {
+    width: 100%;
+    height: 100%;
+    overflow: hidden; /* Ховаємо частини зображення, що виходять за межі */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.modal-content { /* Перевизначаємо, щоб забрати зайві стилі */
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+
+#full-image {
+    transform-origin: center center; /* Встановлюємо центр трансформації */
+    transition: transform 0.1s ease-out; /* Плавність для масштабування */
+    cursor: grab; /* Змінюємо курсор, щоб показати можливість перетягування */
+}
+
+#full-image.grabbing {
+    cursor: grabbing;
 }

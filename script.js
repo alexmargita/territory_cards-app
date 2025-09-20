@@ -23,12 +23,12 @@ document.addEventListener('DOMContentLoaded', function() {
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     const filtersContainer = document.getElementById('filters-container');
     const imageModal = document.getElementById('image-modal');
+    const fullImage = document.getElementById('full-image');
     const closeModalBtn = document.querySelector('.modal-close-btn');
     const modalDownloadBtn = document.getElementById('modal-download-btn');
 
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
-    let pinchZoomInstance = null;
     
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
+                console.error('Fetch error:', error);
                 myTerritoryList.innerHTML = '<p>Помилка мережі. Спробуйте пізніше.</p>';
             });
     }
@@ -85,6 +86,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .catch(error => {
+                console.error('Fetch error:', error);
                 freeTerritoryList.innerHTML = '<p>Помилка мережі. Спробуйте пізніше.</p>';
             });
     }
@@ -245,65 +247,21 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     function handlePhotoClick(photoElement) {
-        const imageContainer = document.getElementById('image-zoom-container');
-        if (!imageContainer) return;
-
-        // 1. Очищуємо контейнер
-        imageContainer.innerHTML = '';
-
-        // 2. Створюємо елемент зображення
-        const img = document.createElement('img');
-        // Надаємо йому клас, щоб він одразу вписався в екран
-        img.classList.add('fit-on-screen');
-
-        // 3. Функція, яка вмикає режим масштабування
-        function enableZoom() {
-            // Видаляємо клас, що обмежував розмір
-            img.classList.remove('fit-on-screen');
-            
-            // Ініціалізуємо бібліотеку
-            pinchZoomInstance = new PinchZoom(imageContainer, {
-                minZoom: 0.5,
-                maxZoom: 5
-            });
-
-            // Важливо: видаляємо слухачі, щоб вони не спрацювали вдруге
-            imageContainer.removeEventListener('wheel', enableZoom);
-            imageContainer.removeEventListener('pointerdown', enableZoom);
-        }
-
-        // 4. Додаємо одноразові слухачі подій.
-        // Вони спрацюють ЛИШЕ ОДИН РАЗ при першому скролі або дотику.
-        imageContainer.addEventListener('wheel', enableZoom, { once: true });
-        imageContainer.addEventListener('pointerdown', enableZoom, { once: true });
-
-        // 5. Чекаємо, поки зображення завантажиться, і лише тоді додаємо його
-        img.onload = () => {
-            imageContainer.appendChild(img);
-        };
-
-        // 6. Показуємо модальне вікно і запускаємо завантаження зображення
-        imageModal.classList.add('active');
+        fullImage.src = photoElement.src;
         imageModal.dataset.photoId = photoElement.dataset.photoId;
         imageModal.dataset.caption = photoElement.dataset.caption;
-        img.src = photoElement.src;
+        imageModal.classList.add('active');
     }
 
-    function closeModal() {
-        // Завжди знищуємо екземпляр бібліотеки при закритті
-        if (pinchZoomInstance) {
-            pinchZoomInstance.destroy();
-            pinchZoomInstance = null;
-        }
+    // Обробники закриття модального вікна (переміщено для доступу до resetTransform)
+    closeModalBtn.addEventListener('click', () => {
         imageModal.classList.remove('active');
-    }
-
-
-    closeModalBtn.addEventListener('click', closeModal);
+        resetTransform(); // Скидаємо трансформації
+    });
     imageModal.addEventListener('click', (e) => {
-        // Закриваємо вікно тільки при кліку на фон, а не на сам контейнер
-        if (e.target === imageModal) {
-            closeModal();
+        if (e.target === imageModal || e.target.classList.contains('modal-image-container')) {
+             imageModal.classList.remove('active');
+             resetTransform(); // Скидаємо трансформації
         }
     });
 
@@ -313,7 +271,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!photoId || !caption) { tg.showAlert('Не вдалося отримати дані для надсилання.'); return; }
         
         tg.showAlert("Картка території з'явиться у вікні чату через декілька секунд");
-        closeModal();
+        imageModal.classList.remove('active');
+        resetTransform(); // Скидаємо трансформації
 
         const payload = {
             action: 'sendPhotoToUser',
@@ -418,9 +377,127 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }).catch(error => {
             loader.style.display = 'none';
+            console.error('Critical fetch error:', error);
             document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані.</p>`;
         });
     }
     
+    // --- ЛОГІКА ДЛЯ МАСШТАБУВАННЯ ТА ПЕРЕТЯГУВАННЯ ЗОБРАЖЕННЯ В МОДАЛЬНОМУ ВІКНІ ---
+
+    let scale = 1;
+    let isPanning = false;
+    let startX = 0;
+    let startY = 0;
+    let translateX = 0;
+    let translateY = 0;
+    let initialPinchDistance = null;
+
+    function updateTransform() {
+        fullImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    }
+
+    function resetTransform() {
+        scale = 1;
+        translateX = 0;
+        translateY = 0;
+        updateTransform();
+    }
+    
+    // Масштабування коліщатком миші
+    imageModal.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        const newScale = Math.max(1, Math.min(scale + delta, 5));
+        
+        if (newScale !== scale) {
+            scale = newScale;
+            if (scale === 1) {
+                translateX = 0;
+                translateY = 0;
+            }
+            updateTransform();
+        }
+    });
+
+    // Перетягування мишею
+    imageModal.addEventListener('mousedown', (e) => {
+        if (e.target !== fullImage || scale <= 1) return;
+        e.preventDefault();
+        isPanning = true;
+        fullImage.classList.add('grabbing');
+        startX = e.clientX - translateX;
+        startY = e.clientY - translateY;
+    });
+
+    imageModal.addEventListener('mousemove', (e) => {
+        if (!isPanning) return;
+        e.preventDefault();
+        translateX = e.clientX - startX;
+        translateY = e.clientY - startY;
+        updateTransform();
+    });
+
+    window.addEventListener('mouseup', () => { // Слухаємо на window, щоб не втратити подію
+        isPanning = false;
+        fullImage.classList.remove('grabbing');
+    });
+
+    // --- Логіка для сенсорних екранів (жести) ---
+    function getDistance(touches) {
+        const [touch1, touch2] = touches;
+        return Math.sqrt(
+            Math.pow(touch2.clientX - touch1.clientX, 2) +
+            Math.pow(touch2.clientY - touch1.clientY, 2)
+        );
+    }
+
+    imageModal.addEventListener('touchstart', (e) => {
+        if (e.target !== fullImage || e.touches.length > 2) return;
+        
+        if (e.touches.length === 1 && scale > 1) {
+            isPanning = true;
+            fullImage.classList.add('grabbing');
+            startX = e.touches[0].clientX - translateX;
+            startY = e.touches[0].clientY - translateY;
+        } else if (e.touches.length === 2) {
+            isPanning = false;
+            initialPinchDistance = getDistance(e.touches);
+        }
+    });
+
+    imageModal.addEventListener('touchmove', (e) => {
+        if (e.target !== fullImage) return;
+        e.preventDefault();
+        
+        if (isPanning && e.touches.length === 1) {
+            translateX = e.touches[0].clientX - startX;
+            translateY = e.touches[0].clientY - startY;
+            updateTransform();
+        } else if (e.touches.length === 2 && initialPinchDistance) {
+            const newDistance = getDistance(e.touches);
+            const scaleFactor = newDistance / initialPinchDistance;
+            
+            const newScale = Math.max(1, Math.min(scale * scaleFactor, 5));
+            if (newScale !== scale) {
+                scale = newScale;
+                if (scale === 1) {
+                    translateX = 0;
+                    translateY = 0;
+                }
+                updateTransform();
+            }
+            initialPinchDistance = newDistance;
+        }
+    });
+
+    imageModal.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) initialPinchDistance = null;
+        if (e.touches.length < 1) {
+            isPanning = false;
+            fullImage.classList.remove('grabbing');
+        }
+    });
+    
+    // Початкове завантаження
     fetchAllData();
 });
