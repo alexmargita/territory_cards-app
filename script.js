@@ -244,43 +244,53 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- ПОЧАТОК НАДІЙНОЇ ЛОГІКИ МОДАЛЬНОГО ВІКНА ---
-
     function handlePhotoClick(photoElement) {
         const imageContainer = document.getElementById('image-zoom-container');
         if (!imageContainer) return;
 
-        // 1. Очищуємо контейнер від попереднього зображення
+        // 1. Очищуємо контейнер
         imageContainer.innerHTML = '';
 
-        // 2. Створюємо новий елемент зображення
+        // 2. Створюємо елемент зображення
         const img = document.createElement('img');
+        // Надаємо йому клас, щоб він одразу вписався в екран
+        img.classList.add('fit-on-screen');
 
-        // 3. Показуємо модальне вікно. Картинка почне завантажуватися.
+        // 3. Функція, яка вмикає режим масштабування
+        function enableZoom() {
+            // Видаляємо клас, що обмежував розмір
+            img.classList.remove('fit-on-screen');
+            
+            // Ініціалізуємо бібліотеку
+            pinchZoomInstance = new PinchZoom(imageContainer, {
+                minZoom: 0.5,
+                maxZoom: 5
+            });
+
+            // Важливо: видаляємо слухачі, щоб вони не спрацювали вдруге
+            imageContainer.removeEventListener('wheel', enableZoom);
+            imageContainer.removeEventListener('pointerdown', enableZoom);
+        }
+
+        // 4. Додаємо одноразові слухачі подій.
+        // Вони спрацюють ЛИШЕ ОДИН РАЗ при першому скролі або дотику.
+        imageContainer.addEventListener('wheel', enableZoom, { once: true });
+        imageContainer.addEventListener('pointerdown', enableZoom, { once: true });
+
+        // 5. Чекаємо, поки зображення завантажиться, і лише тоді додаємо його
+        img.onload = () => {
+            imageContainer.appendChild(img);
+        };
+
+        // 6. Показуємо модальне вікно і запускаємо завантаження зображення
         imageModal.classList.add('active');
         imageModal.dataset.photoId = photoElement.dataset.photoId;
         imageModal.dataset.caption = photoElement.dataset.caption;
-
-        // 4. НАЙВАЖЛИВІШИЙ КРОК: ініціалізуємо бібліотеку ТІЛЬКИ ПІСЛЯ завантаження зображення
-        img.onload = function() {
-            // Коли картинка завантажилась, додаємо її в контейнер
-            imageContainer.appendChild(img);
-            // І тільки тепер запускаємо магію масштабування
-            pinchZoomInstance = new PinchZoom(imageContainer, {
-                // Додамо опції для кращої роботи
-                minZoom: 0.5,
-                maxZoom: 4,
-                tapZoomFactor: 2,
-                setOffsetsOnce: true
-            });
-        };
-
-        // 5. Вказуємо шлях до зображення, щоб почати завантаження
         img.src = photoElement.src;
     }
 
     function closeModal() {
-        // Завжди знищуємо попередній екземпляр бібліотеки, щоб уникнути проблем
+        // Завжди знищуємо екземпляр бібліотеки при закритті
         if (pinchZoomInstance) {
             pinchZoomInstance.destroy();
             pinchZoomInstance = null;
@@ -288,12 +298,10 @@ document.addEventListener('DOMContentLoaded', function() {
         imageModal.classList.remove('active');
     }
 
-    // --- КІНЕЦЬ НОВОЇ ЛОГІКИ ---
-
 
     closeModalBtn.addEventListener('click', closeModal);
     imageModal.addEventListener('click', (e) => {
-        // Закриваємо вікно тільки при кліку на фон
+        // Закриваємо вікно тільки при кліку на фон, а не на сам контейнер
         if (e.target === imageModal) {
             closeModal();
         }

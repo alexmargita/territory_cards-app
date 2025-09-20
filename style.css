@@ -203,6 +203,7 @@ h2 {
     width: 100%;
     height: 100%;
     background-color: rgba(0,0,0,0.8);
+    /* Flexbox для ідеального центрування */
     justify-content: center;
     align-items: center;
 }
@@ -210,24 +211,25 @@ h2 {
     display: flex;
 }
 
-/* Контейнер для розмітки: центрує та обмежує видиму область */
-.modal-content {
-    width: 95%;
-    height: 85%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden; /* Ховаємо все, що виходить за межі */
-}
-
-/* Контейнер для масштабування: просто заповнює видиму область */
+/* Контейнер для масштабування, він буде займати майже весь екран */
 #image-zoom-container {
     width: 100%;
     height: 100%;
+    /* Дозволяємо бібліотеці керувати дотиками */
+    touch-action: none;
 }
 
-/* ВАЖЛИВО: Ми більше не стилізуємо img всередині модального вікна.
-   Бібліотека зробить це сама. Усі старі стилі для #full-image видалені. */
+/* ВАЖЛИВО: Новий клас для початкового стану зображення */
+#image-zoom-container img.fit-on-screen {
+    /* Ці дві властивості гарантують, що зображення впишеться в контейнер */
+    max-width: 100%;
+    max-height: 100%;
+    /* Це потрібно для правильного розрахунку позиції бібліотекою */
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
 
 .modal-close-btn {
     position: absolute;
