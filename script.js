@@ -156,7 +156,8 @@ function isPriorityTerritory(completedDateStr) {
                 const progressPercent = Math.min((remainingDays / 120) * 100, 100);
                 daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
             }
-            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<button class="btn-return" data-id="${t.id}">↩️ Здати</button></div>${daysBlock}`;
+            // --- ЗМІНЕНО ТУТ ---
+            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<div class="action-area"><button class="btn-return" data-id="${t.id}">↩️ Здати</button></div></div>${daysBlock}`;
             myTerritoryList.appendChild(item);
         });
     }

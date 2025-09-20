@@ -147,6 +147,7 @@ h2 {
     cursor: pointer;
     color: #ffffff;
     height: 100%;
+    width: 100%; /* <-- ЗМІНЕНО ТУТ */
 }
 .btn-book {
     background-color: var(--tg-theme-button-color, #28a745);
