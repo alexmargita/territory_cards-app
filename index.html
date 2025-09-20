@@ -2,7 +2,7 @@
 <html lang="uk">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Території</title>
     <link rel="stylesheet" href="style.css">
 </head>
@@ -37,13 +37,16 @@
 
     <div id="image-modal" class="image-modal">
         <span class="modal-close-btn">&times;</span>
-        <img class="modal-content" id="full-image">
+        <div id="image-container" class="modal-content">
+            <img id="full-image">
+        </div>
         <div class="modal-actions">
             <button id="modal-download-btn" class="modal-btn">📥 Завантажити</button>
         </div>
     </div>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://unpkg.com/pinch-zoom-js@2.3.5/dist/pinch-zoom.umd.js"></script>
     <script src="script.js"></script>
 </body>
 </html>
