@@ -47,7 +47,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            // Оновлюємо дані, якщо вкладка вже не активна
             if (!tab.classList.contains('active')) {
                 fetchAllData();
             }
@@ -343,7 +342,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         : result.history.map(entry => {
                             let actionText = entry.action === 'Assigned' ? 'Взято' : 'Здано';
                             let daysText = entry.action === 'Returned' && entry.days ? ` (${entry.days} дн.)` : '';
-                            return `<div class="history-entry"><b>${entry.user}</b> - ${actionText}: ${entry.date}${daysText}</div>`;
+                            // ОНОВЛЕНО: Змінено порядок відображення
+                            return `<div class="history-entry">${entry.date} - ${actionText} - <b>${entry.user}</b>${daysText}</div>`;
                         }).join('');
                     showGeneralModal(`Історія території ${territoryId}`, historyHtml);
                 } else {
