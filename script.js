@@ -10,7 +10,7 @@ if ('serviceWorker' in navigator) {
 }
 
 const GITHUB_BASE_URL = "https://raw.githubusercontent.com/alexmargita/territory_cards-app/main/images/";
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyFlBN5_L1dr0fncI39EZuMoxnBqtW03g1--BkU9IosROoSxgqqRlTFFFrdp7GZN22M/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyMLZV3i0Qm3xd8nbQZEJOTB-AA9LWhZw2HmKc9cZukjQLmq6T_85P14BkFveutwQN2/exec";
 
 document.addEventListener('DOMContentLoaded', function() {
     const tg = window.Telegram.WebApp;
@@ -500,4 +500,5 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Початкове завантаження
     fetchAllData();
+
 });
