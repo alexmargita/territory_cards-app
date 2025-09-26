@@ -12,7 +12,6 @@
             <button class="tab-button active" data-tab="my-territories">Мої території</button>
             <button class="tab-button" data-tab="select-territory">Обрати територію</button>
             <button class="tab-button" data-tab="general-maps">Загальні карти</button>
-            <button class="tab-button" data-tab="all-territories" id="admin-tab" style="display: none;">Усі території</button>
         </div>
 
         <div id="my-territories" class="tab-content active">
@@ -31,22 +30,6 @@
         <div id="general-maps" class="tab-content">
             <h2>Загальні карти територій:</h2>
             <div id="general-maps-list"></div>
-        </div>
-
-        <div id="all-territories" class="tab-content" style="display: none;">
-            <h2>Усі території:</h2>
-            <div class="admin-filters">
-                <button class="filter-btn active" data-status="all">Усі</button>
-                <button class="filter-btn" data-status="вільна">Вільні</button>
-                <button class="filter-btn" data-status="зайнята">Зайняті</button>
-                <button class="filter-btn" data-status="повернена">Повернені</button>
-                <button class="filter-btn" data-status="рідко опрацьовані">Рідко опрацьовані</button>
-                <div class="search-container">
-                    <input type="text" id="admin-search-input" placeholder="Пошук за назвою або ID" style="display: none;">
-                    <button id="admin-search-icon" class="search-icon">🔍</button>
-                </div>
-            </div>
-            <div id="admin-territory-list" class="territory-list"></div>
         </div>
         
         <div id="loader" class="loader">Завантаження...</div>
