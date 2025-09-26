@@ -35,13 +35,46 @@
         <div id="loader" class="loader">Завантаження...</div>
     </div>
 
-    <div id="image-modal" class="image-modal">
+    <div id="image-modal" class="image-modal modal">
         <span class="modal-close-btn">&times;</span>
         <div class="modal-image-container">
             <img class="modal-content" id="full-image">
         </div>
         <div class="modal-actions">
             <button id="modal-download-btn" class="modal-btn">📥 Завантажити</button>
+        </div>
+    </div>
+    
+    <div id="assign-modal" class="modal">
+        <div class="modal-content-container">
+            <span class="modal-close-btn">&times;</span>
+            <h3 id="assign-modal-title">Призначити територію</h3>
+            <div class="modal-body">
+                <div id="assign-user-list"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="history-modal" class="modal">
+        <div class="modal-content-container">
+            <span class="modal-close-btn">&times;</span>
+            <h3 id="history-modal-title">Історія території</h3>
+            <div class="modal-body">
+                <div id="history-list"></div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="note-modal" class="modal">
+        <div class="modal-content-container">
+            <span class="modal-close-btn">&times;</span>
+            <h3 id="note-modal-title">Примітка до території</h3>
+            <div class="modal-body">
+                <textarea id="note-textarea" rows="5" placeholder="Введіть примітку..."></textarea>
+            </div>
+            <div class="modal-footer">
+                <button id="save-note-btn" class="modal-btn">Зберегти</button>
+            </div>
         </div>
     </div>
 
