@@ -254,8 +254,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 infoHtml = `<div class="admin-card-info"><strong>Користувач:</strong> ${t.assignee_name || 'Невідомо'}<br><strong>Дата видачі:</strong> ${t.date_assigned || '-'}</div>`;
             } else if (['вільна', 'повернена'].includes(t.status)) {
                 let lines = [];
-                if (t.date_completed) lines.push(`<strong>Дата повернення:</strong> ${t.date_completed}`);
+                // ОНОВЛЕНО: Змінено порядок відображення
                 if (t.last_user_name) lines.push(`<strong>Останній користувач:</strong> ${t.last_user_name}`);
+                if (t.date_completed) lines.push(`<strong>Дата повернення:</strong> ${t.date_completed}`);
                 if (lines.length > 0) infoHtml = `<div class="admin-card-info">${lines.join('<br>')}</div>`;
             }
             
@@ -342,7 +343,6 @@ document.addEventListener('DOMContentLoaded', function() {
                         : result.history.map(entry => {
                             let actionText = entry.action === 'Assigned' ? 'Взято' : 'Здано';
                             let daysText = entry.action === 'Returned' && entry.days ? ` (${entry.days} дн.)` : '';
-                            // ОНОВЛЕНО: Змінено порядок відображення
                             return `<div class="history-entry">${entry.date} - ${actionText} - <b>${entry.user}</b>${daysText}</div>`;
                         }).join('');
                     showGeneralModal(`Історія території ${territoryId}`, historyHtml);
