@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     tg.expand();
 
     // --- DOM елементи ---
-    const appContainer = document.querySelector('.app-container'); // Додано контейнер
+    const appContainer = document.querySelector('.app-container');
     const loader = document.getElementById('loader');
     const myTerritoryList = document.getElementById('my-territory-list');
     const freeTerritoryList = document.getElementById('territory-list');
@@ -68,13 +68,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         loader.style.display = 'block';
-        appContainer.classList.add('is-loading'); // ОНОВЛЕНО: Додаємо клас для візуального ефекту
+        appContainer.classList.add('is-loading');
         
         Promise.all([
             fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`).then(res => res.json()),
             fetch(`${SCRIPT_URL}?userId=${userId}`).then(res => res.json())
         ]).then(([myData, allData]) => {
-            appContainer.classList.remove('is-loading'); // ОНОВЛЕНО: Прибираємо ефект
+            appContainer.classList.remove('is-loading');
             loader.style.display = 'none';
             if (myData.ok) displayMyTerritories(myData.territories);
             
@@ -113,7 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  document.body.innerHTML = `<p>Помилка завантаження даних: ${allData.error}</p>`;
             }
         }).catch(error => {
-            appContainer.classList.remove('is-loading'); // ОНОВЛЕНО: Прибираємо ефект навіть якщо помилка
+            appContainer.classList.remove('is-loading');
             loader.style.display = 'none';
             console.error('Critical fetch error:', error);
             document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані. Перевірте з'єднання з Інтернетом.</p>`;
@@ -254,8 +254,19 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isPriorityTerritory(t.date_completed)) item.classList.add('priority');
             
             let infoHtml = '';
+            let daysBlock = ''; // Оголошуємо змінну для індикатора
+
             if (t.status === 'зайнята') {
                 infoHtml = `<div class="admin-card-info"><strong>Користувач:</strong> ${t.assignee_name || 'Невідомо'}<br><strong>Дата видачі:</strong> ${t.date_assigned || '-'}</div>`;
+                
+                // ОНОВЛЕНО: Додаємо індикатор залишку днів
+                const remainingDays = calculateDaysRemaining(t.date_assigned);
+                if (remainingDays !== null) {
+                    const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
+                    const progressPercent = Math.max(0, ((120 - remainingDays) / 120) * 100);
+                    daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
+                }
+
             } else if (['вільна', 'повернена'].includes(t.status)) {
                 let lines = [];
                 if (t.last_user_name) lines.push(`<strong>Останній користувач:</strong> ${t.last_user_name}`);
@@ -275,7 +286,11 @@ document.addEventListener('DOMContentLoaded', function() {
             item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div>
                 <div class="territory-content">
                     ${createPhotoBlock(t)}
-                    <div class="action-area">${infoHtml}${actionsHtml}</div>
+                    <div class="action-area">
+                        ${infoHtml}
+                        ${actionsHtml}
+                        ${daysBlock} 
+                    </div>
                 </div>`;
             adminTerritoryList.appendChild(item);
         });
