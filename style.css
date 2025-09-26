@@ -26,18 +26,20 @@ h2 {
     background-color: var(--tg-theme-bg-color, #ffffff);
     z-index: 100;
     padding-top: 10px;
+    overflow-x: auto;
 }
 .tab-button {
-    flex-grow: 1;
-    padding: 15px 5px;
+    flex: 1 0 auto;
+    padding: 15px 10px;
     border: none;
     background-color: transparent;
-    font-size: 17px;
+    font-size: 16px;
     font-weight: 600;
     cursor: pointer;
     color: var(--tg-theme-hint-color, #888);
     border-bottom: 3px solid transparent;
     text-align: center;
+    white-space: nowrap;
 }
 .tab-button.active {
     color: var(--tg-theme-link-color, #007bff);
@@ -80,23 +82,17 @@ h2 {
     margin-bottom: 10px;
     background-color: var(--tg-theme-secondary-bg-color, #f9f9f9);
     border: 1px solid #eee;
-    transition: opacity 0.3s ease;
-}
-#select-territory .territory-item:nth-child(odd) {
-    background-color: var(--tg-theme-bg-color, #ffffff);
+    transition: opacity 0.3s ease, background-color 0.3s ease;
 }
 .territory-title {
     font-weight: bold;
     font-size: 18px;
     margin-bottom: 10px;
-    /* Оновлено для позиціонування іконки */
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 10px;
 }
-
-/* --- НОВІ СТИЛІ: Іконка для приміток --- */
 .note-icon {
     font-family: 'Georgia', serif;
     font-weight: bold;
@@ -111,10 +107,9 @@ h2 {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    flex-shrink: 0; /* Щоб іконка не стискалася */
-    user-select: none; /* Заборона виділення тексту "і" */
+    flex-shrink: 0;
+    user-select: none;
 }
-
 .territory-content {
     display: flex;
     align-items: center;
@@ -127,6 +122,7 @@ h2 {
     display: block;
     object-fit: cover;
     cursor: pointer;
+    flex-shrink: 0;
 }
 .placeholder-photo {
     width: 120px;
@@ -138,6 +134,13 @@ h2 {
     justify-content: center;
     color: #888;
     font-size: 14px;
+    flex-shrink: 0;
+}
+.action-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 .btn-book, .btn-return {
     padding: 20px 10px;
@@ -145,9 +148,9 @@ h2 {
     border: none;
     font-size: 16px;
     cursor: pointer;
-    color: #ffffff;
+    color: var(--tg-theme-button-text-color, #ffffff);
     height: 100%;
-    width: 100%; /* <-- ЗМІНЕНО ТУТ */
+    width: 100%;
 }
 .btn-book {
     background-color: var(--tg-theme-button-color, #28a745);
@@ -195,8 +198,7 @@ h2 {
     font-size: 14px;
 }
 
-
-/* Стилі для модального вікна */
+/* Стилі для модального вікна зображень */
 .image-modal {
     display: none;
     position: fixed;
@@ -213,11 +215,26 @@ h2 {
 .image-modal.active {
     display: flex;
 }
+.modal-image-container {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
 .modal-content {
-    margin: auto;
-    display: block;
-    max-width: 90%;
-    max-height: 80%;
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    transform-origin: center center;
+    transition: transform 0.1s ease-out;
+    cursor: grab;
+}
+.modal-content.grabbing {
+    cursor: grabbing;
 }
 .modal-close-btn {
     position: absolute;
@@ -244,52 +261,148 @@ h2 {
     cursor: pointer;
 }
 
-/* --- ВИПРАВЛЕНИЙ СТИЛЬ: для пріоритетних територій --- */
+/* Пріоритетні території */
 .territory-item.priority {
-    background-color: rgba(138, 43, 226, 0.15) !important; /* Додано !important */
+    background-color: rgba(138, 43, 226, 0.1) !important;
     border: 1px solid rgba(138, 43, 226, 0.4);
 }
-
-/* --- НОВІ СТИЛІ: для контейнера кнопки та примітки --- */
-.action-area {
-    flex-grow: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-}
-
 .priority-note {
     text-align: center;
     font-size: 13px;
     font-weight: 600;
-    color: #6a0dad; /* Темно-фіолетовий */
+    color: #6a0dad;
     margin-top: 6px;
 }
 
-/* --- НОВІ СТИЛІ: для масштабування зображення --- */
-.modal-image-container {
-    width: 100%;
-    height: 100%;
-    overflow: hidden; /* Ховаємо частини зображення, що виходять за межі */
+/* --- СТИЛІ ДЛЯ АДМІН-ПАНЕЛІ --- */
+#admin-panel-controls {
     display: flex;
-    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 15px;
     align-items: center;
 }
-
-.modal-content { /* Перевизначаємо, щоб забрати зайві стилі */
-    max-width: 100%;
-    max-height: 100%;
-    width: auto;
-    height: auto;
-    object-fit: contain;
+.admin-filter-btn {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--tg-theme-hint-color, #ccc);
+    background-color: transparent;
+    color: var(--tg-theme-text-color, #000);
+    font-size: 14px;
+    cursor: pointer;
+}
+.admin-filter-btn.active {
+    background-color: var(--tg-theme-button-color, #007bff);
+    color: var(--tg-theme-button-text-color, #ffffff);
+    border-color: var(--tg-theme-button-color, #007bff);
+}
+#admin-search-btn {
+    padding: 8px;
+    font-size: 18px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--tg-theme-link-color, #007bff);
 }
 
-#full-image {
-    transform-origin: center center; /* Встановлюємо центр трансформації */
-    transition: transform 0.1s ease-out; /* Плавність для масштабування */
-    cursor: grab; /* Змінюємо курсор, щоб показати можливість перетягування */
-}
+.territory-item.status-free { background-color: rgba(40, 167, 69, 0.1); }
+.territory-item.status-assigned { background-color: rgba(220, 53, 69, 0.1); }
+.territory-item.status-returned { background-color: rgba(255, 193, 7, 0.15); }
+.territory-item.status-pending { border-left: 5px solid #17a2b8; }
 
-#full-image.grabbing {
-    cursor: grabbing;
+.admin-card-info {
+    font-size: 14px;
+    color: var(--tg-theme-hint-color, #555);
+    margin: 8px 0;
+}
+.admin-card-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+.admin-btn {
+    padding: 8px 10px;
+    font-size: 13px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    color: var(--tg-theme-button-text-color, #fff);
+}
+.btn-admin-assign { background-color: #28a745; }
+.btn-admin-return { background-color: #dc3545; }
+.btn-admin-extend { background-color: #ffc107; color: #000; }
+.btn-admin-history { background-color: #17a2b8; }
+.btn-admin-note { background-color: #6c757d; }
+
+/* --- УНІВЕРСАЛЬНЕ МОДАЛЬНЕ ВІКНО --- */
+.general-modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+    align-items: center;
+    justify-content: center;
+}
+.general-modal-content {
+    background-color: var(--tg-theme-bg-color, #fff);
+    color: var(--tg-theme-text-color, #000);
+    padding: 20px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+}
+.general-modal-close-btn {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    color: var(--tg-theme-hint-color, #888);
+}
+#general-modal-body ul {
+    list-style: none;
+    padding: 0;
+}
+#general-modal-body li {
+    padding: 10px;
+    border-bottom: 1px solid var(--tg-theme-secondary-bg-color, #f0f0f0);
+    cursor: pointer;
+}
+#general-modal-body li:hover {
+    background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+}
+#general-modal-body textarea {
+    width: 100%;
+    min-height: 100px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px solid var(--tg-theme-hint-color, #ccc);
+    background-color: var(--tg-theme-secondary-bg-color, #f8f9fa);
+    color: var(--tg-theme-text-color, #000);
+}
+.modal-save-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-top: 10px;
+    border: none;
+    border-radius: 8px;
+    background-color: var(--tg-theme-button-color, #007bff);
+    color: var(--tg-theme-button-text-color, #fff);
+    font-size: 16px;
+}
+.history-entry {
+    font-size: 14px;
+    padding: 8px 0;
+    border-bottom: 1px solid #eee;
 }
