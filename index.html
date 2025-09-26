@@ -12,6 +12,7 @@
             <button class="tab-button active" data-tab="my-territories">Мої території</button>
             <button class="tab-button" data-tab="select-territory">Обрати територію</button>
             <button class="tab-button" data-tab="general-maps">Загальні карти</button>
+            <button class="tab-button hidden" data-tab="admin-all-territories">Усі території</button>
         </div>
 
         <div id="my-territories" class="tab-content active">
@@ -32,6 +33,18 @@
             <div id="general-maps-list"></div>
         </div>
         
+        <div id="admin-all-territories" class="tab-content">
+            <h2>Усі території:</h2>
+            <div class="admin-filters" id="admin-filters-container">
+                <button class="admin-filter-btn active" data-admin-filter="all">Усі</button>
+                <button class="admin-filter-btn" data-admin-filter="free">Вільні</button>
+                <button class="admin-filter-btn" data-admin-filter="assigned">Зайняті</button>
+                <button class="admin-filter-btn" data-admin-filter="returned">Повернені</button>
+                <button class="admin-filter-btn" data-admin-filter="priority">Потребує опрацювання</button>
+            </div>
+            <div id="admin-territory-list"></div>
+        </div>
+        
         <div id="loader" class="loader">Завантаження...</div>
     </div>
 
@@ -42,6 +55,14 @@
         </div>
         <div class="modal-actions">
             <button id="modal-download-btn" class="modal-btn">📥 Завантажити</button>
+        </div>
+    </div>
+
+    <div id="admin-modal" class="image-modal">
+        <span class="modal-close-btn">&times;</span>
+        <div class="modal-dialog">
+            <h3 id="admin-modal-title"></h3>
+            <div id="admin-modal-content"></div>
         </div>
     </div>
 
