@@ -254,12 +254,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (isPriorityTerritory(t.date_completed)) item.classList.add('priority');
             
             let infoHtml = '';
-            let daysBlock = ''; // Оголошуємо змінну для індикатора
+            let daysBlock = '';
 
             if (t.status === 'зайнята') {
                 infoHtml = `<div class="admin-card-info"><strong>Користувач:</strong> ${t.assignee_name || 'Невідомо'}<br><strong>Дата видачі:</strong> ${t.date_assigned || '-'}</div>`;
                 
-                // ОНОВЛЕНО: Додаємо індикатор залишку днів
+                // ОНОВЛЕНО: Повернуто логіку "залишилось днів"
                 const remainingDays = calculateDaysRemaining(t.date_assigned);
                 if (remainingDays !== null) {
                     const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
