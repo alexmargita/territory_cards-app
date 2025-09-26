@@ -24,7 +24,7 @@ h2 {
     top: 0;
     background-color: var(--tg-theme-bg-color, #ffffff);
     z-index: 100;
-    padding-top: 5px; /* Зменшено відступ зверху */
+    padding-top: 5px;
     overflow-x: hidden;
 }
 .tab-button {
@@ -32,14 +32,14 @@ h2 {
     padding: 10px 5px;
     border: none;
     background-color: transparent;
-    font-size: 15px; /* Збільшено шрифт */
+    font-size: 15px;
     font-weight: 600;
     cursor: pointer;
     color: var(--tg-theme-hint-color, #888);
     border-bottom: 3px solid transparent;
     text-align: center;
-    white-space: normal; /* Дозволено перенос */
-    line-height: 1.2; /* Висота рядка */
+    white-space: normal;
+    line-height: 1.2;
 }
 .tab-button.active {
     color: var(--tg-theme-link-color, #007bff);
@@ -51,7 +51,6 @@ h2 {
 .tab-content.active {
     display: block;
 }
-/* Компенсація за прибраний margin-bottom у .tabs */
 .tab-content:not(#all-territories) {
     padding-top: 15px;
 }
@@ -285,7 +284,7 @@ h2 {
     gap: 8px;
     align-items: center;
     position: sticky;
-    top: 74px; /* Оновлена висота панелі вкладок */
+    top: 62px; /* ВИПРАВЛЕНО: Точне значення для прибирання зазору */
     background-color: var(--tg-theme-bg-color, #ffffff);
     z-index: 99;
     padding: 10px 0;
@@ -399,7 +398,6 @@ h2 {
 .history-entry:last-child {
     border-bottom: none;
 }
-/* Стилі для кастомного поля вводу */
 .modal-input {
     width: 100%;
     padding: 12px;

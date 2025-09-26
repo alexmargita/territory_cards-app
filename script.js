@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (isAdmin) {
                     allTerritoriesTabBtn.style.display = 'block';
                     setupAdminPanel();
-                    displayAllTerritoriesForAdmin('all', ''); // Початкове відображення
+                    displayAllTerritoriesForAdmin(adminPanelControls.querySelector('.active')?.dataset.filter || 'all', '');
                     fetch(`${SCRIPT_URL}?action=getAllUsers&userId=${userId}`)
                         .then(res => res.json())
                         .then(data => { if (data.ok) allUsers = data.users; });
@@ -198,14 +198,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function calculateAdminFilterCounts() {
         const territoryCards = allTerritories.filter(t => t.category === 'territory');
-        const counts = {
+        return {
             all: territoryCards.filter(t => ['вільна', 'зайнята', 'повернена'].includes(t.status)).length,
             free: territoryCards.filter(t => t.status === 'вільна').length,
             assigned: territoryCards.filter(t => t.status === 'зайнята').length,
             returned: territoryCards.filter(t => t.status === 'повернена').length,
             priority: territoryCards.filter(t => isPriorityTerritory(t.date_completed)).length,
         };
-        return counts;
     }
 
     function setupAdminPanel() {
@@ -218,32 +217,6 @@ document.addEventListener('DOMContentLoaded', function() {
             <button class="admin-filter-btn" data-filter="priority">Пріоритетні (${counts.priority})</button>
             <button id="admin-search-btn">🔍</button>
         `;
-
-        // Переносимо слухачі сюди, щоб вони не дублювалися
-        const searchBtn = document.getElementById('admin-search-btn');
-        if (searchBtn) { // Перевіряємо, чи кнопка існує
-            searchBtn.onclick = () => {
-                showCustomPrompt({
-                    title: 'Пошук території',
-                    placeholder: 'Номер або назва',
-                    inputType: 'text',
-                    btnText: 'Знайти'
-                }).then(text => {
-                    if (text !== null) { // Перевірка, що користувач не закрив вікно
-                        adminPanelControls.querySelector('.active')?.classList.remove('active');
-                        displayAllTerritoriesForAdmin('all', text);
-                    }
-                });
-            };
-        }
-        
-        adminPanelControls.querySelectorAll('.admin-filter-btn').forEach(btn => {
-            btn.onclick = (e) => {
-                adminPanelControls.querySelector('.active')?.classList.remove('active');
-                e.target.classList.add('active');
-                displayAllTerritoriesForAdmin(e.target.dataset.filter, '');
-            };
-        });
     }
 
     function displayAllTerritoriesForAdmin(filter, searchQuery) {
@@ -270,20 +243,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
         filtered.forEach(t => {
             const item = document.createElement('div');
-            const statusClass = { 'вільна': 'status-free', 'зайнята': 'status-assigned', 'повернена': 'status-returned', 'в очікуванні': 'status-pending' }[t.status] || '';
+            const statusClass = { 'вільна': 'status-free', 'зайнята': 'status-assigned', 'повернена': 'status-returned' }[t.status] || '';
             item.className = `territory-item ${statusClass}`;
             if (isPriorityTerritory(t.date_completed)) item.classList.add('priority');
             
             let infoHtml = '';
             if (t.status === 'зайнята') {
                 infoHtml = `<div class="admin-card-info"><strong>Користувач:</strong> ${t.assignee_name || 'Невідомо'}<br><strong>Дата видачі:</strong> ${t.date_assigned || '-'}</div>`;
-            } else if (['вільна', 'повернена'].includes(t.status) && t.date_completed) {
-                infoHtml = `<div class="admin-card-info"><strong>Повернено:</strong> ${t.date_completed}</div>`;
+            } else if (['вільна', 'повернена'].includes(t.status)) {
+                let lines = [];
+                if (t.date_completed) lines.push(`<strong>Дата повернення:</strong> ${t.date_completed}`);
+                if (t.last_user_name) lines.push(`<strong>Останній користувач:</strong> ${t.last_user_name}`);
+                if (lines.length > 0) infoHtml = `<div class="admin-card-info">${lines.join('<br>')}</div>`;
             }
             
             const noteText = t.info ? t.info.replace(/"/g, '&quot;') : '';
-            const actionsHtml = `
-                <div class="admin-card-actions">
+            const actionsHtml = `<div class="admin-card-actions">
                     ${['вільна', 'повернена'].includes(t.status) ? `<button class="admin-btn btn-admin-assign" data-id="${t.id}">Призначити</button>` : ''}
                     ${t.status === 'зайнята' ? `<button class="admin-btn btn-admin-return" data-id="${t.id}">Здати</button>` : ''}
                     ${t.status === 'зайнята' ? `<button class="admin-btn btn-admin-extend" data-user-id="${t.assignee_id}" data-id="${t.id}">Продовжити</button>` : ''}
@@ -291,14 +266,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     <button class="admin-btn btn-admin-note" data-id="${t.id}" data-note="${noteText}">Примітка</button>
                 </div>`;
 
-            item.innerHTML = `
-                <div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div>
+            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div>
                 <div class="territory-content">
                     ${createPhotoBlock(t)}
-                    <div class="action-area">
-                        ${infoHtml}
-                        ${actionsHtml}
-                    </div>
+                    <div class="action-area">${infoHtml}${actionsHtml}</div>
                 </div>`;
             adminTerritoryList.appendChild(item);
         });
@@ -313,28 +284,28 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.classList.contains('btn-return')) handleReturnClick(target.dataset.id, target);
         if (target.classList.contains('btn-book')) handleBookClick(target.dataset.id, target.dataset.name, target);
         if (target.classList.contains('filter-btn')) handleFilterClick(target);
-        // Адмін-кнопки
         if (target.classList.contains('btn-admin-assign')) handleAdminAssign(target.dataset.id);
         if (target.classList.contains('btn-admin-return')) handleAdminReturn(target.dataset.id);
         if (target.classList.contains('btn-admin-extend')) handleAdminExtend(target.dataset.id, target.dataset.userId);
         if (target.classList.contains('btn-admin-history')) handleAdminHistory(target.dataset.id);
         if (target.classList.contains('btn-admin-note')) handleAdminNote(target.dataset.id, target.dataset.note);
+        if (target.id === 'admin-search-btn') handleAdminSearch();
+        if (target.classList.contains('admin-filter-btn')) handleAdminFilter(target);
     });
 
-    function handleReturnClick(territoryId, button) {
-        tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
-            if (isConfirmed) returnTerritory(territoryId, button);
+    function handleReturnClick(territoryId, button) { tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (ok) => ok && returnTerritory(territoryId, button)); }
+    function handleBookClick(territoryId, territoryName, button) { tg.showConfirm(`Ви впевнені, що хочете обрати територію "${territoryId}. ${territoryName}"?`, (ok) => ok && requestTerritory(territoryId, button)); }
+    function handleFilterClick(button) { filtersContainer.querySelector('.active')?.classList.remove('active'); button.classList.add('active'); displayFreeTerritories(button.dataset.filter); }
+    function handleAdminFilter(button) { adminPanelControls.querySelector('.active')?.classList.remove('active'); button.classList.add('active'); displayAllTerritoriesForAdmin(button.dataset.filter, '');}
+
+    function handleAdminSearch() {
+        showCustomPrompt({ title: 'Пошук території', placeholder: 'Номер або назва', inputType: 'text', btnText: 'Знайти'
+        }).then(text => {
+            if (text !== null) {
+                adminPanelControls.querySelector('.active')?.classList.remove('active');
+                displayAllTerritoriesForAdmin('all', text);
+            }
         });
-    }
-    function handleBookClick(territoryId, territoryName, button) {
-        tg.showConfirm(`Ви впевнені, що хочете обрати територію "${territoryId}. ${territoryName}"?`, (isConfirmed) => {
-            if (isConfirmed) requestTerritory(territoryId, button);
-        });
-    }
-    function handleFilterClick(button) {
-        filtersContainer.querySelector('.active')?.classList.remove('active');
-        button.classList.add('active');
-        displayFreeTerritories(button.dataset.filter);
     }
     
     // --- ОБРОБНИКИ ДЛЯ АДМІН-КНОПОК ---
@@ -348,32 +319,17 @@ document.addEventListener('DOMContentLoaded', function() {
                 const assignToUserId = e.target.dataset.userId;
                 const assignToUserName = e.target.textContent;
                 hideGeneralModal();
-                tg.showConfirm(`Призначити територію ${territoryId} користувачу ${assignToUserName}?`, (isConfirmed) => {
-                    if (isConfirmed) {
-                        postToServer({ action: 'adminAssignTerritory', userId: userId, territoryId: territoryId, assignToUserId: assignToUserId }, "Призначаю...", "Не вдалося призначити.");
-                    }
-                });
+                tg.showConfirm(`Призначити територію ${territoryId} користувачу ${assignToUserName}?`, (ok) => ok && postToServer({ action: 'adminAssignTerritory', userId: userId, territoryId: territoryId, assignToUserId: assignToUserId }, "Призначаю...", "Не вдалося призначити."));
             }
         };
     }
 
     function handleAdminReturn(territoryId) {
-        tg.showConfirm(`Надіслати запит на повернення території ${territoryId} на підтвердження?`, (isConfirmed) => {
-            if (isConfirmed) {
-                 fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
-                    .then(response => response.json())
-                    .then(result => tg.showAlert(result.message || 'Сталася помилка.'))
-                    .catch(err => tg.showAlert('Помилка мережі.'));
-            }
-        });
+        tg.showConfirm(`Надіслати запит на повернення території ${territoryId} на підтвердження?`, (ok) => ok && fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`).then(r => r.json()).then(res => tg.showAlert(res.message || 'Сталася помилка.')).catch(() => tg.showAlert('Помилка мережі.')));
     }
 
     function handleAdminExtend(territoryId, extendForUserId) {
-        tg.showConfirm(`Продовжити термін для території ${territoryId}?`, (isConfirmed) => {
-            if (isConfirmed) {
-                postToServer({ action: 'adminExtendTerritory', userId: userId, territoryId: territoryId, extendForUserId: extendForUserId }, "Продовжую термін...", "Не вдалося продовжити.");
-            }
-        });
+        tg.showConfirm(`Продовжити термін для території ${territoryId}?`, (ok) => ok && postToServer({ action: 'adminExtendTerritory', userId: userId, territoryId: territoryId, extendForUserId: extendForUserId }, "Продовжую термін...", "Не вдалося продовжити."));
     }
     
     function handleAdminHistory(territoryId) {
@@ -402,13 +358,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleAdminNote(territoryId, currentNote) {
-        showCustomPrompt({
-            title: `Примітка до території ${territoryId}`,
-            initialValue: currentNote,
-            inputType: 'textarea',
-            btnText: 'Зберегти'
+        showCustomPrompt({ title: `Примітка до території ${territoryId}`, initialValue: currentNote, inputType: 'textarea', btnText: 'Зберегти'
         }).then(text => {
-            if (text !== null) { // Користувач натиснув "Зберегти"
+            if (text !== null) {
                 postToServer({ action: 'updateTerritoryNote', userId: userId, territoryId: territoryId, note: text }, "Зберігаю...", "Не вдалося зберегти.");
             }
         });
@@ -418,24 +370,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function postToServer(payload, loadingMsg, errorMsg) {
         tg.MainButton.setText(loadingMsg).show();
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        })
+        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
         .then(response => response.json())
         .then(result => {
             tg.MainButton.hide();
-            if (result.ok) {
-                tg.showAlert(result.message || "Успішно виконано!");
-                fetchAllData(); // Оновлюємо всі дані
-            } else {
-                tg.showAlert(result.error || errorMsg);
-            }
+            if (result.ok) { tg.showAlert(result.message || "Успішно виконано!"); fetchAllData(); } 
+            else { tg.showAlert(result.error || errorMsg); }
         })
-        .catch(error => {
-            tg.MainButton.hide();
-            tg.showAlert('Критична помилка. Не вдалося виконати запит.');
-        });
+        .catch(error => { tg.MainButton.hide(); tg.showAlert('Критична помилка. Не вдалося виконати запит.'); });
     }
 
     function returnTerritory(territoryId, buttonElement) {
@@ -444,18 +386,10 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => response.json())
             .then(result => {
                 tg.MainButton.hide();
-                if (result.ok) {
-                    tg.showAlert(result.message);
-                    buttonElement.textContent = 'Очікує...';
-                    buttonElement.disabled = true;
-                } else {
-                    tg.showAlert(result.message || 'Сталася невідома помилка.');
-                }
+                if (result.ok) { tg.showAlert(result.message); buttonElement.textContent = 'Очікує...'; buttonElement.disabled = true; } 
+                else { tg.showAlert(result.message || 'Сталася невідома помилка.'); }
             })
-            .catch(error => {
-                tg.MainButton.hide();
-                tg.showAlert('Сталася критична помилка. Спробуйте пізніше.');
-            });
+            .catch(error => { tg.MainButton.hide(); tg.showAlert('Сталася критична помилка. Спробуйте пізніше.'); });
     }
 
     function requestTerritory(territoryId, buttonElement) {
@@ -467,18 +401,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (result.ok) {
                     tg.showAlert(result.message);
                     const territoryItem = buttonElement.closest('.territory-item');
-                    if (territoryItem) {
-                        territoryItem.style.opacity = '0';
-                        setTimeout(() => territoryItem.remove(), 300);
-                    }
-                } else {
-                    tg.showAlert(result.message || 'Сталася невідома помилка.');
-                }
+                    if (territoryItem) { territoryItem.style.opacity = '0'; setTimeout(() => territoryItem.remove(), 300); }
+                } else { tg.showAlert(result.message || 'Сталася невідома помилка.'); }
             })
-            .catch(error => {
-                tg.MainButton.hide();
-                tg.showAlert('Сталася критична помилка. Спробуйте пізніше.');
-            });
+            .catch(error => { tg.MainButton.hide(); tg.showAlert('Сталася критична помилка. Спробуйте пізніше.'); });
     }
     
     function calculateDaysRemaining(assignDateStr) {
@@ -516,11 +442,7 @@ document.addEventListener('DOMContentLoaded', function() {
         imageModal.classList.add('active');
     }
     closeModalBtn.addEventListener('click', () => { imageModal.classList.remove('active'); resetTransform(); });
-    imageModal.addEventListener('click', (e) => {
-        if (e.target === imageModal || e.target.classList.contains('modal-image-container')) {
-             imageModal.classList.remove('active'); resetTransform();
-        }
-    });
+    imageModal.addEventListener('click', (e) => { if (e.target === imageModal || e.target.classList.contains('modal-image-container')) { imageModal.classList.remove('active'); resetTransform(); } });
     modalDownloadBtn.addEventListener('click', () => {
         const photoId = imageModal.dataset.photoId;
         const caption = imageModal.dataset.caption;
@@ -545,44 +467,24 @@ document.addEventListener('DOMContentLoaded', function() {
     imageModal.addEventListener('touchend', (e) => { if (e.touches.length < 2) initialPinchDistance = null; if (e.touches.length < 1) { isPanning = false; fullImage.classList.remove('grabbing'); } });
 
     // --- УНІВЕРСАЛЬНІ МОДАЛЬНІ ВІКНА ---
-    function showGeneralModal(title, bodyHtml) {
-        generalModalTitle.innerHTML = title;
-        generalModalBody.innerHTML = bodyHtml;
-        generalModal.style.display = 'flex';
-    }
-    function hideGeneralModal() {
-        generalModal.style.display = 'none';
-        generalModalTitle.innerHTML = '';
-        generalModalBody.innerHTML = '';
-    }
+    function showGeneralModal(title, bodyHtml) { generalModalTitle.innerHTML = title; generalModalBody.innerHTML = bodyHtml; generalModal.style.display = 'flex'; }
+    function hideGeneralModal() { generalModal.style.display = 'none'; generalModalTitle.innerHTML = ''; generalModalBody.innerHTML = ''; }
     generalModalCloseBtn.addEventListener('click', hideGeneralModal);
     generalModal.addEventListener('click', e => { if(e.target === generalModal) hideGeneralModal(); });
 
     function showCustomPrompt(options) {
         return new Promise(resolve => {
-            const inputHtml = options.inputType === 'textarea'
-                ? `<textarea id="modal-input-field" class="modal-textarea" placeholder="${options.placeholder || ''}">${options.initialValue || ''}</textarea>`
-                : `<input id="modal-input-field" class="modal-input" type="text" placeholder="${options.placeholder || ''}" value="${options.initialValue || ''}">`;
-            
-            const bodyHtml = `
-                ${inputHtml}
-                <button id="modal-save-btn" class="modal-save-btn">${options.btnText || 'Зберегти'}</button>
-            `;
+            const inputHtml = options.inputType === 'textarea' ? `<textarea id="modal-input-field" class="modal-textarea" placeholder="${options.placeholder || ''}">${options.initialValue || ''}</textarea>` : `<input id="modal-input-field" class="modal-input" type="text" placeholder="${options.placeholder || ''}" value="${options.initialValue || ''}">`;
+            const bodyHtml = `${inputHtml}<button id="modal-save-btn" class="modal-save-btn">${options.btnText || 'Зберегти'}</button>`;
             showGeneralModal(options.title, bodyHtml);
             
             const inputField = document.getElementById('modal-input-field');
             const saveBtn = document.getElementById('modal-save-btn');
             
-            const closeModalAndResolve = (value) => {
-                hideGeneralModal();
-                resolve(value);
-            };
-
+            const closeModalAndResolve = (value) => { hideGeneralModal(); resolve(value); };
             saveBtn.onclick = () => closeModalAndResolve(inputField.value);
             generalModal.querySelector('.general-modal-close-btn').onclick = () => closeModalAndResolve(null);
-            generalModal.onclick = (e) => {
-                if (e.target === generalModal) closeModalAndResolve(null);
-            };
+            generalModal.addEventListener('click', e => { if (e.target === generalModal) closeModalAndResolve(null); }, { once: true });
         });
     }
     
