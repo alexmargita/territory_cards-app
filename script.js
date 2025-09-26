@@ -12,6 +12,11 @@ if ('serviceWorker' in navigator) {
 const GITHUB_BASE_URL = "https://raw.githubusercontent.com/alexmargita/territory_cards-app/main/images/";
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwz-aANuYB3ZmjdtamMfmoqXNUvtdwNDp3BgykKu-JRh4N-wv1MxPv4E_fSjK2YFk0/exec";
 
+// Нова змінна для зберігання всіх територій адміністратора
+let allTerritoriesData = [];
+let allUsersData = [];
+let currentFilter = 'all';
+
 document.addEventListener('DOMContentLoaded', function() {
     const tg = window.Telegram.WebApp;
     tg.expand();
@@ -24,374 +29,569 @@ document.addEventListener('DOMContentLoaded', function() {
     const filtersContainer = document.getElementById('filters-container');
     const imageModal = document.getElementById('image-modal');
     const fullImage = document.getElementById('full-image');
-    const closeModalBtn = document.querySelector('.modal-close-btn');
+    const modalCloseBtn = document.querySelector('.modal-close-btn');
     const modalDownloadBtn = document.getElementById('modal-download-btn');
-
-    let allTerritories = [];
-    const userId = tg.initDataUnsafe.user.id;
+    const modalInfoBtn = document.getElementById('modal-info-btn');
+    const modalReturnBtn = document.getElementById('modal-return-btn');
     
-    const tabs = document.querySelectorAll('.tab-button');
-    const tabContents = document.querySelectorAll('.tab-content');
+    // Нові елементи для адміністратора
+    const adminTabButton = document.querySelector('.admin-tab-button');
+    const allTerritoryList = document.getElementById('admin-territory-list');
+    const adminFilterButtons = document.querySelectorAll('.admin-filters .filter-button');
+    const adminSearchInput = document.getElementById('admin-search-input');
+    const adminSearchIcon = document.getElementById('admin-search-icon');
     
-    tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            tabs.forEach(item => item.classList.remove('active'));
-            tab.classList.add('active');
-            const targetTabId = tab.dataset.tab;
-            const targetTabContent = document.getElementById(targetTabId);
-            tabContents.forEach(content => content.classList.remove('active'));
-            targetTabContent.classList.add('active');
+    // Нові модальні вікна
+    const assignModal = document.getElementById('assign-modal');
+    const noteModal = document.getElementById('note-modal');
+    const historyModal = document.getElementById('history-modal');
+    const noteTextarea = document.getElementById('note-textarea');
+    const noteSaveBtn = document.getElementById('note-save-btn');
+    
+    let currentTerritoryId = null;
+    let scale = 1;
+    let translateX = 0;
+    let translateY = 0;
+    let startX = 0;
+    let startY = 0;
+    let isPanning = false;
+    let initialPinchDistance = null;
 
-            if (targetTabId === 'my-territories') {
-                fetchMyTerritories();
+    // Перевірка, чи є користувач адміністратором
+    checkAdminStatus();
+    
+    function showLoader() { loader.style.display = 'flex'; }
+    function hideLoader() { loader.style.display = 'none'; }
+
+    async function fetchData(action, body = {}) {
+        const userId = tg.initDataUnsafe.user.id;
+        const data = { ...body, userId, action };
+        
+        try {
+            const response = await fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: JSON.stringify(data),
+                headers: { 'Content-Type': 'application/json' }
+            });
+            return response.json();
+        } catch (error) {
+            console.error('Fetch error:', error);
+            tg.showPopup({
+                title: 'Помилка',
+                message: 'Виникла помилка під час завантаження даних.',
+                buttons: [{ id: 'ok', type: 'ok' }]
+            });
+        }
+    }
+
+    async function checkAdminStatus() {
+        showLoader();
+        try {
+            const userId = tg.initDataUnsafe.user.id;
+            const response = await fetch(`${SCRIPT_URL}?action=getIsAdmin&userId=${userId}`);
+            const data = await response.json();
+            if (data.isAdmin) {
+                adminTabButton.style.display = 'block';
+                await fetchAllTerritories();
             }
-            if (targetTabId === 'select-territory') {
-                fetchFreeTerritories();
+        } catch (error) {
+            console.error('Failed to check admin status:', error);
+        } finally {
+            hideLoader();
+        }
+    }
+
+    async function fetchAllTerritories() {
+        showLoader();
+        const data = await fetchData('getAllTerritories');
+        if (data) {
+            allTerritoriesData = data;
+            filterAndRenderAllTerritories();
+        }
+        hideLoader();
+    }
+    
+    function filterAndRenderAllTerritories() {
+        let filteredTerritories = allTerritoriesData;
+        
+        // Фільтрація за статусом
+        if (currentFilter !== 'all' && currentFilter !== 'рідко опрацьовані') {
+            filteredTerritories = filteredTerritories.filter(t => t.status === currentFilter);
+        } else if (currentFilter === 'рідко опрацьовані') {
+            filteredTerritories = filteredTerritories.filter(t => t.is_rarely_processed);
+        }
+        
+        // Пошук за текстом
+        const searchText = adminSearchInput.value.toLowerCase();
+        if (searchText) {
+            filteredTerritories = filteredTerritories.filter(t => 
+                t.id.toString().toLowerCase().includes(searchText) || 
+                t.name.toLowerCase().includes(searchText)
+            );
+        }
+
+        renderTerritories(filteredTerritories, allTerritoryList, 'all-territories');
+    }
+
+    // Решта функцій... (без змін, крім викликів renderTerritories)
+
+    // Функція для візуалізації карток (оновлена для адміністратора)
+    function renderTerritories(territories, container, tabName) {
+        container.innerHTML = '';
+        if (territories.length === 0) {
+            container.innerHTML = '<p>Немає територій для відображення.</p>';
+            return;
+        }
+
+        territories.forEach(t => {
+            const territoryItem = document.createElement('div');
+            territoryItem.className = 'territory-item';
+            territoryItem.dataset.id = t.id;
+            
+            // Додавання класів для кольору фону
+            if (tabName === 'all-territories') {
+                territoryItem.classList.add(`status-${t.status}`);
             }
+
+            // Додавання класу для рідко опрацьованих
+            if (t.is_rarely_processed) {
+                territoryItem.classList.add('priority');
+            }
+
+            const imageContainer = document.createElement('div');
+            imageContainer.className = 'territory-image-container';
+            const image = document.createElement('img');
+            image.src = `${GITHUB_BASE_URL}${t.category}/${t.id}.jpg`;
+            image.className = 'territory-image';
+            image.alt = `Карта ${t.id}`;
+            image.addEventListener('click', () => showImageModal(t));
+            imageContainer.appendChild(image);
+
+            const content = document.createElement('div');
+            content.className = 'territory-content';
+            const title = document.createElement('h3');
+            title.className = 'territory-title';
+            title.textContent = t.name;
+            const meta = document.createElement('p');
+            meta.className = 'territory-meta';
+            meta.textContent = t.meta;
+            const idSpan = document.createElement('span');
+            idSpan.className = 'territory-id';
+            idSpan.textContent = `ID: ${t.id}`;
+
+            const infoText = document.createElement('p');
+            infoText.className = 'info-text';
+            infoText.textContent = t.info || '';
+
+            content.appendChild(title);
+            content.appendChild(meta);
+            content.appendChild(idSpan);
+            content.appendChild(infoText);
+            
+            // Додавання інформації про користувача для адміністратора
+            if (tabName === 'all-territories') {
+                if (t.status === 'зайнята') {
+                    const adminInfo = document.createElement('p');
+                    adminInfo.className = 'admin-info';
+                    const assignedDate = new Date(t.date_assigned);
+                    adminInfo.innerHTML = `**Власник:** <span>${t.user_full_name}</span><br>**Призначено:** ${assignedDate.toLocaleDateString()}`;
+                    content.appendChild(adminInfo);
+                }
+            }
+
+            const actions = document.createElement('div');
+            actions.className = 'card-actions';
+
+            if (tabName === 'my-territories') {
+                const returnBtn = document.createElement('button');
+                returnBtn.className = 'button primary';
+                returnBtn.textContent = 'Здати';
+                returnBtn.addEventListener('click', () => returnTerritoryHandler(t));
+                actions.appendChild(returnBtn);
+                const infoBtn = document.createElement('button');
+                infoBtn.className = 'button secondary';
+                infoBtn.textContent = 'Примітка';
+                infoBtn.addEventListener('click', () => showNoteModal(t.id, t.info));
+                actions.appendChild(infoBtn);
+            } else if (tabName === 'select-territory') {
+                const assignBtn = document.createElement('button');
+                assignBtn.className = 'button primary';
+                assignBtn.textContent = 'Обрати';
+                assignBtn.addEventListener('click', () => assignTerritoryHandler(t));
+                actions.appendChild(assignBtn);
+            } else if (tabName === 'all-territories') {
+                const assignBtn = document.createElement('button');
+                assignBtn.className = 'button primary';
+                assignBtn.textContent = 'Призначити';
+                assignBtn.addEventListener('click', () => showAssignModal(t.id));
+                actions.appendChild(assignBtn);
+                
+                if (t.status === 'зайнята') {
+                    const returnBtn = document.createElement('button');
+                    returnBtn.className = 'button secondary';
+                    returnBtn.textContent = 'Здати';
+                    returnBtn.addEventListener('click', () => returnTerritoryAdminHandler(t.id));
+                    actions.appendChild(returnBtn);
+                    
+                    const extendBtn = document.createElement('button');
+                    extendBtn.className = 'button secondary';
+                    extendBtn.textContent = 'Продовжити';
+                    extendBtn.addEventListener('click', () => extendTerritoryAdminHandler(t.id));
+                    actions.appendChild(extendBtn);
+                }
+                
+                const historyBtn = document.createElement('button');
+                historyBtn.className = 'button secondary';
+                historyBtn.textContent = 'Історія';
+                historyBtn.addEventListener('click', () => showHistoryModal(t.id));
+                actions.appendChild(historyBtn);
+                
+                const noteBtn = document.createElement('button');
+                noteBtn.className = 'button secondary';
+                noteBtn.textContent = 'Примітка';
+                noteBtn.addEventListener('click', () => showNoteModal(t.id, t.info));
+                actions.appendChild(noteBtn);
+            }
+
+            territoryItem.appendChild(imageContainer);
+            territoryItem.appendChild(content);
+            if (actions.children.length > 0) {
+                territoryItem.appendChild(actions);
+            }
+            container.appendChild(territoryItem);
+        });
+    }
+
+    // Обробники для нових адміністративних функцій
+    
+    // Модальне вікно для призначення
+    async function showAssignModal(territoryId) {
+        currentTerritoryId = territoryId;
+        const userListContainer = document.getElementById('user-list-container');
+        userListContainer.innerHTML = '';
+        
+        showLoader();
+        const users = await fetchData('getUsers');
+        allUsersData = users; // Зберігаємо список користувачів
+        hideLoader();
+        
+        if (users && users.length > 0) {
+            users.forEach(user => {
+                const userBtn = document.createElement('button');
+                userBtn.className = 'user-list-button';
+                userBtn.textContent = user.fullName;
+                userBtn.addEventListener('click', () => {
+                    assignTerritoryAdminHandler(territoryId, user.id);
+                    assignModal.style.display = 'none';
+                });
+                userListContainer.appendChild(userBtn);
+            });
+        } else {
+            userListContainer.innerHTML = '<p>Немає зареєстрованих користувачів.</p>';
+        }
+        
+        assignModal.style.display = 'block';
+    }
+    
+    async function assignTerritoryAdminHandler(territoryId, newUserId) {
+        showLoader();
+        const response = await fetchData('assignTerritoryAdmin', { territoryId, newUserId });
+        if (response.status === 'success') {
+            tg.showAlert('Територію успішно призначено!');
+            await fetchAllTerritories();
+        } else {
+            tg.showAlert('Помилка: ' + (response.message || 'Не вдалося призначити територію.'));
+        }
+        hideLoader();
+    }
+    
+    async function returnTerritoryAdminHandler(territoryId) {
+        tg.showConfirm('Ви впевнені, що хочете повернути цю територію?', async (isConfirmed) => {
+            if (isConfirmed) {
+                showLoader();
+                const response = await fetchData('returnTerritoryAdmin', { territoryId });
+                if (response.status === 'success') {
+                    tg.showAlert('Територію успішно повернуто!');
+                    await fetchAllTerritories();
+                } else {
+                    tg.showAlert('Помилка: ' + (response.message || 'Не вдалося повернути територію.'));
+                }
+                hideLoader();
+            }
+        });
+    }
+
+    async function extendTerritoryAdminHandler(territoryId) {
+        tg.showConfirm('Ви впевнені, що хочете продовжити опрацювання цієї території?', async (isConfirmed) => {
+            if (isConfirmed) {
+                showLoader();
+                const response = await fetchData('extendTerritoryAdmin', { territoryId });
+                if (response.status === 'success') {
+                    tg.showAlert('Термін опрацювання продовжено!');
+                    await fetchAllTerritories();
+                } else {
+                    tg.showAlert('Помилка: ' + (response.message || 'Не вдалося продовжити термін.'));
+                }
+                hideLoader();
+            }
+        });
+    }
+
+    async function showHistoryModal(territoryId) {
+        currentTerritoryId = territoryId;
+        const historyList = document.getElementById('history-list');
+        historyList.innerHTML = '';
+        
+        showLoader();
+        const history = await fetchData('getTerritoryHistory', { territoryId });
+        hideLoader();
+
+        if (history && history.length > 0) {
+            history.forEach(item => {
+                const historyItem = document.createElement('div');
+                historyItem.className = 'history-item';
+                const startDate = new Date(item.start_date).toLocaleDateString('uk-UA');
+                const endDate = item.end_date ? new Date(item.end_date).toLocaleDateString('uk-UA') : 'зараз';
+                historyItem.innerHTML = `<p><b>${item.user_full_name}</b></p><p>${startDate} - ${endDate}</p>`;
+                historyList.appendChild(historyItem);
+            });
+        } else {
+            historyList.innerHTML = '<p>Історія для цієї території відсутня.</p>';
+        }
+        
+        historyModal.style.display = 'block';
+    }
+
+    function showNoteModal(territoryId, currentNote) {
+        currentTerritoryId = territoryId;
+        noteTextarea.value = currentNote || '';
+        noteModal.style.display = 'block';
+    }
+    
+    noteSaveBtn.addEventListener('click', async () => {
+        const newNote = noteTextarea.value;
+        if (currentTerritoryId) {
+            showLoader();
+            const response = await fetchData('updateTerritoryNote', { territoryId: currentTerritoryId, newNote });
+            if (response.status === 'success') {
+                tg.showAlert('Примітку успішно оновлено!');
+                // Оновлення даних на стороні клієнта
+                const territoryIndex = allTerritoriesData.findIndex(t => t.id.toString() === currentTerritoryId.toString());
+                if (territoryIndex !== -1) {
+                    allTerritoriesData[territoryIndex].info = newNote;
+                }
+                filterAndRenderAllTerritories();
+            } else {
+                tg.showAlert('Помилка: ' + (response.message || 'Не вдалося оновити примітку.'));
+            }
+            hideLoader();
+            noteModal.style.display = 'none';
+        }
+    });
+
+    // Обробник для кнопок фільтрів адміністратора
+    adminFilterButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            adminFilterButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            currentFilter = button.dataset.status;
+            filterAndRenderAllTerritories();
         });
     });
 
-    function fetchMyTerritories() {
-        myTerritoryList.innerHTML = `<div class="loader" style="font-size: 16px;">Оновлення...</div>`;
-        fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`)
-            .then(res => res.json())
-            .then(myData => {
-                if (myData.ok) {
-                    displayMyTerritories(myData.territories);
+    // Обробник для іконки пошуку
+    adminSearchIcon.addEventListener('click', () => {
+        adminSearchInput.style.display = adminSearchInput.style.display === 'block' ? 'none' : 'block';
+        if (adminSearchInput.style.display === 'block') {
+            adminSearchInput.focus();
+        } else {
+            adminSearchInput.value = '';
+            filterAndRenderAllTerritories();
+        }
+    });
+    
+    adminSearchInput.addEventListener('input', () => {
+        filterAndRenderAllTerritories();
+    });
+
+    // Закриття модальних вікон
+    document.querySelectorAll('.modal .modal-close-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            btn.closest('.modal').style.display = 'none';
+        });
+    });
+    
+    // Оновлена логіка перемикання вкладок
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    tabButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            const targetTab = button.dataset.tab;
+            
+            tabButtons.forEach(btn => btn.classList.remove('active'));
+            button.classList.add('active');
+            
+            tabContents.forEach(content => {
+                if (content.id === targetTab) {
+                    content.classList.add('active');
+                    content.style.display = 'block';
                 } else {
-                    myTerritoryList.innerHTML = '<p>Не вдалося оновити дані.</p>';
+                    content.classList.remove('active');
+                    content.style.display = 'none';
                 }
-            })
-            .catch(error => {
-                console.error('Fetch error:', error);
-                myTerritoryList.innerHTML = '<p>Помилка мережі. Спробуйте пізніше.</p>';
+            });
+            
+            if (targetTab === 'my-territories') fetchMyTerritories();
+            if (targetTab === 'select-territory') fetchFreeTerritories();
+            if (targetTab === 'general-maps') fetchGeneralMaps();
+            if (targetTab === 'all-territories') fetchAllTerritories();
+        });
+    });
+
+    // Решта функцій... (без змін)
+    function fetchMyTerritories() {
+        showLoader();
+        const userId = tg.initDataUnsafe.user.id;
+        fetchData('getTerritoriesForUser', { userId })
+            .then(data => {
+                renderTerritories(data, myTerritoryList, 'my-territories');
+                hideLoader();
             });
     }
 
     function fetchFreeTerritories() {
-        freeTerritoryList.innerHTML = `<div class="loader" style="font-size: 16px;">Оновлення...</div>`;
-        fetch(SCRIPT_URL)
-            .then(res => res.json())
-            .then(allData => {
-                if (allData.ok) {
-                    allTerritories = allData.territories;
-                    const activeFilter = document.querySelector('.filter-btn.active');
-                    if (activeFilter) {
-                        displayFreeTerritories(activeFilter.dataset.filter);
-                    } else if (allData.filters && allData.filters.length > 0) {
-                        displayFreeTerritories(allData.filters[0]);
-                    }
-                } else {
-                    freeTerritoryList.innerHTML = '<p>Не вдалося оновити дані.</p>';
-                }
-            })
-            .catch(error => {
-                console.error('Fetch error:', error);
-                freeTerritoryList.innerHTML = '<p>Помилка мережі. Спробуйте пізніше.</p>';
+        showLoader();
+        freeTerritoriesTitle.style.display = 'none';
+        const userId = tg.initDataUnsafe.user.id;
+        fetchData('getTerritoriesByCategory', { category: 'settlement' })
+            .then(categories => {
+                renderFilters(categories);
+                hideLoader();
             });
     }
 
-    function createPhotoBlock(territory) {
-        if (!territory.picture_id) { return `<div class="placeholder-photo">Немає фото</div>`; }
-        const imageUrl = GITHUB_BASE_URL + encodeURIComponent(territory.picture_id);
-        const caption = `📍 ${territory.id ? territory.id + '.' : ''} ${territory.name}`;
-        return `<img class="territory-photo" 
-                     src="${imageUrl}" 
-                     data-photo-id="${territory.picture_id}"
-                     data-caption="${caption}"
-                     alt="Фото"
-                     loading="lazy">`;
-    }
-    
-    function createNoteIcon(territory) {
-        if (territory.info && territory.info.trim() !== '') {
-            const noteText = territory.info.replace(/"/g, '&quot;');
-            return `<span class="note-icon" data-note="${noteText}">i</span>`;
-        }
-        return '';
+    function fetchGeneralMaps() {
+        showLoader();
+        fetchData('getGeneralMaps')
+            .then(data => {
+                renderTerritories(data, generalMapsList, 'general-maps');
+                hideLoader();
+            });
     }
 
-    function calculateDaysRemaining(assignDateStr) {
-        if (assignDateStr instanceof Date) {
-            assignDateStr = assignDateStr.toLocaleDateString('uk-UA');
-        }
-        if (!assignDateStr || typeof assignDateStr !== 'string') return null;
-        const parts = assignDateStr.split('.');
-        if (parts.length !== 3) return null;
-        const assigned = new Date(parts[2], parts[1] - 1, parts[0]);
-        if (isNaN(assigned.getTime())) return null;
-        const deadline = new Date(assigned.getTime());
-        deadline.setDate(deadline.getDate() + 120);
-        const today = new Date();
-        const diffTime = deadline - today;
-        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-        return diffDays > 0 ? diffDays : 0;
-    }
-
-    function isPriorityTerritory(completedDateStr) {
-        if (!completedDateStr || typeof completedDateStr !== 'string') return false;
-
-        const parts = completedDateStr.split('.');
-        if (parts.length !== 3) return false;
-
-        const completedDate = new Date(parts[2], parts[1] - 1, parts[0]);
-        if (isNaN(completedDate.getTime())) return false;
-
-        const today = new Date();
-        const diffTime = today.getTime() - completedDate.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-        return diffDays >= 240;
-    }
-
-    function displayMyTerritories(territories) {
-        myTerritoryList.innerHTML = '';
-        if (territories.length === 0) { myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>'; return; }
-        territories.forEach(t => {
-            const item = document.createElement('div');
-            item.className = 'territory-item';
-            item.dataset.territoryId = t.id; 
-            const remainingDays = calculateDaysRemaining(t.date_assigned);
-            let daysBlock = '';
-            if (remainingDays !== null) {
-                const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
-                const progressPercent = Math.min((remainingDays / 120) * 100, 100);
-                daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
-            }
-            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<div class="action-area"><button class="btn-return" data-id="${t.id}">↩️ Здати</button></div></div>${daysBlock}`;
-            myTerritoryList.appendChild(item);
-        });
-    }
-
-    function displayFreeTerritories(filter) {
-        freeTerritoryList.innerHTML = '';
-        freeTerritoriesTitle.style.display = 'block';
-        const filtered = allTerritories.filter(t => t.type === filter && t.category === 'territory' && t.status === 'вільна');
-        if (filtered.length === 0) { freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>'; return; }
-        
-        filtered.forEach(t => {
-            const item = document.createElement('div');
-            item.className = 'territory-item';
-            item.dataset.territoryId = t.id;
-
-            const isPriority = isPriorityTerritory(t.date_completed);
-            
-            if (isPriority) {
-                item.classList.add('priority');
-            }
-            
-            const territoryNameForButton = t.name.replace(/"/g, '&quot;');
-            const buttonHtml = `<button class="btn-book" data-id="${t.id}" data-name="${territoryNameForButton}">✅ Обрати</button>`;
-            
-            const noteHtml = isPriority ? `<div class="priority-note">Потребує опрацювання</div>` : '';
-            const actionAreaHtml = `<div class="action-area">${buttonHtml}${noteHtml}</div>`;
-
-            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}${actionAreaHtml}</div>`;
-
-            freeTerritoryList.appendChild(item);
-        });
-    }
-
-    function displayGeneralMaps() {
-        generalMapsList.innerHTML = '';
-        const maps = allTerritories.filter(t => t.category === 'map');
-        if (maps.length === 0) { generalMapsList.innerHTML = '<p>Загальні карти відсутні.</p>'; return; }
-        maps.forEach(t => {
-            const item = document.createElement('div');
-            item.className = 'territory-item';
-            item.dataset.territoryId = t.id;
-            item.innerHTML = `<div class="territory-title"><span>🗺️ ${t.name}</span> ${createNoteIcon(t)}</div>${createPhotoBlock(t)}`;
-            generalMapsList.appendChild(item);
-        });
-    }
-
-    function displayFilters(filters) {
+    function renderFilters(categories) {
         filtersContainer.innerHTML = '';
-        filters.forEach((filter, index) => {
+        categories.forEach(cat => {
             const button = document.createElement('button');
-            button.className = 'filter-btn';
-            button.dataset.filter = filter;
-            button.textContent = filter;
-            if (index === 0) button.classList.add('active');
+            button.className = 'filter-button';
+            button.textContent = cat.name;
+            button.dataset.category = cat.name;
+            button.addEventListener('click', () => {
+                document.querySelectorAll('.filters .filter-button').forEach(btn => btn.classList.remove('active'));
+                button.classList.add('active');
+                showLoader();
+                fetchData('getFreeTerritories', { territoryCategory: cat.name })
+                    .then(data => {
+                        freeTerritoriesTitle.style.display = 'block';
+                        renderTerritories(data, freeTerritoryList, 'select-territory');
+                        hideLoader();
+                    });
+            });
             filtersContainer.appendChild(button);
         });
     }
 
-    document.body.addEventListener('click', function(event) {
-        const target = event.target;
-        if (target.classList.contains('note-icon')) {
-            const noteText = target.dataset.note;
-            if (noteText) { tg.showAlert(noteText); }
+    async function assignTerritoryHandler(territory) {
+        showLoader();
+        const userId = tg.initDataUnsafe.user.id;
+        const userFullName = `${tg.initDataUnsafe.user.first_name} ${tg.initDataUnsafe.user.last_name || ''}`.trim();
+        const userName = tg.initDataUnsafe.user.username;
+        const response = await fetchData('assignTerritory', {
+            territoryId: territory.id,
+            userId,
+            userName,
+            userFullName,
+            territoryName: territory.name
+        });
+        if (response.status === 'success') {
+            tg.showAlert('Територію успішно закріплено за вами!');
+            fetchFreeTerritories();
+            fetchMyTerritories();
+        } else {
+            tg.showAlert('Помилка: ' + (response.message || 'Не вдалося закріпити територію.'));
         }
-        if (target.classList.contains('territory-photo')) handlePhotoClick(target);
-        if (target.classList.contains('btn-return')) {
-            const territoryId = target.dataset.id;
-            tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
-                if (isConfirmed) returnTerritory(territoryId, target);
-            });
-        }
-        if (target.classList.contains('btn-book')) {
-            const territoryId = target.dataset.id;
-            const territoryName = target.dataset.name;
-            tg.showConfirm(`Ви впевнені, що хочете обрати територію "${territoryId}. ${territoryName}"?`, (isConfirmed) => {
-                if (isConfirmed) {
-                    requestTerritory(territoryId, target);
+        hideLoader();
+    }
+    
+    async function returnTerritoryHandler(territory) {
+        tg.showConfirm('Ви впевнені, що хочете здати цю територію?', async (isConfirmed) => {
+            if (isConfirmed) {
+                showLoader();
+                const userId = tg.initDataUnsafe.user.id;
+                const userFullName = `${tg.initDataUnsafe.user.first_name} ${tg.initDataUnsafe.user.last_name || ''}`.trim();
+                const response = await fetchData('returnTerritory', { territoryId: territory.id, userId, userFullName });
+                if (response.status === 'success') {
+                    tg.showAlert('Територію успішно здано!');
+                    fetchMyTerritories();
+                    fetchFreeTerritories();
+                } else {
+                    tg.showAlert('Помилка: ' + (response.message || 'Не вдалося здати територію.'));
                 }
-            });
-        }
-        if (target.classList.contains('filter-btn')) {
-            filtersContainer.querySelector('.active')?.classList.remove('active');
-            target.classList.add('active');
-            displayFreeTerritories(target.dataset.filter);
-        }
-    });
-
-    function handlePhotoClick(photoElement) {
-        fullImage.src = photoElement.src;
-        imageModal.dataset.photoId = photoElement.dataset.photoId;
-        imageModal.dataset.caption = photoElement.dataset.caption;
-        imageModal.classList.add('active');
+                hideLoader();
+            }
+        });
     }
 
-    // Обробники закриття модального вікна (переміщено для доступу до resetTransform)
-    closeModalBtn.addEventListener('click', () => {
-        imageModal.classList.remove('active');
-        resetTransform(); // Скидаємо трансформації
-    });
-    imageModal.addEventListener('click', (e) => {
-        if (e.target === imageModal || e.target.classList.contains('modal-image-container')) {
-             imageModal.classList.remove('active');
-             resetTransform(); // Скидаємо трансформації
+    function showImageModal(territory) {
+        imageModal.style.display = 'block';
+        fullImage.src = `${GITHUB_BASE_URL}${territory.category}/${territory.id}.jpg`;
+        currentTerritoryId = territory.id;
+        
+        // Оновлюємо кнопки модального вікна
+        modalDownloadBtn.style.display = 'block';
+        modalInfoBtn.style.display = 'none';
+        modalReturnBtn.style.display = 'none';
+        
+        if (document.querySelector('.tab-button.active').dataset.tab === 'my-territories') {
+            modalReturnBtn.style.display = 'block';
+            modalInfoBtn.style.display = 'block';
         }
+        
+        resetTransform();
+    }
+
+    modalCloseBtn.addEventListener('click', () => {
+        imageModal.style.display = 'none';
     });
 
     modalDownloadBtn.addEventListener('click', () => {
-        const photoId = imageModal.dataset.photoId;
-        const caption = imageModal.dataset.caption;
-        if (!photoId || !caption) { tg.showAlert('Не вдалося отримати дані для надсилання.'); return; }
-        
-        tg.showAlert("Картка території з'явиться у вікні чату через декілька секунд");
-        imageModal.classList.remove('active');
-        resetTransform(); // Скидаємо трансформації
-
-        const payload = {
-            action: 'sendPhotoToUser',
-            userId: userId,
-            photoId: photoId, 
-            caption: caption
-        };
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
-        .then(result => {
-            if (!result.ok) {
-                tg.showAlert(result.error || 'Сталася помилка під час надсилання фото.');
-            }
-        })
-        .catch(error => {
-            tg.showAlert('Критична помилка. Не вдалося виконати запит.');
-        });
+        const link = document.createElement('a');
+        link.href = fullImage.src;
+        link.download = `territory_${currentTerritoryId}.jpg`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     });
 
-    function returnTerritory(territoryId, buttonElement) {
-        tg.MainButton.setText("Надсилаю запит...").show().enable();
-        fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
-            .then(response => response.json())
-            .then(result => {
-                tg.MainButton.hide();
-                if (result.ok) {
-                    tg.showAlert(result.message);
-                    buttonElement.textContent = 'Очікує...';
-                    buttonElement.disabled = true;
-                } else {
-                    tg.showAlert(result.message || result.error || 'Сталася невідома помилка.');
-                }
-            })
-            .catch(error => {
-                tg.MainButton.hide();
-                tg.showAlert('Сталася критична помилка. Спробуйте пізніше.');
-            });
-    }
+    modalInfoBtn.addEventListener('click', async () => {
+        const currentTerritory = myTerritoryList.querySelector(`[data-id="${currentTerritoryId}"]`);
+        const currentInfo = currentTerritory ? currentTerritory.querySelector('.info-text').textContent : '';
+        showNoteModal(currentTerritoryId, currentInfo);
+    });
 
-    function requestTerritory(territoryId, buttonElement) {
-        tg.MainButton.setText("Надсилаю запит...").show().enable();
-        fetch(`${SCRIPT_URL}?action=requestTerritory&territoryId=${territoryId}&userId=${userId}`)
-            .then(response => response.json())
-            .then(result => {
-                tg.MainButton.hide();
-                if (result.ok) {
-                    tg.showAlert(result.message);
-                    const territoryItem = buttonElement.closest('.territory-item');
-                    if (territoryItem) {
-                        territoryItem.style.opacity = '0';
-                        setTimeout(() => {
-                            territoryItem.remove();
-                        }, 300);
-                    }
-                } else {
-                    tg.showAlert(result.message || result.error || 'Сталася невідома помилка.');
-                }
-            })
-            .catch(error => {
-                tg.MainButton.hide();
-                tg.showAlert('Сталася критична помилка. Спробуйте пізніше.');
-            });
-    }
+    modalReturnBtn.addEventListener('click', async () => {
+        const currentTerritory = myTerritoryList.querySelector(`[data-id="${currentTerritoryId}"]`);
+        if (currentTerritory) {
+            const territoryData = {
+                id: currentTerritory.dataset.id,
+                name: currentTerritory.querySelector('.territory-title').textContent
+            };
+            returnTerritoryHandler(territoryData);
+        }
+    });
 
-    function fetchAllData() {
-        loader.style.display = 'block';
-        myTerritoryList.innerHTML = '';
-        freeTerritoryList.innerHTML = '';
-        generalMapsList.innerHTML = '';
-        
-        Promise.all([
-            fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`).then(res => res.json()),
-            fetch(SCRIPT_URL).then(res => res.json())
-        ]).then(([myData, allData]) => {
-            loader.style.display = 'none';
-            if (myData.ok) displayMyTerritories(myData.territories);
-            
-            if (allData.ok) {
-                allTerritories = allData.territories;
-                const predefinedOrder = ["Тернопіль", "Березовиця", "Острів", "Буцнів"];
-                const getDistance = name => {
-                    const match = name.match(/\((\d+)км\)/);
-                    return match ? parseInt(match[1], 10) : Infinity;
-                };
-                const sortedFilters = allData.filters.sort((a, b) => {
-                    const indexA = predefinedOrder.indexOf(a);
-                    const indexB = predefinedOrder.indexOf(b);
-                    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-                    if (indexA !== -1) return -1;
-                    if (indexB !== -1) return 1;
-                    return getDistance(a) - getDistance(b);
-                });
-                displayFilters(sortedFilters);
-                displayGeneralMaps();
-                const activeFilter = document.querySelector('.filter-btn.active');
-                if (activeFilter) displayFreeTerritories(activeFilter.dataset.filter);
-            } else {
-                 document.body.innerHTML = `<p>Помилка завантаження даних: ${allData.error}</p>`;
-            }
-        }).catch(error => {
-            loader.style.display = 'none';
-            console.error('Critical fetch error:', error);
-            document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані.</p>`;
-        });
-    }
-    
-    // --- ЛОГІКА ДЛЯ МАСШТАБУВАННЯ ТА ПЕРЕТЯГУВАННЯ ЗОБРАЖЕННЯ В МОДАЛЬНОМУ ВІКНІ ---
-
-    let scale = 1;
-    let isPanning = false;
-    let startX = 0;
-    let startY = 0;
-    let translateX = 0;
-    let translateY = 0;
-    let initialPinchDistance = null;
-
+    // Логіка для масштабування та переміщення зображення
     function updateTransform() {
         fullImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
     }
@@ -402,29 +602,19 @@ document.addEventListener('DOMContentLoaded', function() {
         translateY = 0;
         updateTransform();
     }
-    
-    // Масштабування коліщатком миші
-    imageModal.addEventListener('wheel', (e) => {
-        e.preventDefault();
-        const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        const newScale = Math.max(1, Math.min(scale + delta, 5));
-        
-        if (newScale !== scale) {
-            scale = newScale;
-            if (scale === 1) {
-                translateX = 0;
-                translateY = 0;
-            }
-            updateTransform();
-        }
-    });
 
-    // Перетягування мишею
+    function getDistance(touches) {
+        return Math.sqrt(
+            (touches[0].clientX - touches[1].clientX) ** 2 +
+            (touches[0].clientY - touches[1].clientY) ** 2
+        );
+    }
+    
+    // Миша
     imageModal.addEventListener('mousedown', (e) => {
-        if (e.target !== fullImage || scale <= 1) return;
+        if (e.target !== fullImage) return;
         e.preventDefault();
         isPanning = true;
-        fullImage.classList.add('grabbing');
         startX = e.clientX - translateX;
         startY = e.clientY - translateY;
     });
@@ -437,26 +627,30 @@ document.addEventListener('DOMContentLoaded', function() {
         updateTransform();
     });
 
-    window.addEventListener('mouseup', () => { // Слухаємо на window, щоб не втратити подію
+    imageModal.addEventListener('mouseup', () => {
         isPanning = false;
-        fullImage.classList.remove('grabbing');
     });
 
-    // --- Логіка для сенсорних екранів (жести) ---
-    function getDistance(touches) {
-        const [touch1, touch2] = touches;
-        return Math.sqrt(
-            Math.pow(touch2.clientX - touch1.clientX, 2) +
-            Math.pow(touch2.clientY - touch1.clientY, 2)
-        );
-    }
+    imageModal.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY * -0.01;
+        const newScale = Math.max(1, Math.min(scale + delta, 5));
+        if (newScale !== scale) {
+            scale = newScale;
+            if (scale === 1) {
+                translateX = 0;
+                translateY = 0;
+            }
+            updateTransform();
+        }
+    });
 
+    // Touch
     imageModal.addEventListener('touchstart', (e) => {
-        if (e.target !== fullImage || e.touches.length > 2) return;
-        
-        if (e.touches.length === 1 && scale > 1) {
+        if (e.target !== fullImage) return;
+        e.preventDefault();
+        if (e.touches.length === 1) {
             isPanning = true;
-            fullImage.classList.add('grabbing');
             startX = e.touches[0].clientX - translateX;
             startY = e.touches[0].clientY - translateY;
         } else if (e.touches.length === 2) {
@@ -494,13 +688,11 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.touches.length < 2) initialPinchDistance = null;
         if (e.touches.length < 1) {
             isPanning = false;
-            fullImage.classList.remove('grabbing');
         }
     });
     
     // Початкове завантаження
-    fetchAllData();
-
+    fetchMyTerritories();
+    fetchFreeTerritories();
+    fetchGeneralMaps();
 });
-
-
