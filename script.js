@@ -186,7 +186,8 @@ document.addEventListener('DOMContentLoaded', function() {
             myTerritoryList.appendChild(item);
         });
     }
-
+    
+    // Оновлена функція: для адміна також відображається кнопка "Обрати"
     function displayFreeTerritories(filter) {
         freeTerritoryList.innerHTML = '';
         freeTerritoriesTitle.style.display = 'block';
@@ -204,18 +205,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const territoryNameForButton = t.name.replace(/"/g, '&quot;');
             let actionAreaHtml = `<div class="action-area">`;
             
-            // Завжди відображаємо кнопку "Обрати" у цій вкладці
+            // Завжди відображаємо кнопку "Обрати"
             actionAreaHtml += `<button class="btn-book" data-id="${t.id}" data-name="${territoryNameForButton}">✅ Обрати</button>`;
             
             actionAreaHtml += `</div>`;
             const noteHtml = isPriority ? `<div class="priority-note">Потребує опрацювання</div>` : '';
 
-            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}${actionAreaHtml}${noteHtml}</div>`;
+            // Переносимо createNoteIcon на вкладку "Усі території", якщо це адміністратор
+            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${!isAdmin ? createNoteIcon(t) : ''}</div><div class="territory-content">${createPhotoBlock(t)}${actionAreaHtml}${noteHtml}</div>`;
 
             freeTerritoryList.appendChild(item);
         });
     }
 
+    // Оновлена функція: відображаємо усі адміністративні кнопки тут
     function displayAllTerritories(territories) {
         allTerritoriesList.innerHTML = '';
         if (territories.length === 0) {
@@ -234,18 +237,11 @@ document.addEventListener('DOMContentLoaded', function() {
             const territoryNameForButton = t.name.replace(/"/g, '&quot;');
             let actionAreaHtml = `<div class="action-area">`;
 
-            // Кнопка "Призначити" завжди доступна
             actionAreaHtml += `<button class="btn-assign" data-id="${t.id}" data-name="${territoryNameForButton}">🧑‍ Призначити</button>`;
-
-            // Кнопка "Здати" тільки якщо територія зайнята
             if (t.status === 'зайнята') {
                 actionAreaHtml += `<button class="btn-return-admin" data-id="${t.id}" data-user-id="${t.assignee_id}">↩️ Здати</button>`;
             }
-
-            // Кнопка "Статистика" завжди доступна
             actionAreaHtml += `<button class="btn-stats" data-id="${t.id}">📊 Статистика</button>`;
-
-            // Кнопка "Примітка"
             actionAreaHtml += `<button class="btn-note" data-id="${t.id}">📝 Примітка</button>`;
             
             actionAreaHtml += `</div>`;
@@ -255,6 +251,7 @@ document.addEventListener('DOMContentLoaded', function() {
             item.innerHTML = `
                 <div class="territory-title">
                     <span>📍 ${t.id}. ${t.name}</span>
+                    ${createNoteIcon(t)}
                 </div>
                 <div class="territory-content">
                     ${createPhotoBlock(t)}
@@ -303,14 +300,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.classList.contains('territory-photo')) handlePhotoClick(target);
         if (target.classList.contains('btn-return')) {
             const territoryId = target.dataset.id;
-            const targetUserId = userId; // Завжди поточний користувач
+            const targetUserId = userId;
             tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
                 if (isConfirmed) returnTerritory(territoryId, target, targetUserId);
             });
         }
         if (target.classList.contains('btn-return-admin')) {
             const territoryId = target.dataset.id;
-            const targetUserId = target.dataset.userId; // ID користувача, за яким закріплена територія
+            const targetUserId = target.dataset.userId; 
             tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId} для користувача ${target.closest('.territory-item').querySelector('.territory-info strong').nextSibling.textContent.trim()}?`, (isConfirmed) => {
                 if (isConfirmed) returnTerritory(territoryId, target, targetUserId);
             });
@@ -329,7 +326,6 @@ document.addEventListener('DOMContentLoaded', function() {
             target.classList.add('active');
             displayFreeTerritories(target.dataset.filter);
         }
-        // --- ОБРОБНИКИ ДЛЯ АДМІН-КНОПОК У ВСІХ ТЕРИТОРІЯХ ---
         if (target.classList.contains('btn-assign')) {
             const territoryId = target.dataset.id;
             const territoryName = target.dataset.name;
