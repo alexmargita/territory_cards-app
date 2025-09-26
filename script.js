@@ -19,7 +19,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const loader = document.getElementById('loader');
     const myTerritoryList = document.getElementById('my-territory-list');
     const freeTerritoryList = document.getElementById('territory-list');
-    const allTerritoriesList = document.getElementById('all-territories-list');
     const generalMapsList = document.getElementById('general-maps-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     const filtersContainer = document.getElementById('filters-container');
@@ -27,13 +26,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const fullImage = document.getElementById('full-image');
     const closeModalBtn = document.querySelector('.modal-close-btn');
     const modalDownloadBtn = document.getElementById('modal-download-btn');
-    const assignModal = document.getElementById('assign-modal');
-    const historyModal = document.getElementById('history-modal');
-    const noteModal = document.getElementById('note-modal');
 
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
-    let isAdmin = false; 
     
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -49,10 +44,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (targetTabId === 'my-territories') {
                 fetchMyTerritories();
-            } else if (targetTabId === 'select-territory') {
+            }
+            if (targetTabId === 'select-territory') {
                 fetchFreeTerritories();
-            } else if (targetTabId === 'all-territories') {
-                fetchAndDisplayAllTerritories();
             }
         });
     });
@@ -97,24 +91,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    function fetchAndDisplayAllTerritories() {
-        allTerritoriesList.innerHTML = `<div class="loader" style="font-size: 16px;">Оновлення...</div>`;
-        fetch(SCRIPT_URL)
-            .then(res => res.json())
-            .then(allData => {
-                if (allData.ok) {
-                    allTerritories = allData.territories; 
-                    displayAllTerritories(allTerritories.filter(t => t.category === 'territory'));
-                } else {
-                    allTerritoriesList.innerHTML = '<p>Не вдалося оновити дані.</p>';
-                }
-            })
-            .catch(error => {
-                console.error('Fetch error:', error);
-                allTerritoriesList.innerHTML = '<p>Помилка мережі. Спробуйте пізніше.</p>';
-            });
-    }
-    
     function createPhotoBlock(territory) {
         if (!territory.picture_id) { return `<div class="placeholder-photo">Немає фото</div>`; }
         const imageUrl = GITHUB_BASE_URL + encodeURIComponent(territory.picture_id);
@@ -199,75 +175,20 @@ document.addEventListener('DOMContentLoaded', function() {
             item.dataset.territoryId = t.id;
 
             const isPriority = isPriorityTerritory(t.date_completed);
-            if (isPriority) item.classList.add('priority');
+            
+            if (isPriority) {
+                item.classList.add('priority');
+            }
             
             const territoryNameForButton = t.name.replace(/"/g, '&quot;');
-            let actionAreaHtml = `<div class="action-area">`;
+            const buttonHtml = `<button class="btn-book" data-id="${t.id}" data-name="${territoryNameForButton}">✅ Обрати</button>`;
             
-            // Завжди відображаємо кнопку "Обрати" у цій вкладці
-            actionAreaHtml += `<button class="btn-book" data-id="${t.id}" data-name="${territoryNameForButton}">✅ Обрати</button>`;
-            
-            actionAreaHtml += `</div>`;
             const noteHtml = isPriority ? `<div class="priority-note">Потребує опрацювання</div>` : '';
+            const actionAreaHtml = `<div class="action-area">${buttonHtml}${noteHtml}</div>`;
 
-            // У цій вкладці примітка відображається тільки для звичайних користувачів
-            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${!isAdmin ? createNoteIcon(t) : ''}</div><div class="territory-content">${createPhotoBlock(t)}${actionAreaHtml}${noteHtml}</div>`;
+            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}${actionAreaHtml}</div>`;
 
             freeTerritoryList.appendChild(item);
-        });
-    }
-
-    function displayAllTerritories(territories) {
-        allTerritoriesList.innerHTML = '';
-        if (territories.length === 0) {
-            allTerritoriesList.innerHTML = '<p>Жодної території не знайдено.</p>';
-            return;
-        }
-
-        territories.forEach(t => {
-            const item = document.createElement('div');
-            item.className = 'territory-item';
-            item.dataset.territoryId = t.id;
-
-            const isPriority = isPriorityTerritory(t.date_completed);
-            if (isPriority) item.classList.add('priority');
-
-            const territoryNameForButton = t.name.replace(/"/g, '&quot;');
-            let actionAreaHtml = `<div class="action-area">`;
-
-            // Кнопка "Призначити" завжди доступна
-            actionAreaHtml += `<button class="btn-assign" data-id="${t.id}" data-name="${territoryNameForButton}">🧑‍ Призначити</button>`;
-
-            // Кнопка "Здати" тільки якщо територія зайнята
-            if (t.status === 'зайнята') {
-                actionAreaHtml += `<button class="btn-return-admin" data-id="${t.id}" data-user-id="${t.assignee_id}">↩️ Здати</button>`;
-            }
-
-            // Кнопка "Статистика" завжди доступна
-            actionAreaHtml += `<button class="btn-stats" data-id="${t.id}">📊 Статистика</button>`;
-
-            // Кнопка "Примітка"
-            actionAreaHtml += `<button class="btn-note" data-id="${t.id}">📝 Примітка</button>`;
-            
-            actionAreaHtml += `</div>`;
-            const noteHtml = isPriority ? `<div class="priority-note">Потребує опрацювання</div>` : '';
-            const statusInfo = `Статус: <strong>${t.status}</strong>` + (t.assignee_name ? ` (${t.assignee_name})` : '');
-            
-            item.innerHTML = `
-                <div class="territory-title">
-                    <span>📍 ${t.id}. ${t.name}</span>
-                    ${createNoteIcon(t)}
-                </div>
-                <div class="territory-content">
-                    ${createPhotoBlock(t)}
-                    <div class="territory-info">
-                        <p>${statusInfo}</p>
-                        ${actionAreaHtml}
-                        ${noteHtml}
-                    </div>
-                </div>
-            `;
-            allTerritoriesList.appendChild(item);
         });
     }
 
@@ -305,16 +226,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.classList.contains('territory-photo')) handlePhotoClick(target);
         if (target.classList.contains('btn-return')) {
             const territoryId = target.dataset.id;
-            const targetUserId = userId; // Завжди поточний користувач
             tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
-                if (isConfirmed) returnTerritory(territoryId, target, targetUserId);
-            });
-        }
-        if (target.classList.contains('btn-return-admin')) {
-            const territoryId = target.dataset.id;
-            const targetUserId = target.dataset.userId; 
-            tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId} для користувача ${target.closest('.territory-item').querySelector('.territory-info strong').nextSibling.textContent.trim()}?`, (isConfirmed) => {
-                if (isConfirmed) returnTerritory(territoryId, target, targetUserId);
+                if (isConfirmed) returnTerritory(territoryId, target);
             });
         }
         if (target.classList.contains('btn-book')) {
@@ -331,181 +244,6 @@ document.addEventListener('DOMContentLoaded', function() {
             target.classList.add('active');
             displayFreeTerritories(target.dataset.filter);
         }
-        if (target.classList.contains('btn-assign')) {
-            const territoryId = target.dataset.id;
-            const territoryName = target.dataset.name;
-            showAssignModal(territoryId, territoryName);
-        }
-        if (target.classList.contains('btn-stats')) {
-            const territoryId = target.dataset.id;
-            showHistoryModal(territoryId);
-        }
-        if (target.classList.contains('btn-note')) {
-            const territoryId = target.dataset.id;
-            const currentNote = allTerritories.find(t => String(t.id) === territoryId)?.info || '';
-            showNoteModal(territoryId, currentNote);
-        }
-    });
-
-    function showAssignModal(territoryId, territoryName) {
-        const userList = document.getElementById('assign-user-list');
-        userList.innerHTML = `<p class="modal-loading-text">Завантаження...</p>`;
-        assignModal.classList.add('active');
-        document.getElementById('assign-modal-title').textContent = `Призначити ${territoryId}. ${territoryName}`;
-
-        fetch(`${SCRIPT_URL}?action=getUsers&userId=${userId}`)
-            .then(res => res.json())
-            .then(result => {
-                if (result.ok) {
-                    userList.innerHTML = '';
-                    result.users.forEach(user => {
-                        const userDiv = document.createElement('div');
-                        userDiv.className = 'user-item';
-                        userDiv.textContent = user.name;
-                        userDiv.dataset.userId = user.id;
-                        userDiv.addEventListener('click', () => {
-                            assignTerritory(territoryId, user.id, user.name);
-                        });
-                        userList.appendChild(userDiv);
-                    });
-                } else {
-                    userList.innerHTML = `<p>${result.error || 'Помилка завантаження користувачів.'}</p>`;
-                }
-            })
-            .catch(error => {
-                userList.innerHTML = `<p>Помилка мережі.</p>`;
-            });
-    }
-
-    function assignTerritory(territoryId, newUserId, newUserName) {
-        const payload = {
-            action: 'assignTerritory',
-            userId: userId,
-            territoryId: territoryId,
-            newUserId: newUserId
-        };
-        tg.MainButton.setText("Призначаю...").show().enable();
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
-        .then(result => {
-            tg.MainButton.hide();
-            assignModal.classList.remove('active');
-            if (result.ok) {
-                tg.showAlert(`Територію ${territoryId} успішно призначено користувачу ${newUserName}.`);
-                fetchAndDisplayAllTerritories(); 
-            } else {
-                tg.showAlert(result.message || 'Сталася помилка при призначенні.');
-            }
-        })
-        .catch(error => {
-            tg.MainButton.hide();
-            tg.showAlert('Критична помилка при призначенні.');
-        });
-    }
-
-    function showHistoryModal(territoryId) {
-        const historyList = document.getElementById('history-list');
-        historyList.innerHTML = `<p class="modal-loading-text">Завантаження...</p>`;
-        historyModal.classList.add('active');
-        document.getElementById('history-modal-title').textContent = `Історія території №${territoryId}`;
-
-        fetch(`${SCRIPT_URL}?action=getTerritoryHistory&userId=${userId}&territoryId=${territoryId}`)
-            .then(res => res.json())
-            .then(result => {
-                if (result.ok) {
-                    historyList.innerHTML = '';
-                    if (result.history.length === 0) {
-                        historyList.innerHTML = '<p>Історія по цій території відсутня.</p>';
-                        return;
-                    }
-                    result.history.forEach(entry => {
-                        const historyDiv = document.createElement('div');
-                        historyDiv.className = 'history-item';
-                        const dateText = entry.dateCompleted ? `**${entry.dateCompleted}**` : '';
-                        const daysText = entry.daysInUse ? ` (${entry.daysInUse} дн.)` : '';
-                        historyDiv.innerHTML = `
-                            <p><strong>${entry.action}:</strong> ${entry.assigneeName}</p>
-                            <p><em>Дата:</em> ${dateText}${daysText}</p>
-                        `;
-                        historyList.appendChild(historyDiv);
-                    });
-                } else {
-                    historyList.innerHTML = `<p>${result.error || 'Помилка завантаження історії.'}</p>`;
-                }
-            })
-            .catch(error => {
-                historyList.innerHTML = `<p>Помилка мережі.</p>`;
-            });
-    }
-
-    function showNoteModal(territoryId, currentNote) {
-        const noteTextarea = document.getElementById('note-textarea');
-        noteTextarea.value = currentNote;
-        noteModal.dataset.territoryId = territoryId;
-        noteModal.classList.add('active');
-        document.getElementById('note-modal-title').textContent = `Примітка до території №${territoryId}`;
-    }
-
-    document.getElementById('save-note-btn').addEventListener('click', () => {
-        const territoryId = noteModal.dataset.territoryId;
-        const noteText = document.getElementById('note-textarea').value;
-        const payload = {
-            action: 'addNote',
-            userId: userId,
-            territoryId: territoryId,
-            noteText: noteText
-        };
-        tg.MainButton.setText("Зберігаю...").show().enable();
-        fetch(SCRIPT_URL, {
-            method: 'POST',
-            body: JSON.stringify(payload)
-        })
-        .then(response => response.json())
-        .then(result => {
-            tg.MainButton.hide();
-            noteModal.classList.remove('active');
-            if (result.ok) {
-                tg.showAlert(`Примітку успішно збережено.`);
-                const territoryToUpdate = allTerritories.find(t => String(t.id) === territoryId);
-                if (territoryToUpdate) {
-                    territoryToUpdate.info = noteText;
-                }
-                if (document.getElementById('select-territory').classList.contains('active')) {
-                    displayFreeTerritories(document.querySelector('.filter-btn.active').dataset.filter);
-                } else if (document.getElementById('all-territories').classList.contains('active')) {
-                    displayAllTerritories(allTerritories.filter(t => t.category === 'territory'));
-                }
-            } else {
-                tg.showAlert(result.message || 'Сталася помилка при збереженні примітки.');
-            }
-        })
-        .catch(error => {
-            tg.MainButton.hide();
-            tg.showAlert('Критична помилка при збереженні примітки.');
-        });
-    });
-
-    document.querySelectorAll('.modal-close-btn').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-            e.target.closest('.modal').classList.remove('active');
-            if (e.target.closest('#image-modal')) {
-                resetTransform();
-            }
-        });
-    });
-
-    document.querySelectorAll('.modal').forEach(modal => {
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.classList.remove('active');
-                if (modal.id === 'image-modal') {
-                    resetTransform();
-                }
-            }
-        });
     });
 
     function handlePhotoClick(photoElement) {
@@ -514,16 +252,19 @@ document.addEventListener('DOMContentLoaded', function() {
         imageModal.dataset.caption = photoElement.dataset.caption;
         imageModal.classList.add('active');
     }
+
+    // Обробники закриття модального вікна (переміщено для доступу до resetTransform)
     closeModalBtn.addEventListener('click', () => {
         imageModal.classList.remove('active');
-        resetTransform();
+        resetTransform(); // Скидаємо трансформації
     });
     imageModal.addEventListener('click', (e) => {
         if (e.target === imageModal || e.target.classList.contains('modal-image-container')) {
              imageModal.classList.remove('active');
-             resetTransform();
+             resetTransform(); // Скидаємо трансформації
         }
     });
+
     modalDownloadBtn.addEventListener('click', () => {
         const photoId = imageModal.dataset.photoId;
         const caption = imageModal.dataset.caption;
@@ -531,7 +272,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         tg.showAlert("Картка території з'явиться у вікні чату через декілька секунд");
         imageModal.classList.remove('active');
-        resetTransform();
+        resetTransform(); // Скидаємо трансформації
 
         const payload = {
             action: 'sendPhotoToUser',
@@ -554,9 +295,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    function returnTerritory(territoryId, buttonElement, targetUserId) {
+    function returnTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show().enable();
-        fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${targetUserId}`)
+        fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
             .then(response => response.json())
             .then(result => {
                 tg.MainButton.hide();
@@ -598,62 +339,18 @@ document.addEventListener('DOMContentLoaded', function() {
                 tg.showAlert('Сталася критична помилка. Спробуйте пізніше.');
             });
     }
-    
-    let scale = 1;
-    let isPanning = false;
-    let startX = 0;
-    let startY = 0;
-    let translateX = 0;
-    let translateY = 0;
-    let initialPinchDistance = null;
-    function updateTransform() { fullImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`; }
-    function resetTransform() { scale = 1; translateX = 0; translateY = 0; updateTransform(); }
-    imageModal.addEventListener('wheel', (e) => {
-        e.preventDefault(); const delta = e.deltaY > 0 ? -0.1 : 0.1; const newScale = Math.max(1, Math.min(scale + delta, 5));
-        if (newScale !== scale) {
-            scale = newScale; if (scale === 1) { translateX = 0; translateY = 0; }
-            updateTransform();
-        }
-    });
-    imageModal.addEventListener('mousedown', (e) => {
-        if (e.target !== fullImage || scale <= 1) return; e.preventDefault(); isPanning = true; fullImage.classList.add('grabbing'); startX = e.clientX - translateX; startY = e.clientY - translateY;
-    });
-    imageModal.addEventListener('mousemove', (e) => {
-        if (!isPanning) return; e.preventDefault(); translateX = e.clientX - startX; translateY = e.clientY - startY; updateTransform();
-    });
-    window.addEventListener('mouseup', () => { isPanning = false; fullImage.classList.remove('grabbing'); });
-    function getDistance(touches) { const [touch1, touch2] = touches; return Math.sqrt(Math.pow(touch2.clientX - touch1.clientX, 2) + Math.pow(touch2.clientY - touch1.clientY, 2)); }
-    imageModal.addEventListener('touchstart', (e) => {
-        if (e.target !== fullImage || e.touches.length > 2) return;
-        if (e.touches.length === 1 && scale > 1) { isPanning = true; fullImage.classList.add('grabbing'); startX = e.touches[0].clientX - translateX; startY = e.touches[0].clientY - translateY; } else if (e.touches.length === 2) { isPanning = false; initialPinchDistance = getDistance(e.touches); }
-    });
-    imageModal.addEventListener('touchmove', (e) => {
-        if (e.target !== fullImage) return; e.preventDefault();
-        if (isPanning && e.touches.length === 1) { translateX = e.touches[0].clientX - startX; translateY = e.touches[0].clientY - startY; updateTransform(); } else if (e.touches.length === 2 && initialPinchDistance) { const newDistance = getDistance(e.touches); const scaleFactor = newDistance / initialPinchDistance; const newScale = Math.max(1, Math.min(scale * scaleFactor, 5)); if (newScale !== scale) { scale = newScale; if (scale === 1) { translateX = 0; translateY = 0; } updateTransform(); } initialPinchDistance = newDistance; }
-    });
-    imageModal.addEventListener('touchend', (e) => {
-        if (e.touches.length < 2) initialPinchDistance = null; if (e.touches.length < 1) { isPanning = false; fullImage.classList.remove('grabbing'); }
-    });
 
     function fetchAllData() {
         loader.style.display = 'block';
         myTerritoryList.innerHTML = '';
         freeTerritoryList.innerHTML = '';
         generalMapsList.innerHTML = '';
-        allTerritoriesList.innerHTML = '';
-
+        
         Promise.all([
-            fetch(`${SCRIPT_URL}?action=checkAdminStatus&userId=${userId}`).then(res => res.json()),
             fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`).then(res => res.json()),
             fetch(SCRIPT_URL).then(res => res.json())
-        ]).then(([adminData, myData, allData]) => {
+        ]).then(([myData, allData]) => {
             loader.style.display = 'none';
-            isAdmin = adminData.isAdmin;
-            
-            if (isAdmin) {
-                document.querySelector('[data-tab="all-territories"]').style.display = 'block';
-            }
-
             if (myData.ok) displayMyTerritories(myData.territories);
             
             if (allData.ok) {
@@ -684,6 +381,123 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані.</p>`;
         });
     }
+    
+    // --- ЛОГІКА ДЛЯ МАСШТАБУВАННЯ ТА ПЕРЕТЯГУВАННЯ ЗОБРАЖЕННЯ В МОДАЛЬНОМУ ВІКНІ ---
 
+    let scale = 1;
+    let isPanning = false;
+    let startX = 0;
+    let startY = 0;
+    let translateX = 0;
+    let translateY = 0;
+    let initialPinchDistance = null;
+
+    function updateTransform() {
+        fullImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`;
+    }
+
+    function resetTransform() {
+        scale = 1;
+        translateX = 0;
+        translateY = 0;
+        updateTransform();
+    }
+    
+    // Масштабування коліщатком миші
+    imageModal.addEventListener('wheel', (e) => {
+        e.preventDefault();
+        const delta = e.deltaY > 0 ? -0.1 : 0.1;
+        const newScale = Math.max(1, Math.min(scale + delta, 5));
+        
+        if (newScale !== scale) {
+            scale = newScale;
+            if (scale === 1) {
+                translateX = 0;
+                translateY = 0;
+            }
+            updateTransform();
+        }
+    });
+
+    // Перетягування мишею
+    imageModal.addEventListener('mousedown', (e) => {
+        if (e.target !== fullImage || scale <= 1) return;
+        e.preventDefault();
+        isPanning = true;
+        fullImage.classList.add('grabbing');
+        startX = e.clientX - translateX;
+        startY = e.clientY - translateY;
+    });
+
+    imageModal.addEventListener('mousemove', (e) => {
+        if (!isPanning) return;
+        e.preventDefault();
+        translateX = e.clientX - startX;
+        translateY = e.clientY - startY;
+        updateTransform();
+    });
+
+    window.addEventListener('mouseup', () => { // Слухаємо на window, щоб не втратити подію
+        isPanning = false;
+        fullImage.classList.remove('grabbing');
+    });
+
+    // --- Логіка для сенсорних екранів (жести) ---
+    function getDistance(touches) {
+        const [touch1, touch2] = touches;
+        return Math.sqrt(
+            Math.pow(touch2.clientX - touch1.clientX, 2) +
+            Math.pow(touch2.clientY - touch1.clientY, 2)
+        );
+    }
+
+    imageModal.addEventListener('touchstart', (e) => {
+        if (e.target !== fullImage || e.touches.length > 2) return;
+        
+        if (e.touches.length === 1 && scale > 1) {
+            isPanning = true;
+            fullImage.classList.add('grabbing');
+            startX = e.touches[0].clientX - translateX;
+            startY = e.touches[0].clientY - translateY;
+        } else if (e.touches.length === 2) {
+            isPanning = false;
+            initialPinchDistance = getDistance(e.touches);
+        }
+    });
+
+    imageModal.addEventListener('touchmove', (e) => {
+        if (e.target !== fullImage) return;
+        e.preventDefault();
+        
+        if (isPanning && e.touches.length === 1) {
+            translateX = e.touches[0].clientX - startX;
+            translateY = e.touches[0].clientY - startY;
+            updateTransform();
+        } else if (e.touches.length === 2 && initialPinchDistance) {
+            const newDistance = getDistance(e.touches);
+            const scaleFactor = newDistance / initialPinchDistance;
+            
+            const newScale = Math.max(1, Math.min(scale * scaleFactor, 5));
+            if (newScale !== scale) {
+                scale = newScale;
+                if (scale === 1) {
+                    translateX = 0;
+                    translateY = 0;
+                }
+                updateTransform();
+            }
+            initialPinchDistance = newDistance;
+        }
+    });
+
+    imageModal.addEventListener('touchend', (e) => {
+        if (e.touches.length < 2) initialPinchDistance = null;
+        if (e.touches.length < 1) {
+            isPanning = false;
+            fullImage.classList.remove('grabbing');
+        }
+    });
+    
+    // Початкове завантаження
     fetchAllData();
 });

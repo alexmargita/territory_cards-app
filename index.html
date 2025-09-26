@@ -12,7 +12,6 @@
             <button class="tab-button active" data-tab="my-territories">Мої території</button>
             <button class="tab-button" data-tab="select-territory">Обрати територію</button>
             <button class="tab-button" data-tab="general-maps">Загальні карти</button>
-            <button class="tab-button" data-tab="all-territories" style="display: none;">Усі території</button>
         </div>
 
         <div id="my-territories" class="tab-content active">
@@ -32,55 +31,17 @@
             <h2>Загальні карти територій:</h2>
             <div id="general-maps-list"></div>
         </div>
-
-        <div id="all-territories" class="tab-content">
-            <h2>Усі території:</h2>
-            <div id="all-territories-list"></div>
-        </div>
-
+        
         <div id="loader" class="loader">Завантаження...</div>
     </div>
 
-    <div id="image-modal" class="image-modal modal">
+    <div id="image-modal" class="image-modal">
         <span class="modal-close-btn">&times;</span>
         <div class="modal-image-container">
             <img class="modal-content" id="full-image">
         </div>
         <div class="modal-actions">
             <button id="modal-download-btn" class="modal-btn">📥 Завантажити</button>
-        </div>
-    </div>
-    
-    <div id="assign-modal" class="modal">
-        <div class="modal-content-container">
-            <span class="modal-close-btn">&times;</span>
-            <h3 id="assign-modal-title">Призначити територію</h3>
-            <div class="modal-body">
-                <div id="assign-user-list"></div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="history-modal" class="modal">
-        <div class="modal-content-container">
-            <span class="modal-close-btn">&times;</span>
-            <h3 id="history-modal-title">Історія території</h3>
-            <div class="modal-body">
-                <div id="history-list"></div>
-            </div>
-        </div>
-    </div>
-    
-    <div id="note-modal" class="modal">
-        <div class="modal-content-container">
-            <span class="modal-close-btn">&times;</span>
-            <h3 id="note-modal-title">Примітка до території</h3>
-            <div class="modal-body">
-                <textarea id="note-textarea" rows="5" placeholder="Введіть примітку..."></textarea>
-            </div>
-            <div class="modal-footer">
-                <button id="save-note-btn" class="modal-btn">Зберегти</button>
-            </div>
         </div>
     </div>
 
