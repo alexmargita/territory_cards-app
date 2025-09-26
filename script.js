@@ -148,7 +148,8 @@ document.addEventListener('DOMContentLoaded', function() {
             let daysBlock = '';
             if (remainingDays !== null) {
                 const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
-                const progressPercent = Math.max(0, ((120 - remainingDays) / 120) * 100);
+                // ОНОВЛЕНО: Змінено логіку розрахунку відсотка
+                const progressPercent = Math.max(0, (remainingDays / 120) * 100);
                 daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
             }
             item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<div class="action-area"><button class="btn-return" data-id="${t.id}">↩️ Здати</button></div></div>${daysBlock}`;
@@ -259,11 +260,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (t.status === 'зайнята') {
                 infoHtml = `<div class="admin-card-info"><strong>Користувач:</strong> ${t.assignee_name || 'Невідомо'}<br><strong>Дата видачі:</strong> ${t.date_assigned || '-'}</div>`;
                 
-                // ОНОВЛЕНО: Повернуто логіку "залишилось днів"
                 const remainingDays = calculateDaysRemaining(t.date_assigned);
                 if (remainingDays !== null) {
                     const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
-                    const progressPercent = Math.max(0, ((120 - remainingDays) / 120) * 100);
+                    // ОНОВЛЕНО: Змінено логіку розрахунку відсотка
+                    const progressPercent = Math.max(0, (remainingDays / 120) * 100);
                     daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
                 }
 
