@@ -38,6 +38,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let is_admin = false;
     const userId = tg.initDataUnsafe.user.id;
 
+    async function showLoader() { loader.style.display = 'flex'; }
+    async function hideLoader() { loader.style.display = 'none'; }
+    
     async function checkAdminStatusAndLoad() {
         showLoader();
         try {
