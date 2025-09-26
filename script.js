@@ -26,35 +26,38 @@ document.addEventListener('DOMContentLoaded', function() {
     const fullImage = document.getElementById('full-image');
     const closeModalBtn = document.querySelector('.modal-close-btn');
     const modalDownloadBtn = document.getElementById('modal-download-btn');
-
-    let allTerritories = [];
-    const userId = tg.initDataUnsafe.user.id;
     
-    const tabs = document.querySelectorAll('.tab-button');
-    const tabContents = document.querySelectorAll('.tab-content');
+    // Нові елементи для адміністратора
     const adminTab = document.getElementById('admin-tab');
     const adminTerritoryList = document.getElementById('admin-territory-list');
     const adminFilters = document.querySelectorAll('.admin-filters .filter-btn');
     const adminSearchIcon = document.getElementById('admin-search-icon');
     const adminSearchInput = document.getElementById('admin-search-input');
     
+    let allTerritories = [];
     let is_admin = false;
+    const userId = tg.initDataUnsafe.user.id;
 
-    // Перевірка, чи є користувач адміністратором
-    fetch(`${SCRIPT_URL}?action=getIsAdmin&userId=${userId}`)
-      .then(res => res.json())
-      .then(data => {
-        is_admin = data.isAdmin;
-        if (is_admin) {
-          adminTab.style.display = 'block';
+    async function checkAdminStatusAndLoad() {
+        showLoader();
+        try {
+            const response = await fetch(`${SCRIPT_URL}?action=getIsAdmin&userId=${userId}`);
+            const data = await response.json();
+            is_admin = data.isAdmin;
+            if (is_admin) {
+                adminTab.style.display = 'block';
+            }
+            fetchAllData();
+        } catch (error) {
+            console.error('Failed to check admin status:', error);
+            document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані.</p>`;
         }
-        // Початкове завантаження
-        fetchAllData();
-      })
-      .catch(error => {
-        console.error('Fetch error:', error);
-        document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані.</p>`;
-      });
+    }
+    
+    checkAdminStatusAndLoad();
+
+    const tabs = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
 
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
@@ -101,7 +104,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(allData => {
                 if (allData.ok) {
                     allTerritories = allData.territories;
-                    const activeFilter = document.querySelector('.filter-btn.active');
+                    const activeFilter = document.querySelector('#select-territory .filter-btn.active');
                     if (activeFilter) {
                         displayFreeTerritories(activeFilter.dataset.filter);
                     } else if (allData.filters && allData.filters.length > 0) {
@@ -288,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (filter !== 'all') {
             if (filter === 'рідко опрацьовані') {
-                filtered = filtered.filter(t => isPriorityTerritory(t.date_completed));
+                filtered = filtered.filter(t => t.is_rarely_processed);
             } else {
                 filtered = filtered.filter(t => t.status === filter);
             }
