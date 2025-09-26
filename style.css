@@ -1,0 +1,335 @@
+/* Базові стилі */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    margin: 0;
+    padding: 15px;
+    background-color: var(--tg-theme-bg-color, #ffffff);
+    color: var(--tg-theme-text-color, #000000);
+}
+.app-container {
+    max-width: 100%;
+    margin: 0 auto;
+}
+h2 {
+    font-size: 20px;
+    margin-top: 20px;
+    margin-bottom: 10px;
+}
+
+/* Стилі для вкладок */
+.tabs {
+    display: flex;
+    border-bottom: 1px solid var(--tg-theme-hint-color, #ddd);
+    margin-bottom: 15px;
+    position: sticky;
+    top: 0;
+    background-color: var(--tg-theme-bg-color, #ffffff);
+    z-index: 100;
+    padding-top: 10px;
+}
+.tab-button {
+    flex-grow: 1;
+    padding: 15px 5px;
+    border: none;
+    background-color: transparent;
+    font-size: 17px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--tg-theme-hint-color, #888);
+    border-bottom: 3px solid transparent;
+    text-align: center;
+}
+.tab-button.active {
+    color: var(--tg-theme-link-color, #007bff);
+    border-bottom-color: var(--tg-theme-link-color, #007bff);
+}
+.tab-content {
+    display: none;
+}
+.tab-content.active {
+    display: block;
+}
+
+/* Стилі фільтрів */
+.filters, .admin-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+.filter-btn {
+    flex-grow: 0;
+    padding: 8px 12px;
+    background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+    color: var(--tg-theme-text-color, #000);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+}
+.filter-btn.active {
+    background-color: var(--tg-theme-button-color, #007bff);
+    color: var(--tg-theme-button-text-color, #ffffff);
+    border-color: var(--tg-theme-button-color, #007bff);
+}
+
+.search-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-grow: 1;
+}
+
+#admin-search-input {
+    flex-grow: 1;
+    padding: 8px;
+    border: 1px solid var(--tg-theme-hint-color, #ccc);
+    border-radius: 8px;
+    background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
+    color: var(--tg-theme-text-color, #000);
+}
+
+.search-icon {
+    font-size: 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+}
+
+/* Стилі для карток територій */
+.territory-item {
+    padding: 15px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    background-color: var(--tg-theme-secondary-bg-color, #f9f9f9);
+    border: 1px solid #eee;
+    transition: opacity 0.3s ease;
+}
+#select-territory .territory-item:nth-child(odd) {
+    background-color: var(--tg-theme-bg-color, #ffffff);
+}
+.territory-title {
+    font-weight: bold;
+    font-size: 18px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+}
+.note-icon {
+    font-family: 'Georgia', serif;
+    font-weight: bold;
+    font-size: 16px;
+    color: var(--tg-theme-button-color, #007bff);
+    background-color: var(--tg-theme-secondary-bg-color, #e9ecef);
+    border: 1px solid var(--tg-theme-button-color, #007bff);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    user-select: none;
+}
+.territory-content {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+.territory-photo {
+    width: 120px;
+    height: 90px;
+    border-radius: 8px;
+    display: block;
+    object-fit: cover;
+    cursor: pointer;
+}
+.placeholder-photo {
+    width: 120px;
+    height: 90px;
+    border-radius: 8px;
+    background-color: #efefef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #888;
+    font-size: 14px;
+}
+.btn-book, .btn-return, .btn-admin {
+    padding: 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 16px;
+    cursor: pointer;
+    color: #ffffff;
+    width: 100%;
+    margin-top: 5px;
+}
+.btn-book {
+    background-color: var(--tg-theme-button-color, #28a745);
+}
+.btn-return {
+    background-color: #dc3545;
+}
+.btn-admin {
+    background-color: var(--tg-theme-button-color, #007bff);
+    color: var(--tg-theme-button-text-color, #ffffff);
+}
+.loader {
+    text-align: center;
+    padding: 20px;
+    font-size: 18px;
+}
+.progress-bar-container {
+    position: relative;
+    width: 100%;
+    margin-top: 10px;
+    text-align: center;
+}
+.progress-bar-track {
+    width: 100%;
+    height: 28px;
+    background-color: #e9ecef;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 1px solid #ccc;
+}
+.progress-bar-fill {
+    height: 100%;
+    background-color: #ff9800;
+    border-radius: 8px;
+    transition: width 0.5s ease-in-out;
+}
+.ending-soon .progress-bar-fill {
+    background-color: #f44336;
+}
+.progress-bar-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: #000000;
+    font-weight: bold;
+    font-size: 14px;
+}
+.image-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.8);
+    justify-content: center;
+    align-items: center;
+}
+.image-modal.active {
+    display: flex;
+}
+.modal-content {
+    margin: auto;
+    display: block;
+    max-width: 90%;
+    max-height: 80%;
+}
+.modal-close-btn {
+    position: absolute;
+    top: 15px;
+    right: 35px;
+    color: #f1f1f1;
+    font-size: 40px;
+    font-weight: bold;
+    cursor: pointer;
+}
+.modal-actions {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.modal-btn {
+    padding: 10px 20px;
+    background-color: var(--tg-theme-button-color, #007bff);
+    color: var(--tg-theme-button-text-color, #ffffff);
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    cursor: pointer;
+}
+.territory-item.priority {
+    background-color: rgba(138, 43, 226, 0.15) !important;
+    border: 1px solid rgba(138, 43, 226, 0.4);
+}
+.action-area {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+.priority-note {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 600;
+    color: #6a0dad;
+    margin-top: 6px;
+}
+.modal-image-container {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+.modal-content {
+    max-width: 100%;
+    max-height: 100%;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+}
+#full-image {
+    transform-origin: center center;
+    transition: transform 0.1s ease-out;
+    cursor: grab;
+}
+#full-image.grabbing {
+    cursor: grabbing;
+}
+/* Нові стилі для адмін-панелі */
+.territory-item.status-вільна {
+    background-color: rgba(144, 238, 144, 0.3);
+}
+.territory-item.status-зайнята {
+    background-color: rgba(255, 99, 71, 0.3);
+}
+.territory-item.status-повернена {
+    background-color: rgba(255, 255, 0, 0.3);
+}
+
+.admin-info {
+    font-size: 14px;
+    margin-top: 10px;
+}
+.admin-info span {
+    font-weight: bold;
+}
+.admin-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 10px;
+}
+.admin-buttons .btn {
+    flex-grow: 1;
+    padding: 8px;
+    font-size: 14px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+}

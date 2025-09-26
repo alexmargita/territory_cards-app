@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Території</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <div class="tabs">
+            <button class="tab-button active" data-tab="my-territories">Мої території</button>
+            <button class="tab-button" data-tab="select-territory">Обрати територію</button>
+            <button class="tab-button" data-tab="general-maps">Загальні карти</button>
+            <button class="tab-button" data-tab="all-territories" id="admin-tab" style="display: none;">Усі території</button>
+        </div>
+
+        <div id="my-territories" class="tab-content active">
+            <h2>Закріплені за вами:</h2>
+            <div id="my-territory-list"></div>
+        </div>
+
+        <div id="select-territory" class="tab-content">
+            <h2>Оберіть населений пункт:</h2>
+            <div class="filters" id="filters-container"></div>
+            
+            <h2 id="free-territories-title" style="display: none;">Вільні території:</h2>
+            <div id="territory-list"></div>
+        </div>
+        
+        <div id="general-maps" class="tab-content">
+            <h2>Загальні карти територій:</h2>
+            <div id="general-maps-list"></div>
+        </div>
+
+        <div id="all-territories" class="tab-content" style="display: none;">
+            <h2>Усі території:</h2>
+            <div class="admin-filters">
+                <button class="filter-btn active" data-status="all">Усі</button>
+                <button class="filter-btn" data-status="вільна">Вільні</button>
+                <button class="filter-btn" data-status="зайнята">Зайняті</button>
+                <button class="filter-btn" data-status="повернена">Повернені</button>
+                <button class="filter-btn" data-status="рідко опрацьовані">Рідко опрацьовані</button>
+                <div class="search-container">
+                    <input type="text" id="admin-search-input" placeholder="Пошук за назвою або ID" style="display: none;">
+                    <button id="admin-search-icon" class="search-icon">🔍</button>
+                </div>
+            </div>
+            <div id="admin-territory-list" class="territory-list"></div>
+        </div>
+        
+        <div id="loader" class="loader">Завантаження...</div>
+    </div>
+
+    <div id="image-modal" class="image-modal">
+        <span class="modal-close-btn">&times;</span>
+        <div class="modal-image-container">
+            <img class="modal-content" id="full-image">
+        </div>
+        <div class="modal-actions">
+            <button id="modal-download-btn" class="modal-btn">📥 Завантажити</button>
+        </div>
+    </div>
+
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
