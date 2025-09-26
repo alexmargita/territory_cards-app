@@ -47,6 +47,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
+            // Оновлюємо дані, якщо вкладка вже не активна
+            if (!tab.classList.contains('active')) {
+                fetchAllData();
+            }
             tabs.forEach(item => item.classList.remove('active'));
             tab.classList.add('active');
             const targetTabId = tab.dataset.tab;
@@ -123,8 +127,9 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function createNoteIcon(territory) {
-        if (territory.info && territory.info.trim() !== '') {
-            const noteText = territory.info.replace(/"/g, '&quot;');
+        const noteValue = String(territory.info || '');
+        if (noteValue.trim() !== '') {
+            const noteText = noteValue.replace(/"/g, '&quot;');
             return `<span class="note-icon" data-note="${noteText}">i</span>`;
         }
         return '';
@@ -194,8 +199,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- ЛОГІКА АДМІН-ПАНЕЛІ ---
-
     function calculateAdminFilterCounts() {
         const territoryCards = allTerritories.filter(t => t.category === 'territory');
         return {
@@ -257,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (lines.length > 0) infoHtml = `<div class="admin-card-info">${lines.join('<br>')}</div>`;
             }
             
-            const noteText = t.info ? t.info.replace(/"/g, '&quot;') : '';
+            const noteText = String(t.info || '').replace(/"/g, '&quot;');
             const actionsHtml = `<div class="admin-card-actions">
                     ${['вільна', 'повернена'].includes(t.status) ? `<button class="admin-btn btn-admin-assign" data-id="${t.id}">Призначити</button>` : ''}
                     ${t.status === 'зайнята' ? `<button class="admin-btn btn-admin-return" data-id="${t.id}">Здати</button>` : ''}
@@ -274,8 +277,6 @@ document.addEventListener('DOMContentLoaded', function() {
             adminTerritoryList.appendChild(item);
         });
     }
-
-    // --- ОБРОБНИКИ ПОДІЙ ---
 
     document.body.addEventListener('click', function(event) {
         const target = event.target;
@@ -308,8 +309,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // --- ОБРОБНИКИ ДЛЯ АДМІН-КНОПОК ---
-
     function handleAdminAssign(territoryId) {
         if (allUsers.length === 0) { tg.showAlert('Список користувачів порожній або ще завантажується.'); return; }
         let usersHtml = '<ul>' + allUsers.map(user => `<li data-user-id="${user.id}">${user.name}</li>`).join('') + '</ul>';
@@ -365,8 +364,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-
-    // --- ДОПОМІЖНІ ФУНКЦІЇ (API, УТИЛІТИ) ---
 
     function postToServer(payload, loadingMsg, errorMsg) {
         tg.MainButton.setText(loadingMsg).show();
@@ -433,8 +430,6 @@ document.addEventListener('DOMContentLoaded', function() {
         return diffDays >= 240;
     }
 
-    // --- МОДАЛЬНІ ВІКНА ---
-
     function handlePhotoClick(photoElement) {
         fullImage.src = photoElement.src;
         imageModal.dataset.photoId = photoElement.dataset.photoId;
@@ -453,7 +448,6 @@ document.addEventListener('DOMContentLoaded', function() {
         postToServer({ action: 'sendPhotoToUser', userId: userId, photoId: photoId, caption: caption }, "Надсилаю фото...", "Не вдалося надіслати фото.");
     });
     
-    // --- ЛОГІКА ДЛЯ МАСШТАБУВАННЯ ТА ПЕРЕТЯГУВАННЯ ---
     let scale = 1, isPanning = false, startX = 0, startY = 0, translateX = 0, translateY = 0, initialPinchDistance = null;
     function updateTransform() { fullImage.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`; }
     function resetTransform() { scale = 1; translateX = 0; translateY = 0; updateTransform(); }
@@ -466,7 +460,6 @@ document.addEventListener('DOMContentLoaded', function() {
     imageModal.addEventListener('touchmove', (e) => { if (e.target !== fullImage) return; e.preventDefault(); if (isPanning && e.touches.length === 1) { translateX = e.touches[0].clientX - startX; translateY = e.touches[0].clientY - startY; updateTransform(); } else if (e.touches.length === 2 && initialPinchDistance) { const newDist = getDistance(e.touches); scale = Math.max(1, Math.min(scale * (newDist / initialPinchDistance), 5)); if (scale === 1) { translateX = 0; translateY = 0; } updateTransform(); initialPinchDistance = newDist; } });
     imageModal.addEventListener('touchend', (e) => { if (e.touches.length < 2) initialPinchDistance = null; if (e.touches.length < 1) { isPanning = false; fullImage.classList.remove('grabbing'); } });
 
-    // --- УНІВЕРСАЛЬНІ МОДАЛЬНІ ВІКНА ---
     function showGeneralModal(title, bodyHtml) { generalModalTitle.innerHTML = title; generalModalBody.innerHTML = bodyHtml; generalModal.style.display = 'flex'; }
     function hideGeneralModal() { generalModal.style.display = 'none'; generalModalTitle.innerHTML = ''; generalModalBody.innerHTML = ''; }
     generalModalCloseBtn.addEventListener('click', hideGeneralModal);
@@ -488,6 +481,5 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // --- ІНІЦІАЛІЗАЦІЯ ---
     fetchAllData();
 });
