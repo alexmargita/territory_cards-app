@@ -55,6 +55,28 @@ h2 {
     padding-top: 15px;
 }
 
+/* ОНОВЛЕНО: Стилі для візуального ефекту завантаження */
+.app-container.is-loading > *:not(.loader) {
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity 0.2s linear;
+}
+.loader {
+    display: none; /* За замовчуванням прихований */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: var(--tg-theme-secondary-bg-color, #f8f9fa);
+    color: var(--tg-theme-text-color, #000);
+    padding: 20px 30px;
+    border-radius: 12px;
+    z-index: 3000; /* Найвищий пріоритет */
+    font-size: 16px;
+    font-weight: bold;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
 /* Стилі фільтрів */
 .filters {
     display: flex;
@@ -160,11 +182,6 @@ h2 {
 }
 .btn-return {
     background-color: #dc3545;
-}
-.loader {
-    text-align: center;
-    padding: 20px;
-    font-size: 18px;
 }
 
 /* Стилі прогрес-бару */
@@ -284,7 +301,7 @@ h2 {
     gap: 8px;
     align-items: center;
     position: sticky;
-    top: 62px; /* ВИПРАВЛЕНО: Точне значення для прибирання зазору */
+    top: 62px;
     background-color: var(--tg-theme-bg-color, #ffffff);
     z-index: 99;
     padding: 10px 0;

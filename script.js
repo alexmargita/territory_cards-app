@@ -1,7 +1,7 @@
 // Реєстрація Service Worker для кешування
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').then(registration => {
+    navigator.service-worker.register('sw.js').then(registration => {
       console.log('ServiceWorker registration successful with scope: ', registration.scope);
     }, err => {
       console.log('ServiceWorker registration failed: ', err);
@@ -17,6 +17,7 @@ document.addEventListener('DOMContentLoaded', function() {
     tg.expand();
 
     // --- DOM елементи ---
+    const appContainer = document.querySelector('.app-container'); // Додано контейнер
     const loader = document.getElementById('loader');
     const myTerritoryList = document.getElementById('my-territory-list');
     const freeTerritoryList = document.getElementById('territory-list');
@@ -67,11 +68,13 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         loader.style.display = 'block';
+        appContainer.classList.add('is-loading'); // ОНОВЛЕНО: Додаємо клас для візуального ефекту
         
         Promise.all([
             fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`).then(res => res.json()),
             fetch(`${SCRIPT_URL}?userId=${userId}`).then(res => res.json())
         ]).then(([myData, allData]) => {
+            appContainer.classList.remove('is-loading'); // ОНОВЛЕНО: Прибираємо ефект
             loader.style.display = 'none';
             if (myData.ok) displayMyTerritories(myData.territories);
             
@@ -110,6 +113,7 @@ document.addEventListener('DOMContentLoaded', function() {
                  document.body.innerHTML = `<p>Помилка завантаження даних: ${allData.error}</p>`;
             }
         }).catch(error => {
+            appContainer.classList.remove('is-loading'); // ОНОВЛЕНО: Прибираємо ефект навіть якщо помилка
             loader.style.display = 'none';
             console.error('Critical fetch error:', error);
             document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані. Перевірте з'єднання з Інтернетом.</p>`;
@@ -254,7 +258,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 infoHtml = `<div class="admin-card-info"><strong>Користувач:</strong> ${t.assignee_name || 'Невідомо'}<br><strong>Дата видачі:</strong> ${t.date_assigned || '-'}</div>`;
             } else if (['вільна', 'повернена'].includes(t.status)) {
                 let lines = [];
-                // ОНОВЛЕНО: Змінено порядок відображення
                 if (t.last_user_name) lines.push(`<strong>Останній користувач:</strong> ${t.last_user_name}`);
                 if (t.date_completed) lines.push(`<strong>Дата повернення:</strong> ${t.date_completed}`);
                 if (lines.length > 0) infoHtml = `<div class="admin-card-info">${lines.join('<br>')}</div>`;
