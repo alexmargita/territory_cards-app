@@ -291,7 +291,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (filter !== 'all') {
             if (filter === 'рідко опрацьовані') {
-                filtered = filtered.filter(t => t.is_rarely_processed);
+                filtered = filtered.filter(t => isPriorityTerritory(t.date_completed));
             } else {
                 filtered = filtered.filter(t => t.status === filter);
             }
