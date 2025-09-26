@@ -48,9 +48,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            if (!tab.classList.contains('active')) {
-                fetchAllData();
-            }
+            // ОНОВЛЕНО: Забрано умову, щоб оновлення відбувалося завжди
+            fetchAllData();
+            
             tabs.forEach(item => item.classList.remove('active'));
             tab.classList.add('active');
             const targetTabId = tab.dataset.tab;
@@ -148,7 +148,6 @@ document.addEventListener('DOMContentLoaded', function() {
             let daysBlock = '';
             if (remainingDays !== null) {
                 const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
-                // ОНОВЛЕНО: Змінено логіку розрахунку відсотка
                 const progressPercent = Math.max(0, (remainingDays / 120) * 100);
                 daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
             }
@@ -263,7 +262,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 const remainingDays = calculateDaysRemaining(t.date_assigned);
                 if (remainingDays !== null) {
                     const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
-                    // ОНОВЛЕНО: Змінено логіку розрахунку відсотка
                     const progressPercent = Math.max(0, (remainingDays / 120) * 100);
                     daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
                 }
