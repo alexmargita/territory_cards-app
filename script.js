@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const loader = document.getElementById('loader');
     const myTerritoryList = document.getElementById('my-territory-list');
     const freeTerritoryList = document.getElementById('territory-list');
+    const allTerritoriesList = document.getElementById('all-territories-list');
     const generalMapsList = document.getElementById('general-maps-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
     const filtersContainer = document.getElementById('filters-container');
@@ -26,14 +27,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const fullImage = document.getElementById('full-image');
     const closeModalBtn = document.querySelector('.modal-close-btn');
     const modalDownloadBtn = document.getElementById('modal-download-btn');
-    // Додаємо посилання на нові модальні вікна
     const assignModal = document.getElementById('assign-modal');
     const historyModal = document.getElementById('history-modal');
     const noteModal = document.getElementById('note-modal');
 
     let allTerritories = [];
     const userId = tg.initDataUnsafe.user.id;
-    let isAdmin = false; // Змінна для зберігання статусу адміністратора
+    let isAdmin = false; 
     
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -49,9 +49,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (targetTabId === 'my-territories') {
                 fetchMyTerritories();
-            }
-            if (targetTabId === 'select-territory') {
+            } else if (targetTabId === 'select-territory') {
                 fetchFreeTerritories();
+            } else if (targetTabId === 'all-territories') {
+                fetchAndDisplayAllTerritories();
             }
         });
     });
@@ -96,6 +97,24 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
+    function fetchAndDisplayAllTerritories() {
+        allTerritoriesList.innerHTML = `<div class="loader" style="font-size: 16px;">Оновлення...</div>`;
+        fetch(SCRIPT_URL)
+            .then(res => res.json())
+            .then(allData => {
+                if (allData.ok) {
+                    allTerritories = allData.territories; 
+                    displayAllTerritories(allTerritories.filter(t => t.category === 'territory'));
+                } else {
+                    allTerritoriesList.innerHTML = '<p>Не вдалося оновити дані.</p>';
+                }
+            })
+            .catch(error => {
+                console.error('Fetch error:', error);
+                allTerritoriesList.innerHTML = '<p>Помилка мережі. Спробуйте пізніше.</p>';
+            });
+    }
+    
     function createPhotoBlock(territory) {
         if (!territory.picture_id) { return `<div class="placeholder-photo">Немає фото</div>`; }
         const imageUrl = GITHUB_BASE_URL + encodeURIComponent(territory.picture_id);
@@ -180,21 +199,13 @@ document.addEventListener('DOMContentLoaded', function() {
             item.dataset.territoryId = t.id;
 
             const isPriority = isPriorityTerritory(t.date_completed);
-            
-            if (isPriority) {
-                item.classList.add('priority');
-            }
+            if (isPriority) item.classList.add('priority');
             
             const territoryNameForButton = t.name.replace(/"/g, '&quot;');
             let actionAreaHtml = `<div class="action-area">`;
             
-            if (isAdmin) {
-                actionAreaHtml += `<button class="btn-assign" data-id="${t.id}" data-name="${territoryNameForButton}">🧑‍ Призначити</button>`;
-                actionAreaHtml += `<button class="btn-stats" data-id="${t.id}">📊 Статистика</button>`;
-                actionAreaHtml += `<button class="btn-note" data-id="${t.id}">📝 Примітка</button>`;
-            } else {
-                actionAreaHtml += `<button class="btn-book" data-id="${t.id}" data-name="${territoryNameForButton}">✅ Обрати</button>`;
-            }
+            // Завжди відображаємо кнопку "Обрати" у цій вкладці
+            actionAreaHtml += `<button class="btn-book" data-id="${t.id}" data-name="${territoryNameForButton}">✅ Обрати</button>`;
             
             actionAreaHtml += `</div>`;
             const noteHtml = isPriority ? `<div class="priority-note">Потребує опрацювання</div>` : '';
@@ -202,6 +213,59 @@ document.addEventListener('DOMContentLoaded', function() {
             item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}${actionAreaHtml}${noteHtml}</div>`;
 
             freeTerritoryList.appendChild(item);
+        });
+    }
+
+    function displayAllTerritories(territories) {
+        allTerritoriesList.innerHTML = '';
+        if (territories.length === 0) {
+            allTerritoriesList.innerHTML = '<p>Жодної території не знайдено.</p>';
+            return;
+        }
+
+        territories.forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'territory-item';
+            item.dataset.territoryId = t.id;
+
+            const isPriority = isPriorityTerritory(t.date_completed);
+            if (isPriority) item.classList.add('priority');
+
+            const territoryNameForButton = t.name.replace(/"/g, '&quot;');
+            let actionAreaHtml = `<div class="action-area">`;
+
+            // Кнопка "Призначити" завжди доступна
+            actionAreaHtml += `<button class="btn-assign" data-id="${t.id}" data-name="${territoryNameForButton}">🧑‍ Призначити</button>`;
+
+            // Кнопка "Здати" тільки якщо територія зайнята
+            if (t.status === 'зайнята') {
+                actionAreaHtml += `<button class="btn-return-admin" data-id="${t.id}" data-user-id="${t.assignee_id}">↩️ Здати</button>`;
+            }
+
+            // Кнопка "Статистика" завжди доступна
+            actionAreaHtml += `<button class="btn-stats" data-id="${t.id}">📊 Статистика</button>`;
+
+            // Кнопка "Примітка"
+            actionAreaHtml += `<button class="btn-note" data-id="${t.id}">📝 Примітка</button>`;
+            
+            actionAreaHtml += `</div>`;
+            const noteHtml = isPriority ? `<div class="priority-note">Потребує опрацювання</div>` : '';
+            const statusInfo = `Статус: <strong>${t.status}</strong>` + (t.assignee_name ? ` (${t.assignee_name})` : '');
+            
+            item.innerHTML = `
+                <div class="territory-title">
+                    <span>📍 ${t.id}. ${t.name}</span>
+                </div>
+                <div class="territory-content">
+                    ${createPhotoBlock(t)}
+                    <div class="territory-info">
+                        <p>${statusInfo}</p>
+                        ${actionAreaHtml}
+                        ${noteHtml}
+                    </div>
+                </div>
+            `;
+            allTerritoriesList.appendChild(item);
         });
     }
 
@@ -239,8 +303,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.classList.contains('territory-photo')) handlePhotoClick(target);
         if (target.classList.contains('btn-return')) {
             const territoryId = target.dataset.id;
+            const targetUserId = userId; // Завжди поточний користувач
             tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (isConfirmed) => {
-                if (isConfirmed) returnTerritory(territoryId, target);
+                if (isConfirmed) returnTerritory(territoryId, target, targetUserId);
+            });
+        }
+        if (target.classList.contains('btn-return-admin')) {
+            const territoryId = target.dataset.id;
+            const targetUserId = target.dataset.userId; // ID користувача, за яким закріплена територія
+            tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId} для користувача ${target.closest('.territory-item').querySelector('.territory-info strong').nextSibling.textContent.trim()}?`, (isConfirmed) => {
+                if (isConfirmed) returnTerritory(territoryId, target, targetUserId);
             });
         }
         if (target.classList.contains('btn-book')) {
@@ -257,7 +329,7 @@ document.addEventListener('DOMContentLoaded', function() {
             target.classList.add('active');
             displayFreeTerritories(target.dataset.filter);
         }
-        // --- НОВІ ОБРОБНИКИ ДЛЯ АДМІН-КНОПОК ---
+        // --- ОБРОБНИКИ ДЛЯ АДМІН-КНОПОК У ВСІХ ТЕРИТОРІЯХ ---
         if (target.classList.contains('btn-assign')) {
             const territoryId = target.dataset.id;
             const territoryName = target.dataset.name;
@@ -274,7 +346,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // --- ЛОГІКА ДЛЯ МОДАЛЬНИХ ВІКОН АДМІНІСТРУВАННЯ ---
     function showAssignModal(territoryId, territoryName) {
         const userList = document.getElementById('assign-user-list');
         userList.innerHTML = `<p class="modal-loading-text">Завантаження...</p>`;
@@ -323,7 +394,7 @@ document.addEventListener('DOMContentLoaded', function() {
             assignModal.classList.remove('active');
             if (result.ok) {
                 tg.showAlert(`Територію ${territoryId} успішно призначено користувачу ${newUserName}.`);
-                fetchFreeTerritories(); // Оновлюємо список
+                fetchAndDisplayAllTerritories(); 
             } else {
                 tg.showAlert(result.message || 'Сталася помилка при призначенні.');
             }
@@ -397,12 +468,15 @@ document.addEventListener('DOMContentLoaded', function() {
             noteModal.classList.remove('active');
             if (result.ok) {
                 tg.showAlert(`Примітку успішно збережено.`);
-                // Оновлюємо кеш локально
                 const territoryToUpdate = allTerritories.find(t => String(t.id) === territoryId);
                 if (territoryToUpdate) {
                     territoryToUpdate.info = noteText;
                 }
-                displayFreeTerritories(document.querySelector('.filter-btn.active').dataset.filter);
+                if (document.getElementById('select-territory').classList.contains('active')) {
+                    displayFreeTerritories(document.querySelector('.filter-btn.active').dataset.filter);
+                } else if (document.getElementById('all-territories').classList.contains('active')) {
+                    displayAllTerritories(allTerritories.filter(t => t.category === 'territory'));
+                }
             } else {
                 tg.showAlert(result.message || 'Сталася помилка при збереженні примітки.');
             }
@@ -421,7 +495,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
-    // Додаємо обробник для закриття модалок при кліку поза ними
+
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
@@ -433,7 +507,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // --- КОД З МАСШТАБУВАННЯМ ТА ПЕРЕТЯГУВАННЯМ ЗАЛИШАЄТЬСЯ БЕЗ ЗМІН ---
     function handlePhotoClick(photoElement) {
         fullImage.src = photoElement.src;
         imageModal.dataset.photoId = photoElement.dataset.photoId;
@@ -480,9 +553,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    function returnTerritory(territoryId, buttonElement) {
+    function returnTerritory(territoryId, buttonElement, targetUserId) {
         tg.MainButton.setText("Надсилаю запит...").show().enable();
-        fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
+        fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${targetUserId}`)
             .then(response => response.json())
             .then(result => {
                 tg.MainButton.hide();
@@ -561,12 +634,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.touches.length < 2) initialPinchDistance = null; if (e.touches.length < 1) { isPanning = false; fullImage.classList.remove('grabbing'); }
     });
 
-    // Оновлена функція початкового завантаження
     function fetchAllData() {
         loader.style.display = 'block';
         myTerritoryList.innerHTML = '';
         freeTerritoryList.innerHTML = '';
         generalMapsList.innerHTML = '';
+        allTerritoriesList.innerHTML = '';
 
         Promise.all([
             fetch(`${SCRIPT_URL}?action=checkAdminStatus&userId=${userId}`).then(res => res.json()),
@@ -576,6 +649,10 @@ document.addEventListener('DOMContentLoaded', function() {
             loader.style.display = 'none';
             isAdmin = adminData.isAdmin;
             
+            if (isAdmin) {
+                document.querySelector('[data-tab="all-territories"]').style.display = 'block';
+            }
+
             if (myData.ok) displayMyTerritories(myData.territories);
             
             if (allData.ok) {
