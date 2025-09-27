@@ -215,7 +215,8 @@ h2 {
     transform: translate(-50%, -50%);
     color: #000000;
     font-weight: bold;
-    font-size: 12px; /* ОНОВЛЕНО: Зменшено розмір шрифту */
+    font-size: 12px;
+    white-space: nowrap; /* ОНОВЛЕНО: Заборона переносу тексту */
 }
 
 /* Стилі для модального вікна зображень */
