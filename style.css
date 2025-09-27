@@ -55,7 +55,7 @@ h2 {
     padding-top: 15px;
 }
 
-/* ОНОВЛЕНО: Стилі для візуального ефекту завантаження */
+/* Стилі для візуального ефекту завантаження */
 .app-container.is-loading > *:not(.loader) {
     opacity: 0.5;
     pointer-events: none;
@@ -215,7 +215,7 @@ h2 {
     transform: translate(-50%, -50%);
     color: #000000;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 12px; /* ОНОВЛЕНО: Зменшено розмір шрифту */
 }
 
 /* Стилі для модального вікна зображень */
