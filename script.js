@@ -1,7 +1,7 @@
-// Реєстрація Service Worker для кешування
+// ОНОВЛЕНО: Повернуто код реєстрації Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.service-worker.register('sw.js').then(registration => {
+    navigator.serviceWorker.register('sw.js').then(registration => {
       console.log('ServiceWorker registration successful with scope: ', registration.scope);
     }, err => {
       console.log('ServiceWorker registration failed: ', err);
@@ -48,7 +48,6 @@ document.addEventListener('DOMContentLoaded', function() {
     
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
-            // ОНОВЛЕНО: Забрано умову, щоб оновлення відбувалося завжди
             fetchAllData();
             
             tabs.forEach(item => item.classList.remove('active'));
