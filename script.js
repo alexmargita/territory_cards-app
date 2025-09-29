@@ -226,7 +226,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button id="admin-search-btn">🔍</button>
                 <div class="view-switcher">
                     <button class="view-btn active" data-view="list" title="Список">☰</button>
-                    <button class="view-btn" data-view="grid" title="Сітка"> GridLayout</button>
+                    <button class="view-btn" data-view="grid" title="Сітка">⊞</button>
                 </div>
             </div>
         `;
