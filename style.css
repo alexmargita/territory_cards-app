@@ -343,7 +343,7 @@ h2 {
     cursor: pointer;
     color: var(--tg-theme-link-color, #007bff);
 }
-#admin-locality-filter-btn.active {
+#admin-locality-filter-btn.active, #admin-sort-btn.active {
     background-color: rgba(0, 123, 255, 0.15);
     border-radius: 50%;
 }
@@ -544,6 +544,7 @@ h2 {
 }
 .modal-checkbox-list li {
     padding: 8px 0;
+    border-bottom: none;
 }
 .modal-checkbox-list label {
     display: flex;

@@ -425,6 +425,14 @@ document.addEventListener('DOMContentLoaded', function() {
         generalModalBody.querySelector('.modal-sort-list').onclick = e => {
             if (e.target.tagName === 'LI') {
                 currentAdminSortKey = e.target.dataset.sort;
+                
+                const sortBtn = document.getElementById('admin-sort-btn');
+                if (currentAdminSortKey === 'days_remaining') {
+                    sortBtn.classList.add('active');
+                } else {
+                    sortBtn.classList.remove('active');
+                }
+                
                 hideGeneralModal();
                 updateAndDisplayAdminTerritories();
             }
