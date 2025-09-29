@@ -299,8 +299,9 @@ h2 {
 #admin-panel-controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 10px;
     align-items: center;
+    justify-content: space-between;
     position: sticky;
     top: 62px;
     background-color: var(--tg-theme-bg-color, #ffffff);
@@ -308,6 +309,16 @@ h2 {
     padding: 10px 0;
     margin-bottom: 15px;
     border-bottom: 1px solid var(--tg-theme-hint-color, #ddd);
+}
+.admin-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.admin-tools {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 .admin-filter-btn {
     padding: 8px 12px;
@@ -329,6 +340,29 @@ h2 {
     background: none;
     border: none;
     cursor: pointer;
+    color: var(--tg-theme-link-color, #007bff);
+}
+
+/* СТИЛІ ПЕРЕМИКАЧА ВИГЛЯДУ */
+.view-switcher {
+    display: flex;
+    border: 1px solid var(--tg-theme-hint-color, #ccc);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.view-btn {
+    padding: 8px 12px;
+    font-size: 18px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: var(--tg-theme-hint-color, #888);
+}
+.view-btn:first-child {
+    border-right: 1px solid var(--tg-theme-hint-color, #ccc);
+}
+.view-btn.active {
+    background-color: var(--tg-theme-secondary-bg-color, #f0f0f0);
     color: var(--tg-theme-link-color, #007bff);
 }
 
@@ -361,6 +395,45 @@ h2 {
 .btn-admin-extend { background-color: #ffc107; color: #000; }
 .btn-admin-history { background-color: #17a2b8; }
 .btn-admin-note { background-color: #6c757d; }
+
+/* --- СТИЛІ СІТКИ (GRID VIEW) --- */
+#admin-territory-list.view-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+}
+#admin-territory-list.view-grid .territory-item {
+    padding: 10px;
+    margin-bottom: 0;
+}
+#admin-territory-list.view-grid .territory-title {
+    font-size: 15px;
+}
+#admin-territory-list.view-grid .territory-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+}
+#admin-territory-list.view-grid .territory-photo,
+#admin-territory-list.view-grid .placeholder-photo {
+    width: 100%;
+    height: 100px;
+}
+#admin-territory-list.view-grid .action-area {
+    flex-grow: 1;
+}
+#admin-territory-list.view-grid .progress-bar-container {
+    margin-top: 12px;
+}
+#admin-territory-list.view-grid .admin-card-info {
+    font-size: 12px;
+}
+#admin-territory-list.view-grid .admin-btn {
+    flex-grow: 1;
+    font-size: 12px;
+    padding: 6px;
+}
+
 
 /* --- УНІВЕРСАЛЬНЕ МОДАЛЬНЕ ВІКНО --- */
 .general-modal {

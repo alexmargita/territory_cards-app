@@ -215,12 +215,20 @@ document.addEventListener('DOMContentLoaded', function() {
     function setupAdminPanel() {
         const counts = calculateAdminFilterCounts();
         adminPanelControls.innerHTML = `
-            <button class="admin-filter-btn active" data-filter="all">Усі (${counts.all})</button>
-            <button class="admin-filter-btn" data-filter="вільна">Вільні (${counts.free})</button>
-            <button class="admin-filter-btn" data-filter="зайнята">Зайняті (${counts.assigned})</button>
-            <button class="admin-filter-btn" data-filter="повернена">Повернені (${counts.returned})</button>
-            <button class="admin-filter-btn" data-filter="priority">Пріоритетні (${counts.priority})</button>
-            <button id="admin-search-btn">🔍</button>
+            <div class="admin-filters">
+                <button class="admin-filter-btn active" data-filter="all">Усі (${counts.all})</button>
+                <button class="admin-filter-btn" data-filter="вільна">Вільні (${counts.free})</button>
+                <button class="admin-filter-btn" data-filter="зайнята">Зайняті (${counts.assigned})</button>
+                <button class="admin-filter-btn" data-filter="повернена">Повернені (${counts.returned})</button>
+                <button class="admin-filter-btn" data-filter="priority">Пріоритетні (${counts.priority})</button>
+            </div>
+            <div class="admin-tools">
+                <button id="admin-search-btn">🔍</button>
+                <div class="view-switcher">
+                    <button class="view-btn active" data-view="list" title="Список">☰</button>
+                    <button class="view-btn" data-view="grid" title="Сітка"> GridLayout</button>
+                </div>
+            </div>
         `;
     }
 
@@ -308,12 +316,22 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.classList.contains('btn-admin-note')) handleAdminNote(target.dataset.id, target.dataset.note);
         if (target.id === 'admin-search-btn') handleAdminSearch();
         if (target.classList.contains('admin-filter-btn')) handleAdminFilter(target);
+        if (target.classList.contains('view-btn')) handleViewSwitch(target);
     });
 
     function handleReturnClick(territoryId, button) { tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (ok) => ok && returnTerritory(territoryId, button)); }
     function handleBookClick(territoryId, territoryName, button) { tg.showConfirm(`Ви впевнені, що хочете обрати територію "${territoryId}. ${territoryName}"?`, (ok) => ok && requestTerritory(territoryId, button)); }
     function handleFilterClick(button) { filtersContainer.querySelector('.active')?.classList.remove('active'); button.classList.add('active'); displayFreeTerritories(button.dataset.filter); }
-    function handleAdminFilter(button) { adminPanelControls.querySelector('.active')?.classList.remove('active'); button.classList.add('active'); displayAllTerritoriesForAdmin(button.dataset.filter, '');}
+    function handleAdminFilter(button) { adminPanelControls.querySelector('.admin-filter-btn.active')?.classList.remove('active'); button.classList.add('active'); displayAllTerritoriesForAdmin(button.dataset.filter, '');}
+    
+    function handleViewSwitch(button) {
+        const view = button.dataset.view;
+        adminPanelControls.querySelector('.view-btn.active')?.classList.remove('active');
+        button.classList.add('active');
+        
+        adminTerritoryList.classList.remove('view-list', 'view-grid');
+        adminTerritoryList.classList.add(`view-${view}`);
+    }
 
     function handleAdminSearch() {
         showCustomPrompt({ title: 'Пошук території', placeholder: 'Номер або назва', inputType: 'text', btnText: 'Знайти'
