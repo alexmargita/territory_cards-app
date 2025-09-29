@@ -35,6 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const generalModalTitle = document.getElementById('general-modal-title');
     const generalModalBody = document.getElementById('general-modal-body');
     const generalModalCloseBtn = document.querySelector('.general-modal-close-btn');
+    const bulkActionBar = document.getElementById('bulk-action-bar');
 
     // --- Глобальні змінні ---
     let allTerritories = [];
@@ -44,6 +45,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let predefinedFilterOrder = [];
     let selectedLocalities = []; 
     let currentAdminSortKey = 'id';
+    let bulkActionMode = 'none'; // 'none', 'assign', 'return'
+    let selectedTerritoriesForBulk = [];
     const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
     
     // --- Ініціалізація вкладок ---
@@ -52,6 +55,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
+            if (bulkActionMode !== 'none') return;
             fetchAllData();
             
             tabs.forEach(item => item.classList.remove('active'));
@@ -169,6 +173,7 @@ document.addEventListener('DOMContentLoaded', function() {
         filtered.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
+            item.dataset.id = t.id;
             const isPriority = isPriorityTerritory(t.date_completed);
             if (isPriority) item.classList.add('priority');
             
@@ -236,21 +241,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function setupAdminPanel() {
         adminPanelControls.innerHTML = `
-            <div class="admin-filters">
-                <button class="admin-filter-btn active" data-filter="all">Усі</button>
-                <button class="admin-filter-btn" data-filter="вільна">Вільні</button>
-                <button class="admin-filter-btn" data-filter="зайнята">Зайняті</button>
-                <button class="admin-filter-btn" data-filter="повернена">Повернені</button>
-                <button class="admin-filter-btn" data-filter="priority">Пріоритетні</button>
-                <button id="admin-locality-filter-btn" title="Фільтр за населеним пунктом">🏙️</button>
-            </div>
-            <div class="admin-tools">
-                <button id="admin-search-btn" title="Пошук">🔍</button>
-                <button id="admin-sort-btn" title="Сортування">⇅</button>
-                <div class="view-switcher">
-                    <button class="view-btn active" data-view="list" title="Список">☰</button>
-                    <button class="view-btn" data-view="grid" title="Сітка">⊞</button>
+            <div class="admin-main-controls">
+                 <div class="admin-filters">
+                    <button class="admin-filter-btn active" data-filter="all">Усі</button>
+                    <button class="admin-filter-btn" data-filter="вільна">Вільні</button>
+                    <button class="admin-filter-btn" data-filter="зайнята">Зайняті</button>
+                    <button class="admin-filter-btn" data-filter="повернена">Повернені</button>
+                    <button class="admin-filter-btn" data-filter="priority">Пріоритетні</button>
+                    <button id="admin-locality-filter-btn" title="Фільтр за населеним пунктом">🏙️</button>
                 </div>
+                <div class="admin-tools">
+                    <button id="admin-search-btn" title="Пошук">🔍</button>
+                    <button id="admin-sort-btn" title="Сортування">⇅</button>
+                    <div class="view-switcher">
+                        <button class="view-btn active" data-view="list" title="Список">☰</button>
+                        <button class="view-btn" data-view="grid" title="Сітка">⊞</button>
+                    </div>
+                </div>
+            </div>
+            <div class="bulk-action-controls">
+                <button id="bulk-assign-btn" class="bulk-action-btn" data-mode="assign">Призначити декілька</button>
+                <button id="bulk-return-btn" class="bulk-action-btn" data-mode="return">Здати декілька</button>
             </div>
         `;
     }
@@ -266,6 +277,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const item = document.createElement('div');
             const statusClass = { 'вільна': 'status-free', 'зайнята': 'status-assigned', 'повернена': 'status-returned' }[t.status] || '';
             item.className = `territory-item ${statusClass}`;
+            item.dataset.id = t.id; // Додаємо ID для легкого доступу
             if (isPriorityTerritory(t.date_completed)) item.classList.add('priority');
             
             let infoHtml = '';
@@ -351,27 +363,39 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             case 'id':
             default:
-                return sorted.sort((a, b) => a.id - b.id);
+                return sorted.sort((a, b) => parseInt(a.id) - parseInt(b.id));
         }
     }
 
     document.body.addEventListener('click', function(event) {
         const target = event.target;
-        if (target.classList.contains('note-icon')) tg.showAlert(target.dataset.note || 'Приміток немає.');
-        if (target.classList.contains('territory-photo')) handlePhotoClick(target);
-        if (target.classList.contains('btn-return')) handleReturnClick(target.dataset.id, target);
-        if (target.classList.contains('btn-book')) handleBookClick(target.dataset.id, target.dataset.name, target);
-        if (target.classList.contains('filter-btn')) handleFilterClick(target);
-        if (target.classList.contains('btn-admin-assign')) handleAdminAssign(target.dataset.id);
-        if (target.classList.contains('btn-admin-return')) handleAdminReturn(target.dataset.id);
-        if (target.classList.contains('btn-admin-extend')) handleAdminExtend(target.dataset.id, target.dataset.userId);
-        if (target.classList.contains('btn-admin-history')) handleAdminHistory(target.dataset.id);
-        if (target.classList.contains('btn-admin-note')) handleAdminNote(target.dataset.id, target.dataset.note);
+        const territoryItem = target.closest('.territory-item');
+
+        if (bulkActionMode !== 'none') {
+            if (territoryItem) {
+                handleTerritorySelection(territoryItem);
+            }
+        } else {
+            if (target.classList.contains('note-icon')) tg.showAlert(target.dataset.note || 'Приміток немає.');
+            if (target.classList.contains('territory-photo')) handlePhotoClick(target);
+            if (target.classList.contains('btn-return')) handleReturnClick(target.dataset.id, target);
+            if (target.classList.contains('btn-book')) handleBookClick(target.dataset.id, target.dataset.name, target);
+            if (target.classList.contains('filter-btn')) handleFilterClick(target);
+            if (target.classList.contains('btn-admin-assign')) handleAdminAssign(target.dataset.id);
+            if (target.classList.contains('btn-admin-return')) handleAdminReturn(target.dataset.id);
+            if (target.classList.contains('btn-admin-extend')) handleAdminExtend(target.dataset.id, target.dataset.userId);
+            if (target.classList.contains('btn-admin-history')) handleAdminHistory(target.dataset.id);
+            if (target.classList.contains('btn-admin-note')) handleAdminNote(target.dataset.id, target.dataset.note);
+        }
+        
         if (target.id === 'admin-search-btn') handleAdminSearch();
         if (target.id === 'admin-sort-btn') handleAdminSort();
         if (target.id === 'admin-locality-filter-btn') handleLocalityFilter();
         if (target.classList.contains('admin-filter-btn')) handleAdminFilter(target);
         if (target.classList.contains('view-btn')) handleViewSwitch(target);
+        if (target.classList.contains('bulk-action-btn')) toggleBulkMode(target.dataset.mode, target);
+        if (target.id === 'bulk-cancel-btn') resetBulkMode();
+        if (target.id === 'bulk-confirm-btn') handleBulkConfirm();
     });
 
     function handleReturnClick(territoryId, button) { tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (ok) => ok && returnTerritory(territoryId, button)); }
@@ -472,8 +496,96 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
     
+    // --- ЛОГІКА ДЛЯ МАСОВИХ ДІЙ ---
+
+    function toggleBulkMode(mode, button) {
+        if (bulkActionMode === mode) {
+            resetBulkMode();
+            return;
+        }
+        resetBulkMode(); 
+        
+        bulkActionMode = mode;
+        button.classList.add('active');
+        document.body.classList.add('bulk-mode-active');
+        bulkActionBar.classList.add('visible');
+    }
+
+    function resetBulkMode() {
+        if (bulkActionMode === 'none') return;
+        
+        bulkActionMode = 'none';
+        selectedTerritoriesForBulk = [];
+        
+        document.body.classList.remove('bulk-mode-active');
+        bulkActionBar.classList.remove('visible');
+        
+        document.querySelectorAll('.bulk-action-btn.active').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.territory-item.selected').forEach(item => item.classList.remove('selected'));
+    }
+
+    function handleTerritorySelection(item) {
+        const id = item.dataset.id;
+        if (!id) return;
+
+        const index = selectedTerritoriesForBulk.indexOf(id);
+        if (index > -1) {
+            selectedTerritoriesForBulk.splice(index, 1);
+            item.classList.remove('selected');
+        } else {
+            selectedTerritoriesForBulk.push(id);
+            item.classList.add('selected');
+        }
+    }
+
+    function handleBulkConfirm() {
+        if (selectedTerritoriesForBulk.length === 0) {
+            tg.showAlert("Будь ласка, оберіть хоча б одну територію.");
+            return;
+        }
+
+        if (bulkActionMode === 'assign') {
+            if (allUsers.length === 0) { tg.showAlert('Список користувачів порожній.'); return; }
+            let usersHtml = '<ul>' + allUsers.map(user => `<li data-user-id="${user.id}">${user.name}</li>`).join('') + '</ul>';
+            showGeneralModal('Призначити ' + selectedTerritoriesForBulk.length + ' територій на:', usersHtml);
+
+            generalModalBody.querySelector('ul').onclick = e => {
+                if (e.target.tagName === 'LI') {
+                    const assignToUserId = e.target.dataset.userId;
+                    const assignToUserName = e.target.textContent;
+                    hideGeneralModal();
+                    tg.showConfirm(`Призначити ${selectedTerritoriesForBulk.length} територій користувачу ${assignToUserName}?`, (ok) => {
+                        if (ok) {
+                            postToServer({ 
+                                action: 'adminBulkAssign', 
+                                userId: userId, 
+                                territoryIds: selectedTerritoriesForBulk, 
+                                assignToUserId: assignToUserId 
+                            }, "Призначаю...", "Не вдалося призначити території.");
+                            resetBulkMode();
+                        }
+                    });
+                }
+            };
+        } else if (bulkActionMode === 'return') {
+            tg.showConfirm(`Надіслати запит на повернення ${selectedTerritoriesForBulk.length} територій?`, (ok) => {
+                if (ok) {
+                    postToServer({ 
+                        action: 'adminBulkReturn', 
+                        userId: userId, 
+                        territoryIds: selectedTerritoriesForBulk 
+                    }, "Надсилаю запит...", "Не вдалося надіслати запит.");
+                    resetBulkMode();
+                }
+            });
+        }
+    }
+
+
+    // --- СТАНДАРТНІ ОДИНОЧНІ ДІЇ ---
+
     function handleAdminAssign(territoryId) {
-        if (allUsers.length === 0) { tg.showAlert('Список користувачів порожній або ще завантажується.'); return; }
+        if (allUsers.length === 0) { tg.showAlert('Список користувачів порожній.'); return; }
         let usersHtml = '<ul>' + allUsers.map(user => `<li data-user-id="${user.id}">${user.name}</li>`).join('') + '</ul>';
         showGeneralModal('Оберіть користувача', usersHtml);
         generalModalBody.querySelector('ul').onclick = e => {

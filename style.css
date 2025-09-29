@@ -5,6 +5,13 @@ body {
     padding: 15px;
     background-color: var(--tg-theme-bg-color, #ffffff);
     color: var(--tg-theme-text-color, #000000);
+    padding-bottom: 80px; /* Додатковий відступ знизу для панелі */
+}
+body.bulk-mode-active .tab-button, 
+body.bulk-mode-active .admin-filters, 
+body.bulk-mode-active .admin-tools button:not(.bulk-action-btn.active) {
+    opacity: 0.5;
+    pointer-events: none;
 }
 .app-container {
     max-width: 100%;
@@ -107,8 +114,44 @@ h2 {
     margin-bottom: 10px;
     background-color: var(--tg-theme-secondary-bg-color, #f9f9f9);
     border: 1px solid #eee;
-    transition: opacity 0.3s ease, background-color 0.3s ease;
+    transition: opacity 0.3s ease, background-color 0.3s ease, transform 0.2s ease;
+    position: relative;
+    overflow: hidden;
 }
+
+/* Стилі для режиму масового вибору */
+.territory-item::before {
+    content: '✓';
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    background-color: var(--tg-theme-button-color, #007bff);
+    color: var(--tg-theme-button-text-color, #fff);
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-start;
+    padding: 2px;
+    box-sizing: border-box;
+    font-size: 20px;
+    font-weight: bold;
+    transform: scale(0);
+    transition: transform 0.2s ease-in-out;
+    z-index: 5;
+}
+.territory-item.selected {
+    transform: scale(0.97);
+    background-color: rgba(0, 123, 255, 0.1);
+}
+.territory-item.selected::before {
+    transform: scale(1);
+}
+body.bulk-mode-active .territory-item {
+    cursor: pointer;
+}
+
 .territory-title {
     font-weight: bold;
     font-size: 18px;
@@ -216,7 +259,7 @@ h2 {
     color: #000000;
     font-weight: bold;
     font-size: 12px;
-    white-space: nowrap; /* ОНОВЛЕНО: Заборона переносу тексту */
+    white-space: nowrap; 
 }
 
 /* Стилі для модального вікна зображень */
@@ -298,10 +341,9 @@ h2 {
 /* --- СТИЛІ ДЛЯ АДМІН-ПАНЕЛІ --- */
 #admin-panel-controls {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
     position: sticky;
     top: 62px;
     background-color: var(--tg-theme-bg-color, #ffffff);
@@ -309,6 +351,13 @@ h2 {
     padding: 10px 0;
     margin-bottom: 15px;
     border-bottom: 1px solid var(--tg-theme-hint-color, #ddd);
+}
+.admin-main-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    justify-content: space-between;
 }
 .admin-filters {
     display: flex;
@@ -347,7 +396,24 @@ h2 {
     background-color: rgba(0, 123, 255, 0.15);
     border-radius: 50%;
 }
-
+.bulk-action-controls {
+    display: flex;
+    gap: 10px;
+}
+.bulk-action-btn {
+    flex-grow: 1;
+    padding: 8px 12px;
+    font-size: 14px;
+    border-radius: 8px;
+    border: 1px solid var(--tg-theme-hint-color, #ccc);
+    background-color: transparent;
+    color: var(--tg-theme-text-color, #000);
+}
+.bulk-action-btn.active {
+    background-color: var(--tg-theme-button-color, #007bff);
+    color: var(--tg-theme-button-text-color, #fff);
+    border-color: var(--tg-theme-button-color, #007bff);
+}
 
 /* СТИЛІ ПЕРЕМИКАЧА ВИГЛЯДУ */
 .view-switcher {
@@ -556,4 +622,40 @@ h2 {
 .modal-checkbox-list input[type="checkbox"] {
     width: 20px;
     height: 20px;
+}
+
+/* Панель масових дій */
+.bulk-action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background-color: var(--tg-theme-secondary-bg-color, #f8f9fa);
+    display: flex;
+    gap: 10px;
+    padding: 10px 15px;
+    box-sizing: border-box;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    transform: translateY(100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 200;
+}
+.bulk-action-bar.visible {
+    transform: translateY(0);
+}
+.bulk-bar-btn {
+    flex: 1;
+    padding: 12px;
+    font-size: 16px;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+}
+.bulk-bar-btn.confirm {
+    background-color: var(--tg-theme-button-color, #28a745);
+    color: var(--tg-theme-button-text-color, #fff);
+}
+.bulk-bar-btn.cancel {
+    background-color: #6c757d;
+    color: #fff;
 }
