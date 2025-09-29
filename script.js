@@ -107,6 +107,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (isAdmin) {
                     allTerritoriesTabBtn.style.display = 'block';
                     setupAdminPanel();
+                    updateAdminFilterCounts();
                     updateAndDisplayAdminTerritories();
                     fetch(`${SCRIPT_URL}?action=getAllUsers&userId=${userId}`)
                         .then(res => res.json())
@@ -205,8 +206,8 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function calculateAdminFilterCounts() {
-        const territoryCards = allTerritories.filter(t => t.category === 'territory');
+    function calculateAdminFilterCounts(territories) {
+        const territoryCards = territories.filter(t => t.category === 'territory');
         return {
             all: territoryCards.filter(t => ['вільна', 'зайнята', 'повернена'].includes(t.status)).length,
             free: territoryCards.filter(t => t.status === 'вільна').length,
@@ -216,15 +217,31 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
+    function updateAdminFilterCounts() {
+        const sourceTerritories = selectedLocalities.length > 0
+            ? allTerritories.filter(t => selectedLocalities.includes(t.type))
+            : allTerritories;
+    
+        const counts = calculateAdminFilterCounts(sourceTerritories);
+    
+        const controls = adminPanelControls;
+        if (!controls.innerHTML) return; 
+    
+        controls.querySelector('[data-filter="all"]').textContent = `Усі (${counts.all})`;
+        controls.querySelector('[data-filter="вільна"]').textContent = `Вільні (${counts.free})`;
+        controls.querySelector('[data-filter="зайнята"]').textContent = `Зайняті (${counts.assigned})`;
+        controls.querySelector('[data-filter="повернена"]').textContent = `Повернені (${counts.returned})`;
+        controls.querySelector('[data-filter="priority"]').textContent = `Пріоритетні (${counts.priority})`;
+    }
+
     function setupAdminPanel() {
-        const counts = calculateAdminFilterCounts();
         adminPanelControls.innerHTML = `
             <div class="admin-filters">
-                <button class="admin-filter-btn active" data-filter="all">Усі (${counts.all})</button>
-                <button class="admin-filter-btn" data-filter="вільна">Вільні (${counts.free})</button>
-                <button class="admin-filter-btn" data-filter="зайнята">Зайняті (${counts.assigned})</button>
-                <button class="admin-filter-btn" data-filter="повернена">Повернені (${counts.returned})</button>
-                <button class="admin-filter-btn" data-filter="priority">Пріоритетні (${counts.priority})</button>
+                <button class="admin-filter-btn active" data-filter="all">Усі</button>
+                <button class="admin-filter-btn" data-filter="вільна">Вільні</button>
+                <button class="admin-filter-btn" data-filter="зайнята">Зайняті</button>
+                <button class="admin-filter-btn" data-filter="повернена">Повернені</button>
+                <button class="admin-filter-btn" data-filter="priority">Пріоритетні</button>
                 <button id="admin-locality-filter-btn" title="Фільтр за населеним пунктом">🏙️</button>
             </div>
             <div class="admin-tools">
@@ -297,7 +314,8 @@ document.addEventListener('DOMContentLoaded', function() {
         let filtered = allTerritories.filter(t => t.category === 'territory');
         
         const activeFilter = adminPanelControls.querySelector('.admin-filter-btn.active')?.dataset.filter || 'all';
-        const searchQuery = adminPanelControls.querySelector('#admin-search-input')?.value || '';
+        const searchInput = adminPanelControls.querySelector('#admin-search-input');
+        const searchQuery = searchInput ? searchInput.value : '';
 
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
@@ -363,6 +381,8 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleAdminFilter(button) { 
         adminPanelControls.querySelector('.admin-filter-btn.active')?.classList.remove('active'); 
         button.classList.add('active'); 
+        const searchInput = adminPanelControls.querySelector('#admin-search-input');
+        if(searchInput) searchInput.remove();
         updateAndDisplayAdminTerritories();
     }
     
@@ -379,11 +399,14 @@ document.addEventListener('DOMContentLoaded', function() {
         showCustomPrompt({ title: 'Пошук території', placeholder: 'Номер або назва', inputType: 'text', btnText: 'Знайти'
         }).then(text => {
             if (text !== null) {
-                const searchInput = document.createElement('input');
-                searchInput.type = 'hidden';
-                searchInput.id = 'admin-search-input';
+                let searchInput = adminPanelControls.querySelector('#admin-search-input');
+                if (!searchInput) {
+                    searchInput = document.createElement('input');
+                    searchInput.type = 'hidden';
+                    searchInput.id = 'admin-search-input';
+                    adminPanelControls.appendChild(searchInput);
+                }
                 searchInput.value = text;
-                adminPanelControls.appendChild(searchInput);
                 
                 adminPanelControls.querySelector('.admin-filter-btn.active')?.classList.remove('active');
                 updateAndDisplayAdminTerritories();
@@ -436,6 +459,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             hideGeneralModal();
+            updateAdminFilterCounts();
             updateAndDisplayAdminTerritories();
         };
     }
