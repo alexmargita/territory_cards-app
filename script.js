@@ -42,6 +42,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let isAdmin = false;
     let displayedAdminTerritories = [];
     let predefinedFilterOrder = [];
+    let selectedLocalities = []; 
+    let currentAdminSortKey = 'id';
     const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
     
     // --- Ініціалізація вкладок ---
@@ -223,6 +225,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <button class="admin-filter-btn" data-filter="зайнята">Зайняті (${counts.assigned})</button>
                 <button class="admin-filter-btn" data-filter="повернена">Повернені (${counts.returned})</button>
                 <button class="admin-filter-btn" data-filter="priority">Пріоритетні (${counts.priority})</button>
+                <button id="admin-locality-filter-btn" title="Фільтр за населеним пунктом">🏙️</button>
             </div>
             <div class="admin-tools">
                 <button id="admin-search-btn" title="Пошук">🔍</button>
@@ -290,10 +293,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    function updateAndDisplayAdminTerritories(filter, searchQuery, sortKey) {
+    function updateAndDisplayAdminTerritories() {
         let filtered = allTerritories.filter(t => t.category === 'territory');
         
-        const activeFilter = filter || adminPanelControls.querySelector('.admin-filter-btn.active')?.dataset.filter || 'all';
+        const activeFilter = adminPanelControls.querySelector('.admin-filter-btn.active')?.dataset.filter || 'all';
+        const searchQuery = adminPanelControls.querySelector('#admin-search-input')?.value || '';
 
         if (searchQuery) {
             const query = searchQuery.toLowerCase();
@@ -307,34 +311,29 @@ document.addEventListener('DOMContentLoaded', function() {
                 filtered = filtered.filter(t => ['вільна', 'зайнята', 'повернена'].includes(t.status));
             }
         }
+
+        if (selectedLocalities.length > 0) {
+            filtered = filtered.filter(t => selectedLocalities.includes(t.type));
+        }
         
-        displayedAdminTerritories = sortTerritories(filtered, sortKey);
+        displayedAdminTerritories = sortTerritories(filtered, currentAdminSortKey);
         renderAdminTerritories(displayedAdminTerritories);
     }
     
-    function sortTerritories(territories, sortKey = 'default') {
+    function sortTerritories(territories, sortKey) {
+        const sorted = [...territories];
         switch (sortKey) {
-            case 'id':
-                return territories.sort((a, b) => a.id - b.id);
             case 'days_remaining':
-                return territories.sort((a, b) => {
+                return sorted.sort((a, b) => {
                     const daysA = a.status === 'зайнята' ? calculateDaysRemaining(a.date_assigned) : -1;
                     const daysB = b.status === 'зайнята' ? calculateDaysRemaining(b.date_assigned) : -1;
                     if (daysA === -1 && daysB > -1) return 1;
                     if (daysB === -1 && daysA > -1) return -1;
                     return daysA - daysB;
                 });
-            case 'locality':
-                return territories.sort((a, b) => {
-                    const indexA = predefinedFilterOrder.indexOf(a.type);
-                    const indexB = predefinedFilterOrder.indexOf(b.type);
-                    if (indexA === -1) return 1;
-                    if (indexB === -1) return -1;
-                    return indexA - indexB;
-                });
-            case 'default':
+            case 'id':
             default:
-                return territories; 
+                return sorted.sort((a, b) => a.id - b.id);
         }
     }
 
@@ -352,6 +351,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.classList.contains('btn-admin-note')) handleAdminNote(target.dataset.id, target.dataset.note);
         if (target.id === 'admin-search-btn') handleAdminSearch();
         if (target.id === 'admin-sort-btn') handleAdminSort();
+        if (target.id === 'admin-locality-filter-btn') handleLocalityFilter();
         if (target.classList.contains('admin-filter-btn')) handleAdminFilter(target);
         if (target.classList.contains('view-btn')) handleViewSwitch(target);
     });
@@ -359,7 +359,12 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleReturnClick(territoryId, button) { tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (ok) => ok && returnTerritory(territoryId, button)); }
     function handleBookClick(territoryId, territoryName, button) { tg.showConfirm(`Ви впевнені, що хочете обрати територію "${territoryId}. ${territoryName}"?`, (ok) => ok && requestTerritory(territoryId, button)); }
     function handleFilterClick(button) { filtersContainer.querySelector('.active')?.classList.remove('active'); button.classList.add('active'); displayFreeTerritories(button.dataset.filter); }
-    function handleAdminFilter(button) { adminPanelControls.querySelector('.admin-filter-btn.active')?.classList.remove('active'); button.classList.add('active'); updateAndDisplayAdminTerritories(button.dataset.filter);}
+    
+    function handleAdminFilter(button) { 
+        adminPanelControls.querySelector('.admin-filter-btn.active')?.classList.remove('active'); 
+        button.classList.add('active'); 
+        updateAndDisplayAdminTerritories();
+    }
     
     function handleViewSwitch(button) {
         const view = button.dataset.view;
@@ -374,8 +379,14 @@ document.addEventListener('DOMContentLoaded', function() {
         showCustomPrompt({ title: 'Пошук території', placeholder: 'Номер або назва', inputType: 'text', btnText: 'Знайти'
         }).then(text => {
             if (text !== null) {
+                const searchInput = document.createElement('input');
+                searchInput.type = 'hidden';
+                searchInput.id = 'admin-search-input';
+                searchInput.value = text;
+                adminPanelControls.appendChild(searchInput);
+                
                 adminPanelControls.querySelector('.admin-filter-btn.active')?.classList.remove('active');
-                updateAndDisplayAdminTerritories('all', text);
+                updateAndDisplayAdminTerritories();
             }
         });
     }
@@ -383,20 +394,49 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleAdminSort() {
         const sortOptionsHtml = `
             <ul class="modal-sort-list">
-                <li data-sort="default">За замовчуванням</li>
                 <li data-sort="id">Номер</li>
                 <li data-sort="days_remaining">Залишилось днів</li>
-                <li data-sort="locality">Населений пункт</li>
             </ul>
         `;
         showGeneralModal('Сортування', sortOptionsHtml);
         generalModalBody.querySelector('.modal-sort-list').onclick = e => {
             if (e.target.tagName === 'LI') {
-                const sortKey = e.target.dataset.sort;
+                currentAdminSortKey = e.target.dataset.sort;
                 hideGeneralModal();
-                displayedAdminTerritories = sortTerritories(displayedAdminTerritories, sortKey);
-                renderAdminTerritories(displayedAdminTerritories);
+                updateAndDisplayAdminTerritories();
             }
+        };
+    }
+    
+    function handleLocalityFilter() {
+        let localitiesHtml = '<ul class="modal-checkbox-list">';
+        predefinedFilterOrder.forEach(locality => {
+            const isChecked = selectedLocalities.includes(locality);
+            localitiesHtml += `<li><label><input type="checkbox" data-locality="${locality}" ${isChecked ? 'checked' : ''}> ${locality}</label></li>`;
+        });
+        localitiesHtml += '</ul>';
+        const modalBodyHtml = `${localitiesHtml}<button id="modal-apply-filters-btn" class="modal-save-btn">Застосувати</button>`;
+        
+        showGeneralModal('Фільтр за населеним пунктом', modalBodyHtml);
+
+        document.getElementById('modal-apply-filters-btn').onclick = () => {
+            const checkboxes = generalModalBody.querySelectorAll('input[type="checkbox"]');
+            selectedLocalities = [];
+            checkboxes.forEach(cb => {
+                if (cb.checked) {
+                    selectedLocalities.push(cb.dataset.locality);
+                }
+            });
+
+            const filterBtn = document.getElementById('admin-locality-filter-btn');
+            if (selectedLocalities.length > 0) {
+                filterBtn.classList.add('active');
+            } else {
+                filterBtn.classList.remove('active');
+            }
+            
+            hideGeneralModal();
+            updateAndDisplayAdminTerritories();
         };
     }
     

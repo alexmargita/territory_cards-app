@@ -314,6 +314,7 @@ h2 {
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
+    align-items: center;
 }
 .admin-tools {
     display: flex;
@@ -334,7 +335,7 @@ h2 {
     color: var(--tg-theme-button-text-color, #ffffff);
     border-color: var(--tg-theme-button-color, #007bff);
 }
-#admin-search-btn, #admin-sort-btn {
+#admin-search-btn, #admin-sort-btn, #admin-locality-filter-btn {
     padding: 8px;
     font-size: 18px;
     background: none;
@@ -342,6 +343,11 @@ h2 {
     cursor: pointer;
     color: var(--tg-theme-link-color, #007bff);
 }
+#admin-locality-filter-btn.active {
+    background-color: rgba(0, 123, 255, 0.15);
+    border-radius: 50%;
+}
+
 
 /* СТИЛІ ПЕРЕМИКАЧА ВИГЛЯДУ */
 .view-switcher {
@@ -458,6 +464,8 @@ h2 {
     max-height: 80vh;
     overflow-y: auto;
     position: relative;
+    display: flex;
+    flex-direction: column;
 }
 .general-modal-close-btn {
     position: absolute;
@@ -467,6 +475,9 @@ h2 {
     font-weight: bold;
     cursor: pointer;
     color: var(--tg-theme-hint-color, #888);
+}
+#general-modal-body {
+    overflow-y: auto;
 }
 #general-modal-body ul {
     list-style: none;
@@ -526,4 +537,22 @@ h2 {
     color: var(--tg-theme-button-text-color, #fff);
     font-size: 16px;
     cursor: pointer;
+}
+
+.modal-checkbox-list {
+    margin-bottom: 15px;
+}
+.modal-checkbox-list li {
+    padding: 8px 0;
+}
+.modal-checkbox-list label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 16px;
+    cursor: pointer;
+}
+.modal-checkbox-list input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
 }
