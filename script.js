@@ -251,9 +251,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     <button id="admin-locality-filter-btn" title="Фільтр за населеним пунктом">🏙️</button>
                 </div>
                 <div class="admin-tools">
-                    <button id="admin-search-btn" title="Пошук">🔍</button>
+                    <a href="https://docs.google.com/spreadsheets/d/1E_Fgb-88CaLEUFn7Gza4a_PajLketmr2b86iYg8IyQc/edit" target="_blank" id="admin-open-sheet-btn" title="Відкрити Google Таблицю">📊</a> <button id="admin-search-btn" title="Пошук">🔍</button>
                     <button id="admin-sort-btn" title="Сортування">⇅</button>
-                    <div class="view-switcher">
+                    <div class="view-switcher">                        
                         <button class="view-btn active" data-view="list" title="Список">☰</button>
                         <button class="view-btn" data-view="grid" title="Сітка">⊞</button>
                     </div>
@@ -757,5 +757,4 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     fetchAllData();
-
 });

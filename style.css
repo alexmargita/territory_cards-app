@@ -384,13 +384,14 @@ body.bulk-mode-active .territory-item {
     color: var(--tg-theme-button-text-color, #ffffff);
     border-color: var(--tg-theme-button-color, #007bff);
 }
-#admin-search-btn, #admin-sort-btn, #admin-locality-filter-btn {
+#admin-open-sheet-btn, #admin-search-btn, #admin-sort-btn, #admin-locality-filter-btn {
     padding: 8px;
     font-size: 18px;
     background: none;
     border: none;
     cursor: pointer;
     color: var(--tg-theme-link-color, #007bff);
+    text-decoration: none; /* Додано, щоб прибрати підкреслення у посилання */
 }
 #admin-locality-filter-btn.active, #admin-sort-btn.active {
     background-color: rgba(0, 123, 255, 0.15);
