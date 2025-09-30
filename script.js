@@ -741,8 +741,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleAdminReturn(territoryId) {
-        tg.showConfirm(`Надіслати запит на повернення території ${territoryId} на підтвердження?`, (ok) => ok && fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`).then(r => r.json()).then(res => showToast(res.message || 'Сталася помилка.')).catch(() => tg.showAlert('Помилка мережі.')));
-    }
+    tg.showConfirm(`Надіслати запит на повернення території ${territoryId} на підтвердження?`, (ok) => {
+        if (ok) {
+            fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
+                .then(r => r.json())
+                .then(res => {
+                    showToast(res.message || 'Сталася помилка.');
+                    if (res.ok) {
+                        fetchAllData(); // <--- ОСЬ ЦЕЙ РЯДОК ПОТРІБНО ДОДАТИ
+                    }
+                })
+                .catch(() => tg.showAlert('Помилка мережі.'));
+        }
+    });
+}
 
     function handleAdminExtend(territoryId, extendForUserId) {
         tg.showConfirm(`Продовжити термін для території ${territoryId}?`, (ok) => ok && postToServer({ action: 'adminExtendTerritory', userId: userId, territoryId: territoryId, extendForUserId: extendForUserId }, "Продовжую термін...", "Не вдалося продовжити."));
@@ -795,20 +807,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function postToServer(payload, loadingMsg, errorMsg) {
-        tg.MainButton.setText(loadingMsg).show();
-        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
-        .then(response => response.json())
-        .then(result => {
-            tg.MainButton.hide();
-            if (result.ok) { 
-                showToast(result.message || "Успішно виконано!"); 
-                fetchAllData(); 
-            } else { 
-                tg.showAlert(result.error || errorMsg); 
-            }
-        })
-        .catch(error => { tg.MainButton.hide(); tg.showAlert('Критична помилка. Не вдалося виконати запит.'); });
-    }
+    tg.MainButton.setText(loadingMsg).show();
+    fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
+    .then(response => response.json())
+    .then(result => {
+        tg.MainButton.hide();
+        if (result.ok) { 
+            showToast(result.message || "Успішно виконано!"); 
+            fetchAllData(); // <--- ЦЕЙ РЯДОК ВЖЕ МАЄ БУТИ, АЛЕ ПЕРЕВІРТЕ
+        } else { 
+            tg.showAlert(result.error || errorMsg); 
+        }
+    })
+    .catch(error => { tg.MainButton.hide(); tg.showAlert('Критична помилка. Не вдалося виконати запит.'); });
+}
 
     function returnTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show();
