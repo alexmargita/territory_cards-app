@@ -48,7 +48,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentAdminSortKey = 'id';
     let bulkActionMode = 'none';
     let selectedTerritoriesForBulk = [];
-    let journalEntriesCache = []; // Кеш для записів журналу
+    let journalEntriesCache = [];
+    let journalSortKey = 'date'; // Стан сортування журналу
+    let journalSortDirection = 'desc'; // Напрямок сортування журналу
     const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
     
     // --- Ініціалізація вкладок ---
@@ -886,8 +888,11 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(result => {
                 loader.style.display = 'none';
                 if (result.ok && result.history) {
-                    journalEntriesCache = result.history; // Зберігаємо дані в кеш
-                    displayJournal(journalEntriesCache, 'date-desc'); // Початкове сортування за датою
+                    journalEntriesCache = result.history;
+                    // Скидаємо сортування до початкового стану при кожному відкритті
+                    journalSortKey = 'date';
+                    journalSortDirection = 'desc';
+                    displayJournal();
                 } else {
                     tg.showAlert(result.error || 'Не вдалося завантажити журнал.');
                 }
@@ -898,31 +903,36 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    function displayJournal(entries, sortKey = 'date-desc') {
-        // --- Логіка сортування ---
+    function displayJournal() {
         const parseDateForSort = (dateStr) => {
             const parts = dateStr.split('.');
             return new Date(parts[2], parts[1] - 1, parts[0]);
         };
-        const sortedEntries = [...entries].sort((a, b) => {
-            switch (sortKey) {
+
+        const sortedEntries = [...journalEntriesCache].sort((a, b) => {
+            let comparison = 0;
+            switch (journalSortKey) {
                 case 'id':
-                    return a.territoryId - b.territoryId;
+                    comparison = a.territoryId - b.territoryId;
+                    break;
                 case 'user':
-                    return a.user.localeCompare(b.user, 'uk');
-                case 'date-desc':
+                    comparison = a.user.localeCompare(b.user, 'uk');
+                    break;
+                case 'date':
                 default:
-                    return parseDateForSort(b.date) - parseDateForSort(a.date);
+                    comparison = parseDateForSort(a.date) - parseDateForSort(b.date);
+                    break;
             }
+            return journalSortDirection === 'asc' ? comparison : -comparison;
         });
 
-        // --- HTML для кнопок сортування ---
         const sortControlsHtml = `
             <div class="journal-sort-controls">
                 <span>Сортувати:</span>
-                <button class="journal-sort-btn ${sortKey === 'date-desc' ? 'active' : ''}" data-sort="date-desc">Дата</button>
-                <button class="journal-sort-btn ${sortKey === 'id' ? 'active' : ''}" data-sort="id">Номер</button>
-                <button class="journal-sort-btn ${sortKey === 'user' ? 'active' : ''}" data-sort="user">Користувач</button>
+                <button class="journal-sort-btn ${journalSortKey === 'date' ? 'active' : ''}" data-sort="date">Дата</button>
+                <button class="journal-sort-btn ${journalSortKey === 'id' ? 'active' : ''}" data-sort="id">Номер</button>
+                <button class="journal-sort-btn ${journalSortKey === 'user' ? 'active' : ''}" data-sort="user">Користувач</button>
+                <button id="journal-sort-direction-btn" class="journal-sort-btn ${journalSortDirection}" title="Змінити напрямок">⇅</button>
             </div>`;
 
         let listHtml;
@@ -942,13 +952,13 @@ document.addEventListener('DOMContentLoaded', function() {
             listHtml += '</ul>';
         }
         
-        // Відображаємо модальне вікно з сортуванням і списком
         showGeneralModal('Журнал операцій', sortControlsHtml + listHtml);
     }
     
     generalModalBody.addEventListener('click', function(event) {
         const markBtn = event.target.closest('.journal-mark-btn');
-        const sortBtn = event.target.closest('.journal-sort-btn');
+        const sortBtn = event.target.closest('.journal-sort-btn[data-sort]');
+        const directionBtn = event.target.closest('#journal-sort-direction-btn');
 
         if (markBtn) {
             const entryElement = markBtn.closest('.journal-entry');
@@ -959,7 +969,6 @@ document.addEventListener('DOMContentLoaded', function() {
             postToServer({ action: 'markJournalEntry', userId: userId, rowId: rowId }, "Відмічаю...", "Не вдалося відмітити.")
             .then(success => {
                 if (success) {
-                    // Видаляємо елемент з кешу та оновлюємо вигляд
                     journalEntriesCache = journalEntriesCache.filter(entry => entry.rowId !== rowId);
                     entryElement.classList.add('marked');
                     entryElement.addEventListener('transitionend', () => {
@@ -976,8 +985,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         if (sortBtn) {
-            const sortKey = sortBtn.dataset.sort;
-            displayJournal(journalEntriesCache, sortKey); // Перемальовуємо модальне вікно з новим сортуванням
+            const newSortKey = sortBtn.dataset.sort;
+            if (journalSortKey === newSortKey) {
+                // Якщо клікнули на ту ж кнопку, міняємо напрямок
+                journalSortDirection = journalSortDirection === 'asc' ? 'desc' : 'asc';
+            } else {
+                // Якщо клікнули на нову кнопку, встановлюємо її і скидаємо напрямок
+                journalSortKey = newSortKey;
+                journalSortDirection = (journalSortKey === 'date') ? 'desc' : 'asc'; // За замовчуванням: дата - новіші, решта - по зростанню
+            }
+            displayJournal();
+        }
+
+        if (directionBtn) {
+            journalSortDirection = journalSortDirection === 'asc' ? 'desc' : 'asc';
+            displayJournal();
         }
     });
 

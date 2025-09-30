@@ -733,6 +733,7 @@ body.bulk-mode-active .territory-item {
 
 .journal-entry-text {
     flex-grow: 1;
+    padding-right: 5px; /* Додамо відступ, щоб текст не прилипав до кнопки */
 }
 
 .journal-entry-text .action-took {
@@ -797,4 +798,13 @@ body.bulk-mode-active .territory-item {
     background-color: var(--tg-theme-button-color, #007bff);
     color: var(--tg-theme-button-text-color, #ffffff);
     border-color: var(--tg-theme-button-color, #007bff);
+}
+#journal-sort-direction-btn {
+    margin-left: auto; /* Відсуває кнопку вправо */
+    padding: 6px 8px;
+    font-size: 16px;
+    transition: transform 0.2s ease-in-out;
+}
+#journal-sort-direction-btn.desc {
+    transform: rotate(180deg);
 }
