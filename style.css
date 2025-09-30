@@ -661,3 +661,26 @@ body.bulk-mode-active .territory-item {
     background-color: #6c757d;
     color: #fff;
 }
+
+/* --- СТИЛІ ДЛЯ СПОВІЩЕНЬ (ТОСТІВ) --- */
+.toast {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-100px);
+    background-color: #28a745;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    z-index: 9999;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transition: transform 0.4s ease-in-out;
+}
+.toast.error {
+    background-color: #dc3545;
+}
+.toast.show {
+    transform: translateX(-50%) translateY(0);
+}
