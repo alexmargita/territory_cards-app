@@ -44,6 +44,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let displayedAdminTerritories = [];
     let predefinedFilterOrder = [];
     let selectedLocalities = []; 
+    let selectedUsers = []; // НОВА ЗМІННА
     let currentAdminSortKey = 'id';
     let bulkActionMode = 'none'; // 'none', 'assign', 'return'
     let selectedTerritoriesForBulk = [];
@@ -249,9 +250,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     <button class="admin-filter-btn" data-filter="повернена">Повернені</button>
                     <button class="admin-filter-btn" data-filter="priority">Пріоритетні</button>
                     <button id="admin-locality-filter-btn" title="Фільтр за населеним пунктом">🏙️</button>
+                    <button id="admin-user-filter-btn" title="Фільтр за користувачем">👤</button>
                 </div>
                 <div class="admin-tools">
-                    <a href="https://docs.google.com/spreadsheets/d/1E_Fgb-88CaLEUFn7Gza4a_PajLketmr2b86iYg8IyQc/edit" target="_blank" id="admin-open-sheet-btn" title="Відкрити Google Таблицю">📊</a> <button id="admin-search-btn" title="Пошук">🔍</button>
+                    <a href="https://docs.google.com/spreadsheets/d/1E_Fgb-88CaLEUFn7Gza4a_PajLketmr2b86iYg8IyQc/edit" target="_blank" id="admin-open-sheet-btn" title="Відкрити Google Таблицю">📊</a>
+                    <button id="admin-search-btn" title="Пошук">🔍</button>
                     <button id="admin-sort-btn" title="Сортування">⇅</button>
                     <div class="view-switcher">                        
                         <button class="view-btn active" data-view="list" title="Список">☰</button>
@@ -346,6 +349,11 @@ document.addEventListener('DOMContentLoaded', function() {
             filtered = filtered.filter(t => selectedLocalities.includes(t.type));
         }
         
+        // НОВИЙ БЛОК ФІЛЬТРАЦІЇ
+        if (selectedUsers.length > 0) {
+            filtered = filtered.filter(t => selectedUsers.includes(String(t.assignee_id)));
+        }
+        
         displayedAdminTerritories = sortTerritories(filtered, currentAdminSortKey);
         renderAdminTerritories(displayedAdminTerritories);
     }
@@ -391,6 +399,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.id === 'admin-search-btn') handleAdminSearch();
         if (target.id === 'admin-sort-btn') handleAdminSort();
         if (target.id === 'admin-locality-filter-btn') handleLocalityFilter();
+        if (target.id === 'admin-user-filter-btn') handleUserFilter(); // НОВИЙ ОБРОБНИК
         if (target.classList.contains('admin-filter-btn')) handleAdminFilter(target);
         if (target.classList.contains('view-btn')) handleViewSwitch(target);
         if (target.classList.contains('bulk-action-btn')) toggleBulkMode(target.dataset.mode, target);
@@ -496,6 +505,67 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
     
+    // НОВА ФУНКЦІЯ
+    function handleUserFilter() {
+        // 1. Збираємо дані: хто з користувачів має території і скільки
+        const usersWithTerritories = allTerritories.reduce((acc, territory) => {
+            if (territory.status === 'зайнята' && territory.assignee_id) {
+                if (!acc[territory.assignee_id]) {
+                    acc[territory.assignee_id] = {
+                        id: territory.assignee_id,
+                        name: territory.assignee_name,
+                        count: 0
+                    };
+                }
+                acc[territory.assignee_id].count++;
+            }
+            return acc;
+        }, {});
+
+        // 2. Конвертуємо в масив і сортуємо за іменем
+        const sortedUsers = Object.values(usersWithTerritories).sort((a, b) => a.name.localeCompare(b.name, 'uk'));
+
+        let usersHtml;
+        if (sortedUsers.length === 0) {
+            usersHtml = '<p>На даний час немає призначених територій для фільтрації за користувачем.</p>';
+        } else {
+            usersHtml = '<ul class="modal-checkbox-list">';
+            sortedUsers.forEach(user => {
+                const isChecked = selectedUsers.includes(String(user.id));
+                usersHtml += `<li><label><input type="checkbox" data-user-id="${user.id}" ${isChecked ? 'checked' : ''}> ${user.name} (${user.count})</label></li>`;
+            });
+            usersHtml += '</ul>';
+        }
+
+        const modalBodyHtml = `${usersHtml}<button id="modal-apply-filters-btn" class="modal-save-btn">Застосувати</button>`;
+        
+        showGeneralModal('Фільтр за користувачем', modalBodyHtml);
+
+        // 3. Обробник кнопки "Застосувати"
+        const applyBtn = document.getElementById('modal-apply-filters-btn');
+        if (applyBtn) {
+            applyBtn.onclick = () => {
+                const checkboxes = generalModalBody.querySelectorAll('input[type="checkbox"]');
+                selectedUsers = [];
+                checkboxes.forEach(cb => {
+                    if (cb.checked) {
+                        selectedUsers.push(cb.dataset.userId);
+                    }
+                });
+
+                const filterBtn = document.getElementById('admin-user-filter-btn');
+                if (selectedUsers.length > 0) {
+                    filterBtn.classList.add('active');
+                } else {
+                    filterBtn.classList.remove('active');
+                }
+                
+                hideGeneralModal();
+                updateAndDisplayAdminTerritories();
+            };
+        }
+    }
+
     // --- ЛОГІКА ДЛЯ МАСОВИХ ДІЙ ---
 
     function toggleBulkMode(mode, button) {
