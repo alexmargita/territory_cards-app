@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentAdminSortKey = 'id';
     let bulkActionMode = 'none';
     let selectedTerritoriesForBulk = [];
+    let journalEntriesCache = []; // Кеш для записів журналу
     const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
     
     // --- Ініціалізація вкладок ---
@@ -402,7 +403,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.id === 'admin-sort-btn') handleAdminSort();
         if (target.id === 'admin-locality-filter-btn') handleLocalityFilter();
         if (target.id === 'admin-user-filter-btn') handleUserFilter();
-        if (target.id === 'admin-journal-btn') handleJournalClick(); // НОВИЙ ОБРОБНИК
+        if (target.id === 'admin-journal-btn') handleJournalClick();
         if (target.classList.contains('admin-filter-btn')) handleAdminFilter(target);
         if (target.classList.contains('view-btn')) handleViewSwitch(target);
         if (target.classList.contains('bulk-action-btn')) toggleBulkMode(target.dataset.mode, target);
@@ -737,7 +738,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }, duration);
     }
     
-    // --- ОНОВЛЕНА ФУНКЦІЯ postToServer ---
     function postToServer(payload, loadingMsg, errorMsg) {
         return new Promise(resolve => {
             tg.MainButton.setText(loadingMsg).show();
@@ -878,7 +878,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // --- НОВІ ФУНКЦІЇ ДЛЯ ЖУРНАЛУ ---
+    // --- ОНОВЛЕНІ ФУНКЦІЇ ДЛЯ ЖУРНАЛУ ---
     function handleJournalClick() {
         loader.style.display = 'block';
         fetch(`${SCRIPT_URL}?action=getJournalHistory&userId=${userId}`)
@@ -886,7 +886,8 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(result => {
                 loader.style.display = 'none';
                 if (result.ok && result.history) {
-                    displayJournal(result.history);
+                    journalEntriesCache = result.history; // Зберігаємо дані в кеш
+                    displayJournal(journalEntriesCache, 'date-desc'); // Початкове сортування за датою
                 } else {
                     tg.showAlert(result.error || 'Не вдалося завантажити журнал.');
                 }
@@ -897,52 +898,87 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    function displayJournal(historyEntries) {
-        let journalHtml;
-        if (historyEntries.length === 0) {
-            journalHtml = '<p style="text-align: center; padding: 20px;">Нових записів немає.</p>';
+    function displayJournal(entries, sortKey = 'date-desc') {
+        // --- Логіка сортування ---
+        const parseDateForSort = (dateStr) => {
+            const parts = dateStr.split('.');
+            return new Date(parts[2], parts[1] - 1, parts[0]);
+        };
+        const sortedEntries = [...entries].sort((a, b) => {
+            switch (sortKey) {
+                case 'id':
+                    return a.territoryId - b.territoryId;
+                case 'user':
+                    return a.user.localeCompare(b.user, 'uk');
+                case 'date-desc':
+                default:
+                    return parseDateForSort(b.date) - parseDateForSort(a.date);
+            }
+        });
+
+        // --- HTML для кнопок сортування ---
+        const sortControlsHtml = `
+            <div class="journal-sort-controls">
+                <span>Сортувати:</span>
+                <button class="journal-sort-btn ${sortKey === 'date-desc' ? 'active' : ''}" data-sort="date-desc">Дата</button>
+                <button class="journal-sort-btn ${sortKey === 'id' ? 'active' : ''}" data-sort="id">Номер</button>
+                <button class="journal-sort-btn ${sortKey === 'user' ? 'active' : ''}" data-sort="user">Користувач</button>
+            </div>`;
+
+        let listHtml;
+        if (sortedEntries.length === 0) {
+            listHtml = '<p style="text-align: center; padding: 20px;">Нових записів немає.</p>';
         } else {
-            journalHtml = '<ul class="journal-list">';
-            historyEntries.forEach(entry => {
+            listHtml = '<ul class="journal-list">';
+            sortedEntries.forEach(entry => {
                 const actionText = entry.action === 'Assigned' ? 'взяв' : 'здав';
-                journalHtml += `
+                const actionClass = entry.action === 'Assigned' ? 'action-took' : 'action-returned';
+                listHtml += `
                     <li class="journal-entry" data-row-id="${entry.rowId}">
-                        <span class="journal-entry-text"><b>${entry.territoryId}</b> ${actionText} ${entry.user} (${entry.date})</span>
+                        <span class="journal-entry-text"><b>${entry.territoryId}</b> <span class="${actionClass}">${actionText}</span> ${entry.user} ${entry.date}</span>
                         <button class="journal-mark-btn" title="Відмітити як внесене">✓</button>
                     </li>`;
             });
-            journalHtml += '</ul>';
+            listHtml += '</ul>';
         }
-        showGeneralModal('Журнал операцій', journalHtml);
+        
+        // Відображаємо модальне вікно з сортуванням і списком
+        showGeneralModal('Журнал операцій', sortControlsHtml + listHtml);
     }
     
     generalModalBody.addEventListener('click', function(event) {
         const markBtn = event.target.closest('.journal-mark-btn');
-        if (!markBtn) return;
-        
-        const entryElement = markBtn.closest('.journal-entry');
-        const rowId = parseInt(entryElement.dataset.rowId, 10);
-        
-        markBtn.disabled = true;
+        const sortBtn = event.target.closest('.journal-sort-btn');
 
-        postToServer({
-            action: 'markJournalEntry',
-            userId: userId,
-            rowId: rowId
-        }, "Відмічаю...", "Не вдалося відмітити.")
-        .then(success => {
-            if (success) {
-                entryElement.classList.add('marked');
-                entryElement.addEventListener('transitionend', () => {
-                    entryElement.remove();
-                    if (generalModalBody.querySelectorAll('.journal-entry:not(.marked)').length === 0) {
-                        generalModalBody.innerHTML = '<p style="text-align: center; padding: 20px;">Усі записи відмічено.</p>';
-                    }
-                });
-            } else {
-                markBtn.disabled = false;
-            }
-        });
+        if (markBtn) {
+            const entryElement = markBtn.closest('.journal-entry');
+            const rowId = parseInt(entryElement.dataset.rowId, 10);
+            
+            markBtn.disabled = true;
+
+            postToServer({ action: 'markJournalEntry', userId: userId, rowId: rowId }, "Відмічаю...", "Не вдалося відмітити.")
+            .then(success => {
+                if (success) {
+                    // Видаляємо елемент з кешу та оновлюємо вигляд
+                    journalEntriesCache = journalEntriesCache.filter(entry => entry.rowId !== rowId);
+                    entryElement.classList.add('marked');
+                    entryElement.addEventListener('transitionend', () => {
+                        entryElement.remove();
+                        if (generalModalBody.querySelectorAll('.journal-entry:not(.marked)').length === 0) {
+                            const sortControls = generalModalBody.querySelector('.journal-sort-controls');
+                            generalModalBody.innerHTML = sortControls.outerHTML + '<p style="text-align: center; padding: 20px;">Усі записи відмічено.</p>';
+                        }
+                    });
+                } else {
+                    markBtn.disabled = false;
+                }
+            });
+        }
+
+        if (sortBtn) {
+            const sortKey = sortBtn.dataset.sort;
+            displayJournal(journalEntriesCache, sortKey); // Перемальовуємо модальне вікно з новим сортуванням
+        }
     });
 
     fetchAllData();

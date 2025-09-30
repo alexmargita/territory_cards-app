@@ -735,6 +735,16 @@ body.bulk-mode-active .territory-item {
     flex-grow: 1;
 }
 
+.journal-entry-text .action-took {
+    color: #28a745;
+    font-weight: 600;
+}
+
+.journal-entry-text .action-returned {
+    color: #dc3545;
+    font-weight: 600;
+}
+
 .journal-mark-btn {
     flex-shrink: 0;
     width: 30px;
@@ -759,4 +769,32 @@ body.bulk-mode-active .territory-item {
 .journal-mark-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
+}
+
+/* СТИЛІ ДЛЯ СОРТУВАННЯ В ЖУРНАЛІ */
+.journal-sort-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    padding: 0 5px 15px;
+    border-bottom: 1px solid var(--tg-theme-hint-color, #ddd);
+    margin-bottom: 10px;
+}
+.journal-sort-controls span {
+    font-size: 14px;
+    color: var(--tg-theme-hint-color, #888);
+}
+.journal-sort-btn {
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid var(--tg-theme-hint-color, #ccc);
+    background-color: transparent;
+    color: var(--tg-theme-text-color, #000);
+    font-size: 14px;
+    cursor: pointer;
+}
+.journal-sort-btn.active {
+    background-color: var(--tg-theme-button-color, #007bff);
+    color: var(--tg-theme-button-text-color, #ffffff);
+    border-color: var(--tg-theme-button-color, #007bff);
 }
