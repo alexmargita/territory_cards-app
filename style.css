@@ -468,6 +468,7 @@ body.bulk-mode-active .territory-item {
 .btn-admin-extend { background-color: #ffc107; color: #000; }
 .btn-admin-history { background-color: #17a2b8; }
 .btn-admin-note { background-color: #6c757d; }
+.btn-admin-free { background-color: #007bff; }
 
 /* --- СТИЛІ СІТКИ (GRID VIEW) --- */
 #admin-territory-list.view-grid {

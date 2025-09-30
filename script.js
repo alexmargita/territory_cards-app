@@ -1,7 +1,7 @@
 // ОНОВЛЕНО: Повернуто код реєстрації Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js').then(registration => {
+    navigator.service-worker.register('sw.js').then(registration => {
       console.log('ServiceWorker registration successful with scope: ', registration.scope);
     }, err => {
       console.log('ServiceWorker registration failed: ', err);
@@ -306,6 +306,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const noteText = String(t.info || '').replace(/"/g, '&quot;');
             const actionsHtml = `<div class="admin-card-actions">
                     ${['вільна', 'повернена'].includes(t.status) ? `<button class="admin-btn btn-admin-assign" data-id="${t.id}">Призначити</button>` : ''}
+                    ${t.status === 'повернена' ? `<button class="admin-btn btn-admin-free" data-id="${t.id}">Вільна</button>` : ''}
                     ${t.status === 'зайнята' ? `<button class="admin-btn btn-admin-return" data-id="${t.id}">Здати</button>` : ''}
                     ${t.status === 'зайнята' ? `<button class="admin-btn btn-admin-extend" data-user-id="${t.assignee_id}" data-id="${t.id}">Продовжити</button>` : ''}
                     <button class="admin-btn btn-admin-history" data-id="${t.id}">Історія</button>
@@ -394,6 +395,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (target.classList.contains('btn-admin-extend')) handleAdminExtend(target.dataset.id, target.dataset.userId);
             if (target.classList.contains('btn-admin-history')) handleAdminHistory(target.dataset.id);
             if (target.classList.contains('btn-admin-note')) handleAdminNote(target.dataset.id, target.dataset.note);
+            if (target.classList.contains('btn-admin-free')) handleAdminMakeFree(target.dataset.id);
         }
         
         if (target.id === 'admin-search-btn') handleAdminSearch();
@@ -706,6 +708,18 @@ document.addEventListener('DOMContentLoaded', function() {
         }).then(text => {
             if (text !== null) {
                 postToServer({ action: 'updateTerritoryNote', userId: userId, territoryId: territoryId, note: text }, "Зберігаю...", "Не вдалося зберегти.");
+            }
+        });
+    }
+
+    function handleAdminMakeFree(territoryId) {
+        tg.showConfirm(`Ви впевнені, що хочете змінити статус території ${territoryId} на "вільна"?`, (ok) => {
+            if (ok) {
+                postToServer({ 
+                    action: 'adminMakeTerritoryFree', 
+                    userId: userId, 
+                    territoryId: territoryId 
+                }, "Оновлюю статус...", "Не вдалося оновити статус.");
             }
         });
     }
