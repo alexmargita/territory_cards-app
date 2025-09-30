@@ -44,9 +44,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let displayedAdminTerritories = [];
     let predefinedFilterOrder = [];
     let selectedLocalities = []; 
-    let selectedUsers = []; // НОВА ЗМІННА
+    let selectedUsers = [];
     let currentAdminSortKey = 'id';
-    let bulkActionMode = 'none'; // 'none', 'assign', 'return'
+    let bulkActionMode = 'none';
     let selectedTerritoriesForBulk = [];
     const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
     
@@ -256,6 +256,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     <a href="https://docs.google.com/spreadsheets/d/1E_Fgb-88CaLEUFn7Gza4a_PajLketmr2b86iYg8IyQc/edit" target="_blank" id="admin-open-sheet-btn" title="Відкрити Google Таблицю">📊</a>
                     <button id="admin-search-btn" title="Пошук">🔍</button>
                     <button id="admin-sort-btn" title="Сортування">⇅</button>
+                    <button id="admin-journal-btn" title="Журнал">📓</button>
                     <div class="view-switcher">                        
                         <button class="view-btn active" data-view="list" title="Список">☰</button>
                         <button class="view-btn" data-view="grid" title="Сітка">⊞</button>
@@ -280,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const item = document.createElement('div');
             const statusClass = { 'вільна': 'status-free', 'зайнята': 'status-assigned', 'повернена': 'status-returned' }[t.status] || '';
             item.className = `territory-item ${statusClass}`;
-            item.dataset.id = t.id; // Додаємо ID для легкого доступу
+            item.dataset.id = t.id;
             if (isPriorityTerritory(t.date_completed)) item.classList.add('priority');
             
             let infoHtml = '';
@@ -350,7 +351,6 @@ document.addEventListener('DOMContentLoaded', function() {
             filtered = filtered.filter(t => selectedLocalities.includes(t.type));
         }
         
-        // НОВИЙ БЛОК ФІЛЬТРАЦІЇ
         if (selectedUsers.length > 0) {
             filtered = filtered.filter(t => selectedUsers.includes(String(t.assignee_id)));
         }
@@ -401,7 +401,8 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.id === 'admin-search-btn') handleAdminSearch();
         if (target.id === 'admin-sort-btn') handleAdminSort();
         if (target.id === 'admin-locality-filter-btn') handleLocalityFilter();
-        if (target.id === 'admin-user-filter-btn') handleUserFilter(); // НОВИЙ ОБРОБНИК
+        if (target.id === 'admin-user-filter-btn') handleUserFilter();
+        if (target.id === 'admin-journal-btn') handleJournalClick(); // НОВИЙ ОБРОБНИК
         if (target.classList.contains('admin-filter-btn')) handleAdminFilter(target);
         if (target.classList.contains('view-btn')) handleViewSwitch(target);
         if (target.classList.contains('bulk-action-btn')) toggleBulkMode(target.dataset.mode, target);
@@ -507,9 +508,7 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
     
-    // НОВА ФУНКЦІЯ
     function handleUserFilter() {
-        // 1. Збираємо дані: хто з користувачів має території і скільки
         const usersWithTerritories = allTerritories.reduce((acc, territory) => {
             if (territory.status === 'зайнята' && territory.assignee_id) {
                 if (!acc[territory.assignee_id]) {
@@ -524,7 +523,6 @@ document.addEventListener('DOMContentLoaded', function() {
             return acc;
         }, {});
 
-        // 2. Конвертуємо в масив і сортуємо за іменем
         const sortedUsers = Object.values(usersWithTerritories).sort((a, b) => a.name.localeCompare(b.name, 'uk'));
 
         let usersHtml;
@@ -543,7 +541,6 @@ document.addEventListener('DOMContentLoaded', function() {
         
         showGeneralModal('Фільтр за користувачем', modalBodyHtml);
 
-        // 3. Обробник кнопки "Застосувати"
         const applyBtn = document.getElementById('modal-apply-filters-btn');
         if (applyBtn) {
             applyBtn.onclick = () => {
@@ -653,7 +650,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-
     // --- СТАНДАРТНІ ОДИНОЧНІ ДІЇ ---
 
     function handleAdminAssign(territoryId) {
@@ -734,33 +730,38 @@ document.addEventListener('DOMContentLoaded', function() {
         toast.textContent = message;
 
         container.appendChild(toast);
-
-        // Animate in
-        setTimeout(() => {
-            toast.classList.add('show');
-        }, 10); // Small delay to allow CSS transition
-
-        // Animate out and remove
+        setTimeout(() => { toast.classList.add('show'); }, 10);
         setTimeout(() => {
             toast.classList.remove('show');
             toast.addEventListener('transitionend', () => toast.remove());
         }, duration);
     }
-
+    
+    // --- ОНОВЛЕНА ФУНКЦІЯ postToServer ---
     function postToServer(payload, loadingMsg, errorMsg) {
-        tg.MainButton.setText(loadingMsg).show();
-        fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
-        .then(response => response.json())
-        .then(result => {
-            tg.MainButton.hide();
-            if (result.ok) { 
-                showToast(result.message || "Успішно виконано!"); // MODIFIED
-                fetchAllData(); 
-            } else { 
-                tg.showAlert(result.error || errorMsg); 
-            }
-        })
-        .catch(error => { tg.MainButton.hide(); tg.showAlert('Критична помилка. Не вдалося виконати запит.'); });
+        return new Promise(resolve => {
+            tg.MainButton.setText(loadingMsg).show();
+            fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
+            .then(response => response.json())
+            .then(result => {
+                tg.MainButton.hide();
+                if (result.ok) { 
+                    if (payload.action !== 'markJournalEntry') {
+                         fetchAllData();
+                    }
+                    showToast(result.message || "Успішно виконано!");
+                    resolve(true);
+                } else { 
+                    tg.showAlert(result.error || errorMsg); 
+                    resolve(false);
+                }
+            })
+            .catch(error => { 
+                tg.MainButton.hide(); 
+                tg.showAlert('Критична помилка. Не вдалося виконати запит.'); 
+                resolve(false);
+            });
+        });
     }
 
     function returnTerritory(territoryId, buttonElement) {
@@ -770,7 +771,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) { 
-                    showToast(result.message); // MODIFIED
+                    showToast(result.message);
                     buttonElement.textContent = 'Очікує...'; 
                     buttonElement.disabled = true; 
                 } else { 
@@ -787,7 +788,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) {
-                    showToast(result.message); // MODIFIED
+                    showToast(result.message);
                     const territoryItem = buttonElement.closest('.territory-item');
                     if (territoryItem) { territoryItem.style.opacity = '0'; setTimeout(() => territoryItem.remove(), 300); }
                 } else { 
@@ -839,7 +840,6 @@ document.addEventListener('DOMContentLoaded', function() {
             tg.showAlert('Не вдалося отримати дані для надсилання.'); 
             return; 
         }
-        // REMOVED tg.showAlert(...) for better UX
         imageModal.classList.remove('active');
         resetTransform();
         postToServer({ action: 'sendPhotoToUser', userId: userId, photoId: photoId, caption: caption }, "Надсилаю фото...", "Не вдалося надіслати фото.");
@@ -878,5 +878,72 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // --- НОВІ ФУНКЦІЇ ДЛЯ ЖУРНАЛУ ---
+    function handleJournalClick() {
+        loader.style.display = 'block';
+        fetch(`${SCRIPT_URL}?action=getJournalHistory&userId=${userId}`)
+            .then(res => res.json())
+            .then(result => {
+                loader.style.display = 'none';
+                if (result.ok && result.history) {
+                    displayJournal(result.history);
+                } else {
+                    tg.showAlert(result.error || 'Не вдалося завантажити журнал.');
+                }
+            })
+            .catch(err => {
+                loader.style.display = 'none';
+                tg.showAlert('Помилка мережі при завантаженні журналу.');
+            });
+    }
+
+    function displayJournal(historyEntries) {
+        let journalHtml;
+        if (historyEntries.length === 0) {
+            journalHtml = '<p style="text-align: center; padding: 20px;">Нових записів немає.</p>';
+        } else {
+            journalHtml = '<ul class="journal-list">';
+            historyEntries.forEach(entry => {
+                const actionText = entry.action === 'Assigned' ? 'взяв' : 'здав';
+                journalHtml += `
+                    <li class="journal-entry" data-row-id="${entry.rowId}">
+                        <span class="journal-entry-text"><b>${entry.territoryId}</b> ${actionText} ${entry.user} (${entry.date})</span>
+                        <button class="journal-mark-btn" title="Відмітити як внесене">✓</button>
+                    </li>`;
+            });
+            journalHtml += '</ul>';
+        }
+        showGeneralModal('Журнал операцій', journalHtml);
+    }
+    
+    generalModalBody.addEventListener('click', function(event) {
+        const markBtn = event.target.closest('.journal-mark-btn');
+        if (!markBtn) return;
+        
+        const entryElement = markBtn.closest('.journal-entry');
+        const rowId = parseInt(entryElement.dataset.rowId, 10);
+        
+        markBtn.disabled = true;
+
+        postToServer({
+            action: 'markJournalEntry',
+            userId: userId,
+            rowId: rowId
+        }, "Відмічаю...", "Не вдалося відмітити.")
+        .then(success => {
+            if (success) {
+                entryElement.classList.add('marked');
+                entryElement.addEventListener('transitionend', () => {
+                    entryElement.remove();
+                    if (generalModalBody.querySelectorAll('.journal-entry:not(.marked)').length === 0) {
+                        generalModalBody.innerHTML = '<p style="text-align: center; padding: 20px;">Усі записи відмічено.</p>';
+                    }
+                });
+            } else {
+                markBtn.disabled = false;
+            }
+        });
+    });
+
     fetchAllData();
 });

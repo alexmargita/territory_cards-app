@@ -695,3 +695,68 @@ body.bulk-mode-active .territory-item {
     opacity: 1;
     transform: translateY(0);
 }
+
+/* --- СТИЛІ ДЛЯ ЖУРНАЛУ --- */
+#admin-journal-btn {
+    padding: 8px;
+    font-size: 18px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--tg-theme-link-color, #007bff);
+}
+
+.journal-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.journal-entry {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 5px;
+    border-bottom: 1px solid var(--tg-theme-secondary-bg-color, #f0f0f0);
+    font-size: 15px;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.journal-entry:last-child {
+    border-bottom: none;
+}
+
+.journal-entry.marked {
+    opacity: 0;
+    transform: translateX(50px);
+}
+
+.journal-entry-text {
+    flex-grow: 1;
+}
+
+.journal-mark-btn {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid #28a745;
+    background-color: transparent;
+    color: #28a745;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-left: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.journal-mark-btn:hover {
+    background-color: rgba(40, 167, 69, 0.1);
+}
+
+.journal-mark-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
