@@ -662,25 +662,36 @@ body.bulk-mode-active .territory-item {
     color: #fff;
 }
 
-/* --- СТИЛІ ДЛЯ СПОВІЩЕНЬ (ТОСТІВ) --- */
-.toast {
+/* --- СТИЛІ ДЛЯ СПОВІЩЕНЬ (TOAST) --- */
+#toast-container {
     position: fixed;
     top: 20px;
     left: 50%;
-    transform: translateX(-50%) translateY(-100px);
-    background-color: #28a745;
-    color: #fff;
+    transform: translateX(-50%);
+    z-index: 4000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    width: 90%;
+    max-width: 400px;
+}
+
+.toast-message {
+    background-color: var(--tg-theme-button-color, #28a745);
+    color: var(--tg-theme-button-text-color, #ffffff);
     padding: 12px 20px;
     border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
     font-size: 15px;
-    font-weight: 600;
-    z-index: 9999;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    transition: transform 0.4s ease-in-out;
+    font-weight: 500;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    text-align: center;
 }
-.toast.error {
-    background-color: #dc3545;
-}
-.toast.show {
-    transform: translateX(-50%) translateY(0);
+
+.toast-message.show {
+    opacity: 1;
+    transform: translateY(0);
 }
