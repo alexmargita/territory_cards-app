@@ -808,3 +808,12 @@ body.bulk-mode-active .territory-item {
 #journal-sort-direction-btn.desc {
     transform: rotate(180deg);
 }
+
+.bulk-bar-btn.confirm-returned {
+    background-color: #ffc107; /* Жовтий */
+    color: #000;
+}
+.bulk-bar-btn.confirm-free {
+    background-color: #28a745; /* Зелений */
+    color: #fff;
+}
