@@ -156,33 +156,38 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     function displayMyTerritories(territories) {
-    myTerritoryList.innerHTML = '';
-    if (territories.length === 0) { myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>'; return; }
-    territories.forEach(t => {
-        const item = document.createElement('div');
-        item.className = 'territory-item';
-        const remainingDays = calculateDaysRemaining(t.date_assigned);
-        let daysBlock = '';
-        if (remainingDays !== null) {
-            const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
-            const progressPercent = Math.max(0, (remainingDays / 120) * 100);
-            daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
-        }
+        myTerritoryList.innerHTML = '';
+        if (territories.length === 0) { myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>'; return; }
 
-        // --- ПОКРАЩЕННЯ: Починається тут ---
-        let actionButtonHtml = '';
-        if (t.status === 'на поверненні') {
-            actionButtonHtml = `<button class="btn-return" disabled style="background-color: #ffc107; color: #000;">⏳ Очікує...</button>`;
-        } else {
-            // За замовчуванням показуємо кнопку "Здати" для всіх інших випадків (основний - "зайнята")
-            actionButtonHtml = `<button class="btn-return" data-id="${t.id}">↩️ Здати</button>`;
-        }
-        // --- ПОКРАЩЕННЯ: Закінчується тут ---
+        // --- ЗМІНА: Сортування територій за ID ---
+        territories.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        // --- КІНЕЦЬ ЗМІНИ ---
 
-        item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<div class="action-area">${actionButtonHtml}</div></div>${daysBlock}`;
-        myTerritoryList.appendChild(item);
-    });
-}
+        territories.forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'territory-item';
+            const remainingDays = calculateDaysRemaining(t.date_assigned);
+            let daysBlock = '';
+            if (remainingDays !== null) {
+                const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
+                const progressPercent = Math.max(0, (remainingDays / 120) * 100);
+                daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
+            }
+
+            // --- ПОКРАЩЕННЯ: Починається тут ---
+            let actionButtonHtml = '';
+            if (t.status === 'на поверненні') {
+                actionButtonHtml = `<button class="btn-return" disabled style="background-color: #ffc107; color: #000;">⏳ Очікує...</button>`;
+            } else {
+                // За замовчуванням показуємо кнопку "Здати" для всіх інших випадків (основний - "зайнята")
+                actionButtonHtml = `<button class="btn-return" data-id="${t.id}">↩️ Здати</button>`;
+            }
+            // --- ПОКРАЩЕННЯ: Закінчується тут ---
+
+            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<div class="action-area">${actionButtonHtml}</div></div>${daysBlock}`;
+            myTerritoryList.appendChild(item);
+        });
+    }
 
     function displayFreeTerritories(filter) {
         freeTerritoryList.innerHTML = '';
@@ -190,6 +195,10 @@ document.addEventListener('DOMContentLoaded', function() {
         const filtered = allTerritories.filter(t => t.type === filter && t.category === 'territory' && t.status === 'вільна');
         if (filtered.length === 0) { freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>'; return; }
         
+        // --- ЗМІНА: Сортування територій за ID ---
+        filtered.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        // --- КІНЕЦЬ ЗМІНИ ---
+
         filtered.forEach(t => {
             const item = document.createElement('div');
             item.className = 'territory-item';
