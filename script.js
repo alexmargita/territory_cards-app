@@ -159,7 +159,9 @@ document.addEventListener('DOMContentLoaded', function() {
         myTerritoryList.innerHTML = '';
         if (territories.length === 0) { myTerritoryList.innerHTML = '<p>На даний час ви не маєте жодної території.</p>'; return; }
 
+        // --- ЗМІНА: Сортування територій за ID ---
         territories.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        // --- КІНЕЦЬ ЗМІНИ ---
 
         territories.forEach(t => {
             const item = document.createElement('div');
@@ -172,12 +174,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
             }
 
+            // --- ПОКРАЩЕННЯ: Починається тут ---
             let actionButtonHtml = '';
             if (t.status === 'на поверненні') {
                 actionButtonHtml = `<button class="btn-return" disabled style="background-color: #ffc107; color: #000;">⏳ Очікує...</button>`;
             } else {
+                // За замовчуванням показуємо кнопку "Здати" для всіх інших випадків (основний - "зайнята")
                 actionButtonHtml = `<button class="btn-return" data-id="${t.id}">↩️ Здати</button>`;
             }
+            // --- ПОКРАЩЕННЯ: Закінчується тут ---
 
             item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<div class="action-area">${actionButtonHtml}</div></div>${daysBlock}`;
             myTerritoryList.appendChild(item);
@@ -190,7 +195,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const filtered = allTerritories.filter(t => t.type === filter && t.category === 'territory' && t.status === 'вільна');
         if (filtered.length === 0) { freeTerritoryList.innerHTML = '<p>Вільних територій цього типу немає.</p>'; return; }
         
+        // --- ЗМІНА: Сортування територій за ID ---
         filtered.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+        // --- КІНЕЦЬ ЗМІНИ ---
 
         filtered.forEach(t => {
             const item = document.createElement('div');
@@ -428,12 +435,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.classList.contains('view-btn')) handleViewSwitch(target);
         if (target.classList.contains('bulk-action-btn')) toggleBulkMode(target.dataset.mode, target);
         if (target.id === 'bulk-cancel-btn') resetBulkMode();
-        
-        // --- ЗМІНА ПОЧИНАЄТЬСЯ ТУТ ---
-        if (target.id === 'bulk-confirm-assign-btn') handleBulkConfirmAssign();
-        if (target.id === 'bulk-confirm-returned-btn') handleBulkReturn('returned');
-        if (target.id === 'bulk-confirm-free-btn') handleBulkReturn('free');
-        // --- КІНЕЦЬ ЗМІНИ ---
+        if (target.id === 'bulk-confirm-btn') handleBulkConfirm();
     });
 
     function handleReturnClick(territoryId, button) { tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (ok) => ok && returnTerritory(territoryId, button)); }
@@ -593,7 +595,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- ЛОГІКА ДЛЯ МАСОВИХ ДІЙ ---
 
-    // --- ЗМІНА ПОЧИНАЄТЬСЯ ТУТ ---
     function toggleBulkMode(mode, button) {
         if (bulkActionMode === mode) {
             resetBulkMode();
@@ -604,15 +605,6 @@ document.addEventListener('DOMContentLoaded', function() {
         bulkActionMode = mode;
         button.classList.add('active');
         document.body.classList.add('bulk-mode-active');
-
-        // Показуємо відповідні кнопки
-        if (mode === 'assign') {
-            document.getElementById('bulk-confirm-assign-btn').style.display = 'block';
-        } else if (mode === 'return') {
-            document.getElementById('bulk-confirm-returned-btn').style.display = 'block';
-            document.getElementById('bulk-confirm-free-btn').style.display = 'block';
-        }
-
         bulkActionBar.classList.add('visible');
     }
 
@@ -624,16 +616,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         document.body.classList.remove('bulk-mode-active');
         bulkActionBar.classList.remove('visible');
-
-        // Приховуємо усі кнопки підтвердження
-        document.getElementById('bulk-confirm-assign-btn').style.display = 'none';
-        document.getElementById('bulk-confirm-returned-btn').style.display = 'none';
-        document.getElementById('bulk-confirm-free-btn').style.display = 'none';
         
         document.querySelectorAll('.bulk-action-btn.active').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.territory-item.selected').forEach(item => item.classList.remove('selected'));
     }
-    // --- КІНЕЦЬ ЗМІНИ ---
 
     function handleTerritorySelection(item) {
         const id = item.dataset.id;
@@ -649,60 +635,48 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // --- ЗМІНА ПОЧИНАЄТЬСЯ ТУТ ---
-    // Нова функція для підтвердження призначення
-    function handleBulkConfirmAssign() {
+    function handleBulkConfirm() {
         if (selectedTerritoriesForBulk.length === 0) {
             tg.showAlert("Будь ласка, оберіть хоча б одну територію.");
             return;
         }
 
-        if (allUsers.length === 0) { tg.showAlert('Список користувачів порожній.'); return; }
-        let usersHtml = '<ul>' + allUsers.map(user => `<li data-user-id="${user.id}">${user.name}</li>`).join('') + '</ul>';
-        showGeneralModal('Призначити ' + selectedTerritoriesForBulk.length + ' територій на:', usersHtml);
+        if (bulkActionMode === 'assign') {
+            if (allUsers.length === 0) { tg.showAlert('Список користувачів порожній.'); return; }
+            let usersHtml = '<ul>' + allUsers.map(user => `<li data-user-id="${user.id}">${user.name}</li>`).join('') + '</ul>';
+            showGeneralModal('Призначити ' + selectedTerritoriesForBulk.length + ' територій на:', usersHtml);
 
-        generalModalBody.querySelector('ul').onclick = e => {
-            if (e.target.tagName === 'LI') {
-                const assignToUserId = e.target.dataset.userId;
-                const assignToUserName = e.target.textContent;
-                hideGeneralModal();
-                tg.showConfirm(`Призначити ${selectedTerritoriesForBulk.length} територій користувачу ${assignToUserName}?`, (ok) => {
-                    if (ok) {
-                        postToServer({ 
-                            action: 'adminBulkAssign', 
-                            userId: userId, 
-                            territoryIds: selectedTerritoriesForBulk, 
-                            assignToUserId: assignToUserId 
-                        }, "Призначаю...", "Не вдалося призначити території.");
-                        resetBulkMode();
-                    }
-                });
-            }
-        };
-    }
-
-    // Нова функція для підтвердження повернення
-    function handleBulkReturn(newStatus) {
-        if (selectedTerritoriesForBulk.length === 0) {
-            tg.showAlert("Будь ласка, оберіть хоча б одну територію.");
-            return;
+            generalModalBody.querySelector('ul').onclick = e => {
+                if (e.target.tagName === 'LI') {
+                    const assignToUserId = e.target.dataset.userId;
+                    const assignToUserName = e.target.textContent;
+                    hideGeneralModal();
+                    tg.showConfirm(`Призначити ${selectedTerritoriesForBulk.length} територій користувачу ${assignToUserName}?`, (ok) => {
+                        if (ok) {
+                            postToServer({ 
+                                action: 'adminBulkAssign', 
+                                userId: userId, 
+                                territoryIds: selectedTerritoriesForBulk, 
+                                assignToUserId: assignToUserId 
+                            }, "Призначаю...", "Не вдалося призначити території.");
+                            resetBulkMode();
+                        }
+                    });
+                }
+            };
+        } else if (bulkActionMode === 'return') {
+            tg.showConfirm(`Надіслати запит на повернення ${selectedTerritoriesForBulk.length} територій?`, (ok) => {
+                if (ok) {
+                    postToServer({ 
+                        action: 'adminBulkReturn', 
+                        userId: userId, 
+                        territoryIds: selectedTerritoriesForBulk 
+                    }, "Надсилаю запит...", "Не вдалося надіслати запит.");
+                    resetBulkMode();
+                }
+            });
         }
-        
-        const statusText = newStatus === 'returned' ? "'Повернені'" : "'Вільні'";
-
-        tg.showConfirm(`Повернути ${selectedTerritoriesForBulk.length} територій зі статусом ${statusText}?`, (ok) => {
-            if (ok) {
-                postToServer({ 
-                    action: 'adminBulkReturn', 
-                    userId: userId, 
-                    territoryIds: selectedTerritoriesForBulk,
-                    newStatus: newStatus // Додаємо новий статус до запиту
-                }, "Надсилаю запит...", "Не вдалося надіслати запит.");
-                resetBulkMode();
-            }
-        });
     }
-    // --- КІНЕЦЬ ЗМІНИ ---
 
     // --- СТАНДАРТНІ ОДИНОЧНІ ДІЇ ---
 
