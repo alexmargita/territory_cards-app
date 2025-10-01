@@ -58,17 +58,23 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabContents = document.querySelectorAll('.tab-content');
     
     tabs.forEach(tab => {
-        tab.addEventListener('click', () => {
-            if (bulkActionMode !== 'none') return;
-            
-            tabs.forEach(item => item.classList.remove('active'));
-            tab.classList.add('active');
-            const targetTabId = tab.dataset.tab;
-            const targetTabContent = document.getElementById(targetTabId);
-            tabContents.forEach(content => content.classList.remove('active'));
-            targetTabContent.classList.add('active');
-        });
+    tab.addEventListener('click', () => {
+        if (bulkActionMode !== 'none') return;
+        
+        const targetTabId = tab.dataset.tab; // Отримуємо ID вкладки
+
+        // Оновлюємо дані для всіх вкладок, ОКРІМ 'general-maps'
+        if (targetTabId !== 'general-maps') {
+            fetchAllData();
+        }
+        
+        tabs.forEach(item => item.classList.remove('active'));
+        tab.classList.add('active');
+        const targetTabContent = document.getElementById(targetTabId);
+        tabContents.forEach(content => content.classList.remove('active'));
+        targetTabContent.classList.add('active');
     });
+});
     
     // --- ОСНОВНІ ФУНКЦІЇ ЗАВАНТАЖЕННЯ ДАНИХ ---
 
