@@ -799,7 +799,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) { 
-                    if (payload.action !== 'markJournalEntry') {
+                    if (payload.action !== 'markJournalEntry' && payload.action !== 'sendPhotoToUser') {
                          fetchAllData();
                     }
                     showToast(result.message || "Успішно виконано!");
