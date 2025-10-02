@@ -895,7 +895,7 @@ function requestTerritory(territoryId, buttonElement) {
         }
         imageModal.classList.remove('active');
         resetTransform();
-        postToServer({ action: 'sendPhotoToUser', userId: userId, photoId: photoId, caption: caption }, "Надсилаю фото...", "Не вдалося надіслати фото.");
+        postToServer({ action: 'sendPhotoToUser', userId: userId, photoId: photoId, caption: caption }, "Завантажую картку...", "Не вдалося завантажити картку");
     });
     
     let scale = 1, isPanning = false, startX = 0, startY = 0, translateX = 0, translateY = 0, initialPinchDistance = null;
