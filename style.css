@@ -165,9 +165,9 @@ body.bulk-mode-active .territory-item {
     font-family: 'Georgia', serif;
     font-weight: bold;
     font-size: 16px;
-    color: var(--tg-theme-button-color, #007bff);
+    color: #dc3545; /* Червоний колір тексту */
     background-color: var(--tg-theme-secondary-bg-color, #e9ecef);
-    border: 1px solid var(--tg-theme-button-color, #007bff);
+    border: 2px solid #dc3545; /* Товща червона рамка */
     border-radius: 50%;
     width: 24px;
     height: 24px;
@@ -177,6 +177,7 @@ body.bulk-mode-active .territory-item {
     cursor: pointer;
     flex-shrink: 0;
     user-select: none;
+    box-shadow: 0 0 4px rgba(220, 53, 69, 0.3); /* Легке червоне сяйво */
 }
 .territory-content {
     display: flex;
