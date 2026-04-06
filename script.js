@@ -84,17 +84,15 @@ function fetchAllData() {
         fetch(SCRIPT_URL)
             .then(response => response.json())
             .then(data => {
-                if (data.error) throw new Error(data.error);
+                if (!data || data.error) throw new Error(data.error || "No data");
 
-                // ЗБЕРЕЖЕННЯ В КЕШ (LocalStorage)
+                // 1. ЗБЕРЕЖЕННЯ (LocalStorage)
                 try {
                     localStorage.setItem('territory_data_cache', JSON.stringify(data));
                     localStorage.setItem('territory_cache_time', Date.now().toString());
-                } catch (e) {
-                    console.warn("Помилка запису в кеш:", e);
-                }
+                } catch (e) { console.error("Cache error:", e); }
 
-                // Оновлюємо глобальні змінні твоїми даними
+                // 2. ПРИСВОЄННЯ (твої змінні)
                 allTerritories = data.territories || [];
                 allUsers = data.users || [];
                 journalEntriesCache = data.history || [];
@@ -103,15 +101,15 @@ function fetchAllData() {
                 showLoader(false);
             })
             .catch(error => {
-                console.error('Помилка мережі, перевіряємо наявність кешу:', error);
+                console.warn('Спроба офлайн завантаження:', error);
                 
+                // 3. ОФЛАЙН ЛОГІКА
                 const cachedDataRaw = localStorage.getItem('territory_data_cache');
-                const cacheTimeRaw = localStorage.getItem('territory_cache_time');
-
                 if (cachedDataRaw) {
                     try {
                         const data = JSON.parse(cachedDataRaw);
-                        const cacheDate = cacheTimeRaw ? new Date(parseInt(cacheTimeRaw)).toLocaleString('uk-UA') : "невідомо";
+                        const cacheTimeRaw = localStorage.getItem('territory_cache_time');
+                        const cacheDate = cacheTimeRaw ? new Date(parseInt(cacheTimeRaw)).toLocaleString('uk-UA') : "";
                         
                         allTerritories = data.territories || [];
                         allUsers = data.users || [];
@@ -119,18 +117,16 @@ function fetchAllData() {
                         
                         renderData(data);
                         
-                        // Сповіщення через Telegram WebApp (використовуємо твою змінну tg)
-                        tg.showAlert(`Відсутній зв'язок. Завантажено збережену копію від: ${cacheDate}`);
-                    } catch (e) {
-                        console.error("Помилка парсингу кешу:", e);
-                    }
+                        // Твоя змінна tg уже оголошена на початку файлу
+                        tg.showAlert("Офлайн режим. Дані завантажено з пам'яті телефону" + (cacheDate ? " (" + cacheDate + ")" : ""));
+                    } catch (e) { console.error("Cache parse error:", e); }
                 } else {
-                    myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px; color: var(--tg-theme-hint-color);">Потрібен інтернет для першого завантаження.</p>';
+                    myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px;">Не вдалося завантажити дані. Перевірте інтернет.</p>';
                 }
                 showLoader(false);
             });
     }
-                    
+                        
     // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
 
     function createPhotoBlock(territory) {
