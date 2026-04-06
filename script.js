@@ -79,56 +79,56 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- ОСНОВНІ ФУНКЦІЇ ЗАВАНТАЖЕННЯ ДАНИХ ---
 
 function fetchAllData() {
-        showLoader(true);
-        
-        fetch(SCRIPT_URL)
-            .then(response => response.json())
-            .then(data => {
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-                
-                // ЗБЕРЕЖЕННЯ: Записуємо отримані дані в пам'ять браузера
-                localStorage.setItem('territory_data_cache', JSON.stringify(data));
-                localStorage.setItem('territory_cache_time', new Date().getTime());
+    showLoader(true);
+    
+    fetch(SCRIPT_URL)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) throw new Error(data.error);
+            
+            // ЗБЕРІГАЄМО В КЕШ (це спрацює, коли є інтернет)
+            localStorage.setItem('territory_data_cache', JSON.stringify(data));
+            localStorage.setItem('territory_cache_time', new Date().getTime());
 
+            // Оновлюємо глобальні змінні
+            allTerritories = data.territories || [];
+            allUsers = data.users || [];
+            journalEntriesCache = data.history || [];
+            
+            renderData(data);
+            showLoader(false);
+        })
+        .catch(error => {
+            console.error('Спроба перейти в офлайн режим:', error);
+            
+            // ДІСТАЄМО З КЕШУ (це спрацює, коли інтернету немає)
+            const cachedData = localStorage.getItem('territory_data_cache');
+            const cacheTime = localStorage.getItem('territory_cache_time');
+
+            if (cachedData) {
+                const data = JSON.parse(cachedData);
+                const timeString = cacheTime ? new Date(parseInt(cacheTime)).toLocaleString('uk-UA') : "невідомо";
+                
                 allTerritories = data.territories || [];
                 allUsers = data.users || [];
                 journalEntriesCache = data.history || [];
                 
                 renderData(data);
-                showLoader(false);
-            })
-            .catch(error => {
-                console.error('Помилка завантаження:', error);
                 
-                // ОФЛАЙН ЛОГІКА: пробуємо дістати дані з кешу
-                const cachedData = localStorage.getItem('territory_data_cache');
-                const cacheTime = localStorage.getItem('territory_cache_time');
-
-                if (cachedData) {
-                    const data = JSON.parse(cachedData);
-                    const date = cacheTime ? new Date(parseInt(cacheTime)).toLocaleString() : "невідомо коли";
-                    
-                    allTerritories = data.territories || [];
-                    allUsers = data.users || [];
-                    journalEntriesCache = data.history || [];
-                    
-                    renderData(data);
-                    
-                    // Повідомляємо користувача, що дані застарілі
-                    tg.showPopup({
+                // Виводимо сповіщення через Telegram WebApp
+                if (window.Telegram && window.Telegram.WebApp) {
+                    window.Telegram.WebApp.showPopup({
                         title: 'Офлайн режим',
-                        message: `Не вдалося оновити дані. Показую копію, збережену: ${date}. Перевірте інтернет.`,
+                        message: `Відсутній зв'язок. Показ даних, збережених: ${timeString}`,
                         buttons: [{type: 'ok'}]
                     });
-                } else {
-                    // Якщо кешу немає і інтернету теж
-                    myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px;">Потрібен інтернет для першого завантаження даних.</p>';
                 }
-                showLoader(false);
-            });
-    }
+            } else {
+                myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px;">Для першого завантаження потрібен інтернет.</p>';
+            }
+            showLoader(false);
+        });
+}
     
     // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
 
