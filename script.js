@@ -82,22 +82,18 @@ function fetchAllData() {
         showLoader(true);
         
         fetch(SCRIPT_URL)
-            .then(response => {
-                if (!response.ok) throw new Error('Network response was not ok');
-                return response.json();
-            })
+            .then(response => response.json())
             .then(data => {
-                if (data.error) throw new Error(data.error);
-
-                // 1. ЗБЕРІГАЄМО В КЕШ (Оновлюємо копію в пам'яті)
-                try {
-                    localStorage.setItem('territory_data_cache', JSON.stringify(data));
-                    localStorage.setItem('territory_cache_time', new Date().getTime().toString());
-                } catch (e) {
-                    console.warn("Не вдалося зберегти в localStorage:", e);
+                // Перевіряємо, чи прийшли дані взагалі
+                if (!data || (!data.territories && !data.history)) {
+                    throw new Error("Пусті дані від сервера");
                 }
 
-                // 2. ОНОВЛЮЄМО ДАНІ В ДОДАТКУ
+                // ЗБЕРЕЖЕННЯ В КЕШ (робимо це безпечно)
+                localStorage.setItem('territory_data_cache', JSON.stringify(data));
+                localStorage.setItem('territory_cache_time', Date.now().toString());
+
+                // ПРИСВОЄННЯ (використовуємо твої існуючі змінні)
                 allTerritories = data.territories || [];
                 allUsers = data.users || [];
                 journalEntriesCache = data.history || [];
@@ -106,37 +102,31 @@ function fetchAllData() {
                 showLoader(false);
             })
             .catch(error => {
-                console.error('Помилка мережі, спроба завантажити кеш:', error);
+                console.error('Помилка завантаження:', error);
                 
-                // 3. ОФЛАЙН ЛОГІКА
-                const cachedDataRaw = localStorage.getItem('territory_data_cache');
-                const cacheTimeRaw = localStorage.getItem('territory_cache_time');
-
-                if (cachedDataRaw) {
-                    try {
-                        const data = JSON.parse(cachedDataRaw);
-                        const cacheDate = cacheTimeRaw ? new Date(parseInt(cacheTimeRaw)).toLocaleString('uk-UA') : "невідомо";
-                        
-                        allTerritories = data.territories || [];
-                        allUsers = data.users || [];
-                        journalEntriesCache = data.history || [];
-                        
-                        renderData(data);
-                        
-                        // Повідомлення про офлайн
-                        if (window.Telegram && window.Telegram.WebApp) {
-                            window.Telegram.WebApp.showAlert(`Відсутній зв'язок. Дані завантажено з пам'яті телефону (копія від ${cacheDate}).`);
-                        }
-                    } catch (parseError) {
-                        console.error("Помилка читання кешу:", parseError);
+                // СПРОБА ВЗЯТИ З КЕШУ
+                const cachedData = localStorage.getItem('territory_data_cache');
+                if (cachedData) {
+                    const data = JSON.parse(cachedData);
+                    
+                    allTerritories = data.territories || [];
+                    allUsers = data.users || [];
+                    journalEntriesCache = data.history || [];
+                    
+                    renderData(data);
+                    
+                    if (window.Telegram && window.Telegram.WebApp) {
+                        window.Telegram.WebApp.showScanQrPopup({ text: "Офлайн режим: дані з пам'яті" });
+                        // Або просто alert, якщо popup не підтримується
+                        setTimeout(() => window.Telegram.WebApp.closeScanQrPopup(), 2000);
                     }
                 } else {
-                    myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px; color: red;">Потрібен інтернет для першого завантаження.</p>';
+                    myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px;">Не вдалося завантажити дані. Перевірте інтернет.</p>';
                 }
                 showLoader(false);
             });
     }
-        
+            
     // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
 
     function createPhotoBlock(territory) {
