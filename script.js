@@ -990,7 +990,8 @@ function requestTerritory(territoryId, buttonElement) {
         if (sortedEntries.length === 0) {
             listHtml = '<p style="text-align: center; padding: 20px;">Нових записів немає.</p>';
         } else {
-            listHtml = '<ul class="journal-list">';
+            // Додано max-height та overflow-y для можливості прокручувати довгий список
+            listHtml = '<ul class="journal-list" style="max-height: 60vh; overflow-y: auto; overflow-x: hidden; padding-right: 5px;">';
             sortedEntries.forEach(entry => {
                 const actionText = entry.action === 'Assigned' ? 'взяв' : 'здав';
                 const actionClass = entry.action === 'Assigned' ? 'action-took' : 'action-returned';
