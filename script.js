@@ -78,36 +78,65 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // --- ОСНОВНІ ФУНКЦІЇ ЗАВАНТАЖЕННЯ ДАНИХ ---
 
-function fetchAllData() {
-        showLoader(true);
-        fetch(SCRIPT_URL)
-            .then(response => response.json())
-            .then(data => {
-                // ПРЯМЕ ЗБЕРЕЖЕННЯ (без зайвих перевірок)
-                localStorage.setItem('territory_data_cache', JSON.stringify(data));
-                
-                allTerritories = data.territories;
-                allUsers = data.users;
-                journalEntriesCache = data.history;
-                
-                renderData(data);
-                showLoader(false);
-            })
-            .catch(error => {
-                // Якщо інтернет зник — беремо те, що зберегли раніше
-                const cached = localStorage.getItem('territory_data_cache');
-                if (cached) {
-                    const data = JSON.parse(cached);
-                    allTerritories = data.territories;
-                    allUsers = data.users;
-                    journalEntriesCache = data.history;
-                    renderData(data);
-                    tg.showAlert("Офлайн режим: дані з пам'яті пристрою.");
+    function fetchAllData() {
+        if (!userId) {
+            document.body.innerHTML = '<p>Не вдалося ідентифікувати користувача. Спробуйте перезапустити додаток.</p>';
+            return;
+        }
+        loader.style.display = 'block';
+        appContainer.classList.add('is-loading');
+        
+        Promise.all([
+            fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`).then(res => res.json()),
+            fetch(`${SCRIPT_URL}?userId=${userId}`).then(res => res.json())
+        ]).then(([myData, allData]) => {
+            appContainer.classList.remove('is-loading');
+            loader.style.display = 'none';
+            if (myData.ok) displayMyTerritories(myData.territories);
+            
+            if (allData.ok) {
+                allTerritories = allData.territories;
+                isAdmin = allData.isAdmin;
+
+                const baseOrder = ["Тернопіль", "Березовиця", "Острів", "Буцнів"];
+                const getDistance = name => {
+                    const match = name.match(/\((\d+)км\)/);
+                    return match ? parseInt(match[1], 10) : Infinity;
+                };
+                predefinedFilterOrder = allData.filters.sort((a, b) => {
+                    const indexA = baseOrder.indexOf(a);
+                    const indexB = baseOrder.indexOf(b);
+                    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
+                    if (indexA !== -1) return -1;
+                    if (indexB !== -1) return 1;
+                    return getDistance(a) - getDistance(b);
+                });
+
+                displayFilters(predefinedFilterOrder);
+                displayGeneralMaps();
+                const activeFilter = document.querySelector('.filter-btn.active');
+                if (activeFilter) displayFreeTerritories(activeFilter.dataset.filter);
+
+                if (isAdmin) {
+                    allTerritoriesTabBtn.style.display = 'block';
+                    setupAdminPanel();
+                    updateAdminFilterCounts();
+                    updateAndDisplayAdminTerritories();
+                    fetch(`${SCRIPT_URL}?action=getAllUsers&userId=${userId}`)
+                        .then(res => res.json())
+                        .then(data => { if (data.ok) allUsers = data.users; });
                 }
-                showLoader(false);
-            });
+            } else {
+                 document.body.innerHTML = `<p>Помилка завантаження даних: ${allData.error}</p>`;
+            }
+        }).catch(error => {
+            appContainer.classList.remove('is-loading');
+            loader.style.display = 'none';
+            console.error('Critical fetch error:', error);
+            document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані. Перевірте з'єднання з Інтернетом.</p>`;
+        });
     }
-                            
+
     // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
 
     function createPhotoBlock(territory) {
