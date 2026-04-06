@@ -961,21 +961,46 @@ function requestTerritory(territoryId, buttonElement) {
         };
 
         const sortedEntries = [...journalEntriesCache].sort((a, b) => {
-            let comparison = 0;
-            switch (journalSortKey) {
-                case 'id':
-                    comparison = a.territoryId - b.territoryId;
-                    break;
-                case 'user':
-                    comparison = a.user.localeCompare(b.user, 'uk');
-                    break;
-                case 'date':
-                default:
-                    comparison = parseDateForSort(a.date) - parseDateForSort(b.date);
-                    break;
+    let comparison = 0;
+    switch (journalSortKey) {
+        case 'id':
+            // 1. Витягуємо тільки цифри (безпечно для "12А")
+            const idA = parseInt(a.territoryId, 10) || 0;
+            const idB = parseInt(b.territoryId, 10) || 0;
+            comparison = idA - idB;
+
+            // 2. Якщо цифри однакові, порівнюємо як текст (для літер: "12" vs "12А")
+            if (comparison === 0) {
+                comparison = String(a.territoryId).localeCompare(String(b.territoryId), 'uk', { numeric: true });
             }
-            return journalSortDirection === 'asc' ? comparison : -comparison;
-        });
+
+            // 3. Якщо номер території ідентичний, зберігаємо порядок з журналу (rowId)
+            if (comparison === 0) {
+                comparison = a.rowId - b.rowId;
+                
+                // Захист: зберігаємо хронологію "Взяв -> Здав" навіть при зворотному сортуванні номерів
+                if (journalSortDirection === 'desc') {
+                    comparison = -comparison; 
+                }
+            }
+            break;
+
+        case 'user':
+            comparison = a.user.localeCompare(b.user, 'uk');
+            break;
+
+        case 'date':
+        default:
+            const timeA = parseDateForSort(a.date).getTime() || 0;
+            const timeB = parseDateForSort(b.date).getTime() || 0;
+            comparison = timeA - timeB;
+            if (comparison === 0) {
+                comparison = a.rowId - b.rowId;
+            }
+            break;
+    }
+    return journalSortDirection === 'asc' ? comparison : -comparison;
+});
 
         const sortControlsHtml = `
             <div class="journal-sort-controls">
