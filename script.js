@@ -83,15 +83,9 @@ function fetchAllData() {
         fetch(SCRIPT_URL)
             .then(response => response.json())
             .then(data => {
-                if (data.error) {
-                    throw new Error(data.error);
-                }
-
-                // ЗБЕРЕЖЕННЯ В КЕШ (БЕЗ ЗМІНИ СТРУКТУРИ)
-                try {
-                    localStorage.setItem('territory_data_cache', JSON.stringify(data));
-                } catch (e) { console.log('Cache error'); }
-
+                // ПРЯМЕ ЗБЕРЕЖЕННЯ (без зайвих перевірок)
+                localStorage.setItem('territory_data_cache', JSON.stringify(data));
+                
                 allTerritories = data.territories;
                 allUsers = data.users;
                 journalEntriesCache = data.history;
@@ -100,23 +94,15 @@ function fetchAllData() {
                 showLoader(false);
             })
             .catch(error => {
-                console.error('Помилка завантаження, перевіряю кеш:', error);
-                
-                // ОФЛАЙН ЛОГІКА
-                const cachedData = localStorage.getItem('territory_data_cache');
-                if (cachedData) {
-                    const data = JSON.parse(cachedData);
-                    
+                // Якщо інтернет зник — беремо те, що зберегли раніше
+                const cached = localStorage.getItem('territory_data_cache');
+                if (cached) {
+                    const data = JSON.parse(cached);
                     allTerritories = data.territories;
                     allUsers = data.users;
                     journalEntriesCache = data.history;
-                    
                     renderData(data);
-                    
-                    // Використовуємо твою змінну tg, яка вже є в коді
-                    tg.showAlert("Відсутній інтернет. Завантажено дані з пам'яті пристрою.");
-                } else {
-                    myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px;">Потрібен інтернет для першого завантаження.</p>';
+                    tg.showAlert("Офлайн режим: дані з пам'яті пристрою.");
                 }
                 showLoader(false);
             });
