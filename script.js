@@ -79,54 +79,56 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- ОСНОВНІ ФУНКЦІЇ ЗАВАНТАЖЕННЯ ДАНИХ ---
 
 function fetchAllData() {
-        showLoader(true);
+        if (typeof loader !== 'undefined') loader.style.display = 'block';
         
         fetch(SCRIPT_URL)
             .then(response => response.json())
             .then(data => {
-                // Перевіряємо, чи прийшли дані взагалі
-                if (!data || (!data.territories && !data.history)) {
-                    throw new Error("Пусті дані від сервера");
-                }
+                if (!data) throw new Error("No data received");
 
-                // ЗБЕРЕЖЕННЯ В КЕШ (робимо це безпечно)
-                localStorage.setItem('territory_data_cache', JSON.stringify(data));
-                localStorage.setItem('territory_cache_time', Date.now().toString());
+                // Спроба зберегти в кеш
+                try {
+                    localStorage.setItem('territory_data_cache', JSON.stringify(data));
+                    localStorage.setItem('territory_cache_time', Date.now().toString());
+                } catch (e) { console.log("Cache save error:", e); }
 
-                // ПРИСВОЄННЯ (використовуємо твої існуючі змінні)
+                // ПРИСВОЄННЯ (використовуємо твої оригінальні назви змінних)
                 allTerritories = data.territories || [];
                 allUsers = data.users || [];
                 journalEntriesCache = data.history || [];
                 
+                // Твій оригінальний виклик рендерингу
                 renderData(data);
-                showLoader(false);
+                if (typeof loader !== 'undefined') loader.style.display = 'none';
             })
             .catch(error => {
-                console.error('Помилка завантаження:', error);
+                console.error('Fetch error, checking cache:', error);
                 
-                // СПРОБА ВЗЯТИ З КЕШУ
-                const cachedData = localStorage.getItem('territory_data_cache');
-                if (cachedData) {
-                    const data = JSON.parse(cachedData);
-                    
-                    allTerritories = data.territories || [];
-                    allUsers = data.users || [];
-                    journalEntriesCache = data.history || [];
-                    
-                    renderData(data);
-                    
-                    if (window.Telegram && window.Telegram.WebApp) {
-                        window.Telegram.WebApp.showScanQrPopup({ text: "Офлайн режим: дані з пам'яті" });
-                        // Або просто alert, якщо popup не підтримується
-                        setTimeout(() => window.Telegram.WebApp.closeScanQrPopup(), 2000);
-                    }
+                const cachedDataRaw = localStorage.getItem('territory_data_cache');
+                if (cachedDataRaw) {
+                    try {
+                        const data = JSON.parse(cachedDataRaw);
+                        
+                        allTerritories = data.territories || [];
+                        allUsers = data.users || [];
+                        journalEntriesCache = data.history || [];
+                        
+                        renderData(data);
+                        
+                        // Показуємо сповіщення через Telegram
+                        if (window.Telegram && window.Telegram.WebApp) {
+                            window.Telegram.WebApp.showAlert("Офлайн режим: дані завантажено з пам'яті.");
+                        }
+                    } catch (e) { console.log("Cache parse error:", e); }
                 } else {
-                    myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px;">Не вдалося завантажити дані. Перевірте інтернет.</p>';
+                    if (myTerritoryList) {
+                        myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px;">Потрібен інтернет для першого завантаження.</p>';
+                    }
                 }
-                showLoader(false);
+                if (typeof loader !== 'undefined') loader.style.display = 'none';
             });
     }
-            
+                
     // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
 
     function createPhotoBlock(territory) {
