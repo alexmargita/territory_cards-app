@@ -955,11 +955,8 @@ function requestTerritory(territoryId, buttonElement) {
     }
 
     function displayJournal() {
-// Безпечний парсинг дати (захист від порожніх значень)
         const parseDateForSort = (dateStr) => {
-            if (!dateStr) return new Date(0);
-            const parts = String(dateStr).split('.');
-            if (parts.length !== 3) return new Date(0);
+            const parts = dateStr.split('.');
             return new Date(parts[2], parts[1] - 1, parts[0]);
         };
 
@@ -967,46 +964,19 @@ function requestTerritory(territoryId, buttonElement) {
             let comparison = 0;
             switch (journalSortKey) {
                 case 'id':
-                    // Безпечне перетворення на число (відкидає літери, наприклад з "12А" зробить 12)
-                    const idA = parseInt(a.territoryId) || 0;
-                    const idB = parseInt(b.territoryId) || 0;
-                    comparison = idA - idB;
-
-                    // Якщо цифри однакові, порівнюємо їх як текст (щоб "12А" і "12Б" стали по черзі)
-                    if (comparison === 0) {
-                        comparison = String(a.territoryId).localeCompare(String(b.territoryId));
-                    }
-
-                    // Якщо номери повністю ідентичні, сортуємо за дією: "Взяв" -> "Здав"
-                    if (comparison === 0) {
-                        let actionA = a.action === 'Assigned' ? 0 : 1;
-                        let actionB = b.action === 'Assigned' ? 0 : 1;
-                        comparison = actionA - actionB;
-                        
-                        // Компенсуємо реверс, щоб "Взяв" ЗАВЖДИ було вище за "Здав",
-                        // навіть якщо користувач натиснув сортування "за спаданням"
-                        if (journalSortDirection === 'desc') {
-                            comparison = -comparison; 
-                        }
-                    }
+                    comparison = a.territoryId - b.territoryId;
                     break;
                 case 'user':
                     comparison = a.user.localeCompare(b.user, 'uk');
                     break;
                 case 'date':
                 default:
-                    const timeA = parseDateForSort(a.date).getTime() || 0;
-                    const timeB = parseDateForSort(b.date).getTime() || 0;
-                    comparison = timeA - timeB;
-                    // Якщо дати однакові, зберігаємо хронологію: новіші записи вище
-                    if (comparison === 0) {
-                        comparison = b.rowId - a.rowId; 
-                    }
+                    comparison = parseDateForSort(a.date) - parseDateForSort(b.date);
                     break;
             }
             return journalSortDirection === 'asc' ? comparison : -comparison;
         });
-        
+
         const sortControlsHtml = `
             <div class="journal-sort-controls">
                 <span>Сортувати:</span>
@@ -1020,8 +990,7 @@ function requestTerritory(territoryId, buttonElement) {
         if (sortedEntries.length === 0) {
             listHtml = '<p style="text-align: center; padding: 20px;">Нових записів немає.</p>';
         } else {
-            // Додано max-height та overflow-y для можливості прокручувати довгий список
-            listHtml = '<ul class="journal-list" style="max-height: 60vh; overflow-y: auto; overflow-x: hidden; padding-right: 5px;">';
+            listHtml = '<ul class="journal-list">';
             sortedEntries.forEach(entry => {
                 const actionText = entry.action === 'Assigned' ? 'взяв' : 'здав';
                 const actionClass = entry.action === 'Assigned' ? 'action-took' : 'action-returned';
