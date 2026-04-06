@@ -14,8 +14,6 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwNlnmNwi2adHqGtxBRo
 
 document.addEventListener('DOMContentLoaded', function() {
     const tg = window.Telegram.WebApp;
-    localStorage.clear(); 
-    console.log("Кеш очищено!");
     tg.expand();
 
     // --- DOM елементи ---
@@ -81,64 +79,56 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- ОСНОВНІ ФУНКЦІЇ ЗАВАНТАЖЕННЯ ДАНИХ ---
 
     function fetchAllData() {
-        if (!userId) {
-            document.body.innerHTML = '<p>Не вдалося ідентифікувати користувача. Спробуйте перезапустити додаток.</p>';
-            return;
-        }
-        loader.style.display = 'block';
-        appContainer.classList.add('is-loading');
-        
-        Promise.all([
-            fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`).then(res => res.json()),
-            fetch(`${SCRIPT_URL}?userId=${userId}`).then(res => res.json())
-        ]).then(([myData, allData]) => {
-            appContainer.classList.remove('is-loading');
-            loader.style.display = 'none';
-            if (myData.ok) displayMyTerritories(myData.territories);
-            
-            if (allData.ok) {
-                allTerritories = allData.territories;
-                isAdmin = allData.isAdmin;
+        showLoader(true);
+        fetch(SCRIPT_URL)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) throw new Error(data.error);
 
-                const baseOrder = ["Тернопіль", "Березовиця", "Острів", "Буцнів"];
-                const getDistance = name => {
-                    const match = name.match(/\((\d+)км\)/);
-                    return match ? parseInt(match[1], 10) : Infinity;
-                };
-                predefinedFilterOrder = allData.filters.sort((a, b) => {
-                    const indexA = baseOrder.indexOf(a);
-                    const indexB = baseOrder.indexOf(b);
-                    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-                    if (indexA !== -1) return -1;
-                    if (indexB !== -1) return 1;
-                    return getDistance(a) - getDistance(b);
-                });
+                // --- КРОК 1: ЗБЕРЕЖЕННЯ В КЕШ ---
+                try {
+                    localStorage.setItem('territory_data_cache', JSON.stringify(data));
+                    localStorage.setItem('territory_cache_time', Date.now().toString());
+                } catch (e) { console.error("Помилка кешування:", e); }
 
-                displayFilters(predefinedFilterOrder);
-                displayGeneralMaps();
-                const activeFilter = document.querySelector('.filter-btn.active');
-                if (activeFilter) displayFreeTerritories(activeFilter.dataset.filter);
+                // --- КРОК 2: ПРИСВОЄННЯ ---
+                allTerritories = data.territories;
+                allUsers = data.users;
+                journalEntriesCache = data.history;
+                
+                renderData(data);
+                showLoader(false);
+            })
+            .catch(error => {
+                console.warn('Мережа недоступна, перевіряю локальну пам\'ять...', error);
+                
+                // --- КРОК 3: ОФЛАЙН ЛОГІКА ---
+                const cachedDataRaw = localStorage.getItem('territory_data_cache');
+                if (cachedDataRaw) {
+                    try {
+                        const data = JSON.parse(cachedDataRaw);
+                        const cacheTime = localStorage.getItem('territory_cache_time');
+                        const dateStr = cacheTime ? new Date(parseInt(cacheTime)).toLocaleString('uk-UA') : "";
 
-                if (isAdmin) {
-                    allTerritoriesTabBtn.style.display = 'block';
-                    setupAdminPanel();
-                    updateAdminFilterCounts();
-                    updateAndDisplayAdminTerritories();
-                    fetch(`${SCRIPT_URL}?action=getAllUsers&userId=${userId}`)
-                        .then(res => res.json())
-                        .then(data => { if (data.ok) allUsers = data.users; });
+                        allTerritories = data.territories;
+                        allUsers = data.users;
+                        journalEntriesCache = data.history;
+                        
+                        renderData(data);
+                        
+                        // Використовуємо твою змінну tg
+                        tg.showAlert("⚠️ Офлайн режим\nДані завантажено з пам'яті телефону.\nАктуально на: " + dateStr);
+                    } catch (e) { 
+                        console.error("Помилка читання кешу:", e);
+                        myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px;">Потрібен інтернет.</p>';
+                    }
+                } else {
+                    myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px;">Дані відсутні. Підключіться до мережі.</p>';
                 }
-            } else {
-                 document.body.innerHTML = `<p>Помилка завантаження даних: ${allData.error}</p>`;
-            }
-        }).catch(error => {
-            appContainer.classList.remove('is-loading');
-            loader.style.display = 'none';
-            console.error('Critical fetch error:', error);
-            document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані. Перевірте з'єднання з Інтернетом.</p>`;
-        });
+                showLoader(false);
+            });
     }
-
+    
     // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
 
     function createPhotoBlock(territory) {
