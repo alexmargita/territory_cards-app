@@ -14,6 +14,11 @@ const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwNlnmNwi2adHqGtxBRo
 
 document.addEventListener('DOMContentLoaded', function() {
     const tg = window.Telegram.WebApp;
+    
+    // ВСТАВ СЮДИ:
+    localStorage.clear(); 
+    console.log("Кеш очищено!");
+    
     tg.expand();
 
     // --- DOM елементи ---
