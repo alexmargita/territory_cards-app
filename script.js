@@ -961,45 +961,56 @@ function requestTerritory(territoryId, buttonElement) {
         };
 
         const sortedEntries = [...journalEntriesCache].sort((a, b) => {
-    let comparison = 0;
-    switch (journalSortKey) {
-        case 'id':
-            // 1. Витягуємо тільки цифри (безпечно для "12А")
-            const idA = parseInt(a.territoryId, 10) || 0;
-            const idB = parseInt(b.territoryId, 10) || 0;
-            comparison = idA - idB;
+    // 1. ПЕРЕВІРКА КЛЮЧА: Якщо сортуємо по номеру картки (ID)
+    if (journalSortKey === 'id') {
+        // Перетворюємо в чистий рядок, щоб уникнути помилок
+        const rawA = String(a.territoryId);
+        const rawB = String(b.territoryId);
 
-            // 2. Якщо цифри однакові, порівнюємо як текст (для літер: "12" vs "12А")
-            if (comparison === 0) {
-                comparison = String(a.territoryId).localeCompare(String(b.territoryId), 'uk', { numeric: true });
-            }
+        // Витягуємо числову частину (наприклад, з "12А" отримаємо 12)
+        const numA = parseInt(rawA, 10) || 0;
+        const numB = parseInt(rawB, 10) || 0;
 
-            // 3. Якщо номер території ідентичний, зберігаємо порядок з журналу (rowId)
-            if (comparison === 0) {
-                comparison = a.rowId - b.rowId;
-                
-                // Захист: зберігаємо хронологію "Взяв -> Здав" навіть при зворотному сортуванні номерів
-                if (journalSortDirection === 'desc') {
-                    comparison = -comparison; 
-                }
-            }
-            break;
+        let comparison = 0;
 
-        case 'user':
-            comparison = a.user.localeCompare(b.user, 'uk');
-            break;
+        // ПРІОРИТЕТ 1: Числове значення (щоб 20 було перед 300)
+        if (numA !== numB) {
+            comparison = numA - numB;
+        } 
+        // ПРІОРИТЕТ 2: Буквена частина (якщо числа однакові, наприклад "12" і "12А")
+        else {
+            comparison = rawA.localeCompare(rawB, 'uk', { numeric: true });
+        }
 
-        case 'date':
-        default:
-            const timeA = parseDateForSort(a.date).getTime() || 0;
-            const timeB = parseDateForSort(b.date).getTime() || 0;
-            comparison = timeA - timeB;
-            if (comparison === 0) {
-                comparison = a.rowId - b.rowId;
-            }
-            break;
+        // ПРІОРИТЕТ 3: Порядок у журналі (rowId)
+        // Якщо це одна і та ж картка (наприклад, два записи для "12")
+        if (comparison === 0) {
+            // ПОВЕРТАЄМО РЕЗУЛЬТАТ НЕГАЙНО, ігноруючи загальний напрямок (asc/desc)
+            // Це гарантує, що "Взяв" завжди буде перед "Здав" для однієї картки
+            return a.rowId - b.rowId;
+        }
+
+        // Застосовуємо вибраний користувачем напрямок (від менших чи від більших)
+        return journalSortDirection === 'asc' ? comparison : -comparison;
     }
-    return journalSortDirection === 'asc' ? comparison : -comparison;
+
+    // 2. ЛОГІКА ДЛЯ ІНШИХ ТИПІВ (Дата, Користувач)
+    let otherComparison = 0;
+    if (journalSortKey === 'user') {
+        otherComparison = a.user.localeCompare(b.user, 'uk');
+    } else {
+        // Сортування за датою
+        const timeA = parseDateForSort(a.date).getTime() || 0;
+        const timeB = parseDateForSort(b.date).getTime() || 0;
+        otherComparison = timeA - timeB;
+    }
+
+    // Якщо дати або імена однакові — теж підстраховуємося порядком з таблиці
+    if (otherComparison === 0) {
+        return a.rowId - b.rowId;
+    }
+
+    return journalSortDirection === 'asc' ? otherComparison : -otherComparison;
 });
 
         const sortControlsHtml = `
