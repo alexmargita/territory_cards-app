@@ -79,57 +79,64 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- ОСНОВНІ ФУНКЦІЇ ЗАВАНТАЖЕННЯ ДАНИХ ---
 
 function fetchAllData() {
-    showLoader(true);
-    
-    fetch(SCRIPT_URL)
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) throw new Error(data.error);
-            
-            // ЗБЕРІГАЄМО В КЕШ (це спрацює, коли є інтернет)
-            localStorage.setItem('territory_data_cache', JSON.stringify(data));
-            localStorage.setItem('territory_cache_time', new Date().getTime());
+        showLoader(true);
+        
+        fetch(SCRIPT_URL)
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok');
+                return response.json();
+            })
+            .then(data => {
+                if (data.error) throw new Error(data.error);
 
-            // Оновлюємо глобальні змінні
-            allTerritories = data.territories || [];
-            allUsers = data.users || [];
-            journalEntriesCache = data.history || [];
-            
-            renderData(data);
-            showLoader(false);
-        })
-        .catch(error => {
-            console.error('Спроба перейти в офлайн режим:', error);
-            
-            // ДІСТАЄМО З КЕШУ (це спрацює, коли інтернету немає)
-            const cachedData = localStorage.getItem('territory_data_cache');
-            const cacheTime = localStorage.getItem('territory_cache_time');
+                // 1. ЗБЕРІГАЄМО В КЕШ (Оновлюємо копію в пам'яті)
+                try {
+                    localStorage.setItem('territory_data_cache', JSON.stringify(data));
+                    localStorage.setItem('territory_cache_time', new Date().getTime().toString());
+                } catch (e) {
+                    console.warn("Не вдалося зберегти в localStorage:", e);
+                }
 
-            if (cachedData) {
-                const data = JSON.parse(cachedData);
-                const timeString = cacheTime ? new Date(parseInt(cacheTime)).toLocaleString('uk-UA') : "невідомо";
-                
+                // 2. ОНОВЛЮЄМО ДАНІ В ДОДАТКУ
                 allTerritories = data.territories || [];
                 allUsers = data.users || [];
                 journalEntriesCache = data.history || [];
                 
                 renderData(data);
+                showLoader(false);
+            })
+            .catch(error => {
+                console.error('Помилка мережі, спроба завантажити кеш:', error);
                 
-                // Виводимо сповіщення через Telegram WebApp
-                if (window.Telegram && window.Telegram.WebApp) {
-                    window.Telegram.WebApp.showPopup({
-                        title: 'Офлайн режим',
-                        message: `Відсутній зв'язок. Показ даних, збережених: ${timeString}`,
-                        buttons: [{type: 'ok'}]
-                    });
+                // 3. ОФЛАЙН ЛОГІКА
+                const cachedDataRaw = localStorage.getItem('territory_data_cache');
+                const cacheTimeRaw = localStorage.getItem('territory_cache_time');
+
+                if (cachedDataRaw) {
+                    try {
+                        const data = JSON.parse(cachedDataRaw);
+                        const cacheDate = cacheTimeRaw ? new Date(parseInt(cacheTimeRaw)).toLocaleString('uk-UA') : "невідомо";
+                        
+                        allTerritories = data.territories || [];
+                        allUsers = data.users || [];
+                        journalEntriesCache = data.history || [];
+                        
+                        renderData(data);
+                        
+                        // Повідомлення про офлайн
+                        if (window.Telegram && window.Telegram.WebApp) {
+                            window.Telegram.WebApp.showAlert(`Відсутній зв'язок. Дані завантажено з пам'яті телефону (копія від ${cacheDate}).`);
+                        }
+                    } catch (parseError) {
+                        console.error("Помилка читання кешу:", parseError);
+                    }
+                } else {
+                    myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px; color: red;">Потрібен інтернет для першого завантаження.</p>';
                 }
-            } else {
-                myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px;">Для першого завантаження потрібен інтернет.</p>';
-            }
-            showLoader(false);
-        });
-}
-    
+                showLoader(false);
+            });
+    }
+        
     // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
 
     function createPhotoBlock(territory) {
