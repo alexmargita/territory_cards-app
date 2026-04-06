@@ -78,65 +78,58 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // --- ОСНОВНІ ФУНКЦІЇ ЗАВАНТАЖЕННЯ ДАНИХ ---
 
-    function fetchAllData() {
-        if (!userId) {
-            document.body.innerHTML = '<p>Не вдалося ідентифікувати користувача. Спробуйте перезапустити додаток.</p>';
-            return;
-        }
-        loader.style.display = 'block';
-        appContainer.classList.add('is-loading');
+function fetchAllData() {
+        showLoader(true);
         
-        Promise.all([
-            fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`).then(res => res.json()),
-            fetch(`${SCRIPT_URL}?userId=${userId}`).then(res => res.json())
-        ]).then(([myData, allData]) => {
-            appContainer.classList.remove('is-loading');
-            loader.style.display = 'none';
-            if (myData.ok) displayMyTerritories(myData.territories);
-            
-            if (allData.ok) {
-                allTerritories = allData.territories;
-                isAdmin = allData.isAdmin;
-
-                const baseOrder = ["Тернопіль", "Березовиця", "Острів", "Буцнів"];
-                const getDistance = name => {
-                    const match = name.match(/\((\d+)км\)/);
-                    return match ? parseInt(match[1], 10) : Infinity;
-                };
-                predefinedFilterOrder = allData.filters.sort((a, b) => {
-                    const indexA = baseOrder.indexOf(a);
-                    const indexB = baseOrder.indexOf(b);
-                    if (indexA !== -1 && indexB !== -1) return indexA - indexB;
-                    if (indexA !== -1) return -1;
-                    if (indexB !== -1) return 1;
-                    return getDistance(a) - getDistance(b);
-                });
-
-                displayFilters(predefinedFilterOrder);
-                displayGeneralMaps();
-                const activeFilter = document.querySelector('.filter-btn.active');
-                if (activeFilter) displayFreeTerritories(activeFilter.dataset.filter);
-
-                if (isAdmin) {
-                    allTerritoriesTabBtn.style.display = 'block';
-                    setupAdminPanel();
-                    updateAdminFilterCounts();
-                    updateAndDisplayAdminTerritories();
-                    fetch(`${SCRIPT_URL}?action=getAllUsers&userId=${userId}`)
-                        .then(res => res.json())
-                        .then(data => { if (data.ok) allUsers = data.users; });
+        fetch(SCRIPT_URL)
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    throw new Error(data.error);
                 }
-            } else {
-                 document.body.innerHTML = `<p>Помилка завантаження даних: ${allData.error}</p>`;
-            }
-        }).catch(error => {
-            appContainer.classList.remove('is-loading');
-            loader.style.display = 'none';
-            console.error('Critical fetch error:', error);
-            document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані. Перевірте з'єднання з Інтернетом.</p>`;
-        });
-    }
+                
+                // ЗБЕРЕЖЕННЯ: Записуємо отримані дані в пам'ять браузера
+                localStorage.setItem('territory_data_cache', JSON.stringify(data));
+                localStorage.setItem('territory_cache_time', new Date().getTime());
 
+                allTerritories = data.territories || [];
+                allUsers = data.users || [];
+                journalEntriesCache = data.history || [];
+                
+                renderData(data);
+                showLoader(false);
+            })
+            .catch(error => {
+                console.error('Помилка завантаження:', error);
+                
+                // ОФЛАЙН ЛОГІКА: пробуємо дістати дані з кешу
+                const cachedData = localStorage.getItem('territory_data_cache');
+                const cacheTime = localStorage.getItem('territory_cache_time');
+
+                if (cachedData) {
+                    const data = JSON.parse(cachedData);
+                    const date = cacheTime ? new Date(parseInt(cacheTime)).toLocaleString() : "невідомо коли";
+                    
+                    allTerritories = data.territories || [];
+                    allUsers = data.users || [];
+                    journalEntriesCache = data.history || [];
+                    
+                    renderData(data);
+                    
+                    // Повідомляємо користувача, що дані застарілі
+                    tg.showPopup({
+                        title: 'Офлайн режим',
+                        message: `Не вдалося оновити дані. Показую копію, збережену: ${date}. Перевірте інтернет.`,
+                        buttons: [{type: 'ok'}]
+                    });
+                } else {
+                    // Якщо кешу немає і інтернету теж
+                    myTerritoryList.innerHTML = '<p style="text-align:center; padding:20px;">Потрібен інтернет для першого завантаження даних.</p>';
+                }
+                showLoader(false);
+            });
+    }
+    
     // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
 
     function createPhotoBlock(territory) {
