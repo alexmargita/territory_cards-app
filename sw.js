@@ -1,4 +1,4 @@
-const CACHE_NAME = 'territory-cache-v4';
+const CACHE_NAME = 'territory-cache-v5';
 const GITHUB_IMAGES_URL_PATTERN = /^https:\/\/raw\.githubusercontent\.com\/alexmargita\/territory_cards-app\/main\/images\//;
 
 const PRECACHE_URLS = [
@@ -53,12 +53,17 @@ self.addEventListener('fetch', event => {
     return;
   }
   
+  // Не чіпаємо запити до Apps Script — нехай ідуть напряму,
+  // щоб Service Worker не робив подвійний запит (302 + 200).
+  if (requestUrl.hostname === 'script.google.com') {
+    return;
+  }
+  
   event.respondWith(
     fetch(event.request)
       .catch(() => {
         return caches.match(event.request.url)
             .then(response => {
-                // Повертаємо кешовану версію, якщо є, або index.html для навігації
                 return response || caches.match('index.html');
             });
       })
