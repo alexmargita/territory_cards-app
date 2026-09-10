@@ -31,7 +31,7 @@ h2 {
     top: 0;
     background-color: var(--tg-theme-bg-color, #ffffff);
     z-index: 100;
-    padding-top: 5px;
+    padding-top: 0;
     overflow-x: hidden;
 }
 .tab-button {
@@ -361,8 +361,8 @@ body.bulk-mode-active .territory-item {
     top: 62px;
     background-color: var(--tg-theme-bg-color, #ffffff);
     z-index: 99;
-    padding: 10px 0;
-    margin-bottom: 15px;
+    padding: 0 0 10px 0;
+    margin: 0 0 15px 0;
     border-bottom: 1px solid var(--tg-theme-hint-color, #ddd);
 }
 .admin-main-controls {
@@ -917,4 +917,26 @@ body.bulk-mode-active .territory-item {
     color: var(--tg-theme-hint-color, #888);
     font-size: 15px;
     font-style: italic;
+}
+
+/* ============================================ */
+/* --- ФІКС ЗАЗОРУ МІЖ ВКЛАДКАМИ І ФІЛЬТРАМИ --- */
+/* ============================================ */
+
+#all-territories {
+    padding-top: 0 !important;
+    margin-top: 0 !important;
+}
+
+#admin-panel-controls {
+    margin-top: 0 !important;
+    padding-top: 0 !important;
+    top: 62px;
+}
+
+.tabs {
+    margin-top: 0 !important;
+    margin-bottom: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
 }
