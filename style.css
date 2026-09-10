@@ -62,18 +62,6 @@ h2 {
     padding-top: 15px;
 }
 
-/* Зменшений розмір вкладок (тепер їх 5) */
-.tabs .tab-button {
-    font-size: 13px;
-    padding: 8px 3px;
-}
-@media (max-width: 360px) {
-    .tabs .tab-button {
-        font-size: 11px;
-        padding: 6px 2px;
-    }
-}
-
 /* Стилі для візуального ефекту завантаження */
 .app-container.is-loading > *:not(.loader) {
     opacity: 0.5;
@@ -835,7 +823,6 @@ body.bulk-mode-active .territory-item {
 /* --- ГРУПОВІ ТЕРИТОРІЇ --- */
 /* ============================================ */
 
-/* Кнопка "Для групи" на картках "Моїх територій" */
 .btn-make-group {
     margin-top: 8px;
     padding: 12px 10px;
@@ -849,16 +836,13 @@ body.bulk-mode-active .territory-item {
     width: 100%;
     transition: background-color 0.2s ease;
 }
-
 .btn-make-group:hover {
     background-color: #5a4bcf;
 }
-
 .btn-make-group:active {
     transform: scale(0.98);
 }
 
-/* Бейдж "Групова" на картках "Моїх територій" */
 .group-badge {
     margin-top: 8px;
     padding: 10px;
@@ -871,13 +855,11 @@ body.bulk-mode-active .territory-item {
     text-align: center;
 }
 
-/* Картка у вкладці "Території групи" */
 .territory-item.group-territory {
     background-color: rgba(108, 92, 231, 0.06);
     border: 1px solid rgba(108, 92, 231, 0.25);
 }
 
-/* Кнопка "Нотатки" у групових територіях (заглушка) */
 .btn-group-notes {
     padding: 20px 10px;
     background-color: #6c5ce7;
@@ -894,23 +876,19 @@ body.bulk-mode-active .territory-item {
     gap: 4px;
     opacity: 0.55;
 }
-
 .btn-group-notes:disabled {
     cursor: not-allowed;
 }
-
 .btn-notes-title {
     font-size: 16px;
     font-weight: 600;
 }
-
 .btn-notes-hint {
     font-size: 12px;
     font-style: italic;
     opacity: 0.85;
 }
 
-/* Порожній стан "Наразі групових територій не призначено" */
 .empty-message {
     text-align: center;
     padding: 40px 20px;
