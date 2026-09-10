@@ -80,7 +80,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // --- ОСНОВНІ ФУНКЦІЇ ЗАВАНТАЖЕННЯ ДАНИХ ---
 
-    function fetchAllData() {
+      function fetchAllData() {
         if (!userId) {
             document.body.innerHTML = '<p>Не вдалося ідентифікувати користувача. Спробуйте перезапустити додаток.</p>';
             return;
@@ -96,6 +96,14 @@ document.addEventListener('DOMContentLoaded', function() {
             appContainer.classList.remove('is-loading');
             loader.style.display = 'none';
             
+            // Спочатку — глобальні змінні з allData (від них залежить рендер карток)
+            if (allData.ok) {
+                allTerritories = allData.territories;
+                isAdmin = allData.isAdmin;
+                isSupervisor = allData.isSupervisor || false;
+            }
+            
+            // Тепер — рендер (isSupervisor вже встановлено)
             if (myData.ok) displayMyTerritories(myData.territories);
             if (groupData.ok) {
                 groupTerritories = groupData.territories || [];
@@ -103,10 +111,6 @@ document.addEventListener('DOMContentLoaded', function() {
             }
             
             if (allData.ok) {
-                allTerritories = allData.territories;
-                isAdmin = allData.isAdmin;
-                isSupervisor = allData.isSupervisor || false;
-
                 const baseOrder = ["Тернопіль", "Березовиця", "Острів", "Буцнів"];
                 const getDistance = name => {
                     const match = name.match(/\((\d+)км\)/);
@@ -145,8 +149,8 @@ document.addEventListener('DOMContentLoaded', function() {
             document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані. Перевірте з'єднання з Інтернетом.</p>`;
         });
     }
-
-    // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
+    
+        // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
 
     function createPhotoBlock(territory) {
         if (!territory.picture_id) { return `<div class="placeholder-photo">Немає фото</div>`; }
