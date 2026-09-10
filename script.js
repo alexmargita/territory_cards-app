@@ -12,6 +12,38 @@ if ('serviceWorker' in navigator) {
 const GITHUB_BASE_URL = "https://raw.githubusercontent.com/alexmargita/territory_cards-app/main/images/";
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwNlnmNwi2adHqGtxBRoer2-jvJWwkrr-gt3z6ZqpAtF1wIKsiWxa2HWi0HK_H4gdny/exec";
 
+// Fetch з retry — якщо Google Drive повертає HTML замість JSON (випадковий 404),
+// пробуємо ще раз через 1 сек, потім через 2 сек.
+async function fetchWithRetry(url, options = {}, maxRetries = 3) {
+    let lastError = null;
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+        try {
+            const res = await fetch(url, options);
+            const text = await res.text();
+            
+            // Якщо прийшов HTML — це помилка Google Drive, а не наш JSON
+            const trimmed = text.trim();
+            if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
+                throw new Error('Google Drive returned HTML instead of JSON');
+            }
+            
+            if (!res.ok) {
+                throw new Error('HTTP ' + res.status);
+            }
+            
+            return JSON.parse(text);
+        } catch (e) {
+            lastError = e;
+            console.warn(`Fetch attempt ${attempt + 1} failed:`, e.message);
+            
+            if (attempt < maxRetries - 1) {
+                await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
+            }
+        }
+    }
+    throw lastError;
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const tg = window.Telegram.WebApp;
     tg.expand();
@@ -89,9 +121,9 @@ document.addEventListener('DOMContentLoaded', function() {
         appContainer.classList.add('is-loading');
         
         Promise.all([
-            fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`).then(res => res.json()),
-            fetch(`${SCRIPT_URL}?action=getGroupTerritories&userId=${userId}`).then(res => res.json()),
-            fetch(`${SCRIPT_URL}?userId=${userId}`).then(res => res.json())
+            fetchWithRetry(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`),
+            fetchWithRetry(`${SCRIPT_URL}?action=getGroupTerritories&userId=${userId}`),
+            fetchWithRetry(`${SCRIPT_URL}?userId=${userId}`)
         ]).then(([myData, groupData, allData]) => {
             appContainer.classList.remove('is-loading');
             loader.style.display = 'none';
@@ -135,9 +167,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     setupAdminPanel();
                     updateAdminFilterCounts();
                     updateAndDisplayAdminTerritories();
-                    fetch(`${SCRIPT_URL}?action=getAllUsers&userId=${userId}`)
-                        .then(res => res.json())
-                        .then(data => { if (data.ok) allUsers = data.users; });
+                    fetchWithRetry(`${SCRIPT_URL}?action=getAllUsers&userId=${userId}`)
+                        .then(data => { if (data.ok) allUsers = data.users; })
+                        .catch(() => console.warn('Failed to load users'));
                 }
             } else {
                  document.body.innerHTML = `<p>Помилка завантаження даних: ${allData.error}</p>`;
@@ -785,7 +817,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function handleAdminReturn(territoryId) {
-        tg.showConfirm(`Надіслати запит на повернення території ${territoryId} на підтвердження?`, (ok) => ok && fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`).then(r => r.json()).then(res => tg.showAlert(res.message || 'Сталася помилка.')).catch(() => tg.showAlert('Помилка мережі.')));
+        tg.showConfirm(`Надіслати запит на повернення території ${territoryId} на підтвердження?`, (ok) => ok && fetchWithRetry(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`).then(res => tg.showAlert(res.message || 'Сталася помилка.')).catch(() => tg.showAlert('Помилка мережі.')));
     }
 
     function handleAdminExtend(territoryId, extendForUserId) {
@@ -794,8 +826,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     function handleAdminHistory(territoryId) {
         tg.MainButton.setText("Завантажую історію...").show();
-        fetch(`${SCRIPT_URL}?action=getTerritoryHistory&territoryId=${territoryId}&userId=${userId}`)
-            .then(res => res.json())
+        fetchWithRetry(`${SCRIPT_URL}?action=getTerritoryHistory&territoryId=${territoryId}&userId=${userId}`)
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok && result.history) {
@@ -858,8 +889,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function postToServer(payload, loadingMsg, errorMsg) {
         return new Promise(resolve => {
             tg.MainButton.setText(loadingMsg).show();
-            fetch(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
-            .then(response => response.json())
+            fetchWithRetry(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) })
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) { 
@@ -883,8 +913,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function returnTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show();
-        fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
-            .then(response => response.json())
+        fetchWithRetry(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) { 
@@ -900,8 +929,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function requestTerritory(territoryId, buttonElement) {
         tg.MainButton.setText("Надсилаю запит...").show();
-        fetch(`${SCRIPT_URL}?action=requestTerritory&territoryId=${territoryId}&userId=${userId}`)
-            .then(response => response.json())
+        fetchWithRetry(`${SCRIPT_URL}?action=requestTerritory&territoryId=${territoryId}&userId=${userId}`)
             .then(result => {
                 tg.MainButton.hide();
                 if (result.ok) {
@@ -998,8 +1026,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // --- ЖУРНАЛ ---
     function handleJournalClick() {
         loader.style.display = 'block';
-        fetch(`${SCRIPT_URL}?action=getJournalHistory&userId=${userId}`)
-            .then(res => res.json())
+        fetchWithRetry(`${SCRIPT_URL}?action=getJournalHistory&userId=${userId}`)
             .then(result => {
                 loader.style.display = 'none';
                 if (result.ok && result.history) {
