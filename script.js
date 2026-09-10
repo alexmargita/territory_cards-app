@@ -1,4 +1,4 @@
-// ОНОВЛЕНО: Повернуто код реєстрації Service Worker
+// Service Worker
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').then(registration => {
@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const appContainer = document.querySelector('.app-container');
     const loader = document.getElementById('loader');
     const myTerritoryList = document.getElementById('my-territory-list');
+    const groupTerritoryList = document.getElementById('group-territory-list');
     const freeTerritoryList = document.getElementById('territory-list');
     const generalMapsList = document.getElementById('general-maps-list');
     const freeTerritoriesTitle = document.getElementById('free-territories-title');
@@ -41,6 +42,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let allTerritories = [];
     let allUsers = [];
     let isAdmin = false;
+    let isSupervisor = false;
+    let groupTerritories = [];
     let displayedAdminTerritories = [];
     let predefinedFilterOrder = [];
     let selectedLocalities = []; 
@@ -49,8 +52,8 @@ document.addEventListener('DOMContentLoaded', function() {
     let bulkActionMode = 'none';
     let selectedTerritoriesForBulk = [];
     let journalEntriesCache = [];
-    let journalSortKey = 'date'; // Стан сортування журналу
-    let journalSortDirection = 'desc'; // Напрямок сортування журналу
+    let journalSortKey = 'date';
+    let journalSortDirection = 'desc';
     const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
     
     // --- Ініціалізація вкладок ---
@@ -58,23 +61,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const tabContents = document.querySelectorAll('.tab-content');
     
     tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-        if (bulkActionMode !== 'none') return;
-        
-        const targetTabId = tab.dataset.tab; // Отримуємо ID вкладки
+        tab.addEventListener('click', () => {
+            if (bulkActionMode !== 'none') return;
+            
+            const targetTabId = tab.dataset.tab;
 
-        // Оновлюємо дані для всіх вкладок, ОКРІМ 'general-maps'
-        if (targetTabId !== 'general-maps') {
-            fetchAllData();
-        }
-        
-        tabs.forEach(item => item.classList.remove('active'));
-        tab.classList.add('active');
-        const targetTabContent = document.getElementById(targetTabId);
-        tabContents.forEach(content => content.classList.remove('active'));
-        targetTabContent.classList.add('active');
+            if (targetTabId !== 'general-maps') {
+                fetchAllData();
+            }
+            
+            tabs.forEach(item => item.classList.remove('active'));
+            tab.classList.add('active');
+            const targetTabContent = document.getElementById(targetTabId);
+            tabContents.forEach(content => content.classList.remove('active'));
+            targetTabContent.classList.add('active');
+        });
     });
-});
     
     // --- ОСНОВНІ ФУНКЦІЇ ЗАВАНТАЖЕННЯ ДАНИХ ---
 
@@ -88,15 +90,22 @@ document.addEventListener('DOMContentLoaded', function() {
         
         Promise.all([
             fetch(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`).then(res => res.json()),
+            fetch(`${SCRIPT_URL}?action=getGroupTerritories&userId=${userId}`).then(res => res.json()),
             fetch(`${SCRIPT_URL}?userId=${userId}`).then(res => res.json())
-        ]).then(([myData, allData]) => {
+        ]).then(([myData, groupData, allData]) => {
             appContainer.classList.remove('is-loading');
             loader.style.display = 'none';
+            
             if (myData.ok) displayMyTerritories(myData.territories);
+            if (groupData.ok) {
+                groupTerritories = groupData.territories || [];
+                displayGroupTerritories(groupTerritories);
+            }
             
             if (allData.ok) {
                 allTerritories = allData.territories;
                 isAdmin = allData.isAdmin;
+                isSupervisor = allData.isSupervisor || false;
 
                 const baseOrder = ["Тернопіль", "Березовиця", "Острів", "Буцнів"];
                 const getDistance = name => {
@@ -179,8 +188,55 @@ document.addEventListener('DOMContentLoaded', function() {
                 actionButtonHtml = `<button class="btn-return" data-id="${t.id}">↩️ Здати</button>`;
             }
 
-            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<div class="action-area">${actionButtonHtml}</div></div>${daysBlock}`;
+            // Кнопка "Для групи" — тільки наглядачам і тільки якщо територія ще не групова
+            let groupButtonHtml = '';
+            if (isSupervisor && !t.is_group) {
+                groupButtonHtml = `<button class="btn-make-group" data-id="${t.id}" data-name="${(t.name || '').replace(/"/g, '&quot;')}">👥 Для групи</button>`;
+            } else if (t.is_group) {
+                groupButtonHtml = `<div class="group-badge">👥 Групова</div>`;
+            }
+
+            item.innerHTML = `<div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div><div class="territory-content">${createPhotoBlock(t)}<div class="action-area">${actionButtonHtml}${groupButtonHtml}</div></div>${daysBlock}`;
             myTerritoryList.appendChild(item);
+        });
+    }
+
+    function displayGroupTerritories(territories) {
+        groupTerritoryList.innerHTML = '';
+        if (!territories || territories.length === 0) {
+            groupTerritoryList.innerHTML = '<p class="empty-message">Наразі групових територій не призначено.</p>';
+            return;
+        }
+
+        territories.sort((a, b) => parseInt(a.id) - parseInt(b.id));
+
+        territories.forEach(t => {
+            const item = document.createElement('div');
+            item.className = 'territory-item group-territory';
+
+            // Індикатор "Залишилось днів" — як у "Моїх територіях"
+            const remainingDays = calculateDaysRemaining(t.date_assigned);
+            let daysBlock = '';
+            if (remainingDays !== null) {
+                const endingSoonClass = remainingDays <= 30 ? 'ending-soon' : '';
+                const progressPercent = Math.max(0, (remainingDays / 120) * 100);
+                daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
+            }
+
+            // Кнопка "Нотатки" — заглушка з написом "У розробці" всередині
+            const notesButtonHtml = `
+                <button class="btn-group-notes" data-id="${t.id}" disabled>
+                    <span class="btn-notes-title">📝 Нотатки</span>
+                    <span class="btn-notes-hint">У розробці</span>
+                </button>
+            `;
+
+            item.innerHTML = `
+                <div class="territory-title"><span>📍 ${t.id}. ${t.name}</span> ${createNoteIcon(t)}</div>
+                <div class="territory-content">${createPhotoBlock(t)}<div class="action-area">${notesButtonHtml}</div></div>
+                ${daysBlock}
+            `;
+            groupTerritoryList.appendChild(item);
         });
     }
 
@@ -410,6 +466,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (target.classList.contains('territory-photo')) handlePhotoClick(target);
             if (target.classList.contains('btn-return')) handleReturnClick(target.dataset.id, target);
             if (target.classList.contains('btn-book')) handleBookClick(target.dataset.id, target.dataset.name, target);
+            if (target.classList.contains('btn-make-group')) handleMakeGroupClick(target.dataset.id, target.dataset.name);
             if (target.classList.contains('filter-btn')) handleFilterClick(target);
             if (target.classList.contains('btn-admin-assign')) handleAdminAssign(target.dataset.id);
             if (target.classList.contains('btn-admin-return')) handleAdminReturn(target.dataset.id);
@@ -429,16 +486,27 @@ document.addEventListener('DOMContentLoaded', function() {
         if (target.classList.contains('bulk-action-btn')) toggleBulkMode(target.dataset.mode, target);
         if (target.id === 'bulk-cancel-btn') resetBulkMode();
         
-        // --- ЗМІНА ПОЧИНАЄТЬСЯ ТУТ ---
         if (target.id === 'bulk-confirm-assign-btn') handleBulkConfirmAssign();
         if (target.id === 'bulk-confirm-returned-btn') handleBulkReturn('returned');
         if (target.id === 'bulk-confirm-free-btn') handleBulkReturn('free');
-        // --- КІНЕЦЬ ЗМІНИ ---
     });
 
     function handleReturnClick(territoryId, button) { tg.showConfirm(`Ви впевнені, що хочете надіслати запит на повернення території ${territoryId}?`, (ok) => ok && returnTerritory(territoryId, button)); }
     function handleBookClick(territoryId, territoryName, button) { tg.showConfirm(`Ви впевнені, що хочете обрати територію "${territoryId}. ${territoryName}"?`, (ok) => ok && requestTerritory(territoryId, button)); }
     function handleFilterClick(button) { filtersContainer.querySelector('.active')?.classList.remove('active'); button.classList.add('active'); displayFreeTerritories(button.dataset.filter); }
+    
+    // Обробка кліку "Для групи"
+    function handleMakeGroupClick(territoryId, territoryName) {
+        tg.showConfirm(`Зробити територію "${territoryId}. ${territoryName}" доступною для всієї вашої групи?`, (ok) => {
+            if (ok) {
+                postToServer(
+                    { action: 'makeGroupTerritory', userId: userId, territoryId: territoryId },
+                    "Надсилаю...",
+                    "Не вдалося зробити територію груповою."
+                );
+            }
+        });
+    }
     
     function handleAdminFilter(button) { 
         adminPanelControls.querySelector('.admin-filter-btn.active')?.classList.remove('active'); 
@@ -593,7 +661,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // --- ЛОГІКА ДЛЯ МАСОВИХ ДІЙ ---
 
-    // --- ЗМІНА ПОЧИНАЄТЬСЯ ТУТ ---
     function toggleBulkMode(mode, button) {
         if (bulkActionMode === mode) {
             resetBulkMode();
@@ -605,7 +672,6 @@ document.addEventListener('DOMContentLoaded', function() {
         button.classList.add('active');
         document.body.classList.add('bulk-mode-active');
 
-        // Показуємо відповідні кнопки
         if (mode === 'assign') {
             document.getElementById('bulk-confirm-assign-btn').style.display = 'block';
         } else if (mode === 'return') {
@@ -625,7 +691,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.body.classList.remove('bulk-mode-active');
         bulkActionBar.classList.remove('visible');
 
-        // Приховуємо усі кнопки підтвердження
         document.getElementById('bulk-confirm-assign-btn').style.display = 'none';
         document.getElementById('bulk-confirm-returned-btn').style.display = 'none';
         document.getElementById('bulk-confirm-free-btn').style.display = 'none';
@@ -633,7 +698,6 @@ document.addEventListener('DOMContentLoaded', function() {
         document.querySelectorAll('.bulk-action-btn.active').forEach(btn => btn.classList.remove('active'));
         document.querySelectorAll('.territory-item.selected').forEach(item => item.classList.remove('selected'));
     }
-    // --- КІНЕЦЬ ЗМІНИ ---
 
     function handleTerritorySelection(item) {
         const id = item.dataset.id;
@@ -649,8 +713,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // --- ЗМІНА ПОЧИНАЄТЬСЯ ТУТ ---
-    // Нова функція для підтвердження призначення
     function handleBulkConfirmAssign() {
         if (selectedTerritoriesForBulk.length === 0) {
             tg.showAlert("Будь ласка, оберіть хоча б одну територію.");
@@ -681,7 +743,6 @@ document.addEventListener('DOMContentLoaded', function() {
         };
     }
 
-    // Нова функція для підтвердження повернення
     function handleBulkReturn(newStatus) {
         if (selectedTerritoriesForBulk.length === 0) {
             tg.showAlert("Будь ласка, оберіть хоча б одну територію.");
@@ -696,13 +757,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     action: 'adminBulkReturn', 
                     userId: userId, 
                     territoryIds: selectedTerritoriesForBulk,
-                    newStatus: newStatus // Додаємо новий статус до запиту
+                    newStatus: newStatus
                 }, "Надсилаю запит...", "Не вдалося надіслати запит.");
                 resetBulkMode();
             }
         });
     }
-    // --- КІНЕЦЬ ЗМІНИ ---
 
     // --- СТАНДАРТНІ ОДИНОЧНІ ДІЇ ---
 
@@ -817,39 +877,39 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-function returnTerritory(territoryId, buttonElement) {
-    tg.MainButton.setText("Надсилаю запит...").show();
-    fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
-        .then(response => response.json())
-        .then(result => {
-            tg.MainButton.hide();
-            if (result.ok) { 
-                showToast(result.message);
-                fetchAllData(); // Оновлюємо всі дані після успішного запиту
-            } else { 
-                tg.showAlert(result.message || 'Сталася невідома помилка.'); 
-                fetchAllData(); // Оновлюємо дані, навіть якщо сталася помилка
-            }
-        })
-        .catch(error => { tg.MainButton.hide(); tg.showAlert('Сталася критична помилка. Спробуйте пізніше.'); });
-}
+    function returnTerritory(territoryId, buttonElement) {
+        tg.MainButton.setText("Надсилаю запит...").show();
+        fetch(`${SCRIPT_URL}?action=returnTerritory&territoryId=${territoryId}&userId=${userId}`)
+            .then(response => response.json())
+            .then(result => {
+                tg.MainButton.hide();
+                if (result.ok) { 
+                    showToast(result.message);
+                    fetchAllData();
+                } else { 
+                    tg.showAlert(result.message || 'Сталася невідома помилка.'); 
+                    fetchAllData();
+                }
+            })
+            .catch(error => { tg.MainButton.hide(); tg.showAlert('Сталася критична помилка. Спробуйте пізніше.'); });
+    }
 
-function requestTerritory(territoryId, buttonElement) {
-    tg.MainButton.setText("Надсилаю запит...").show();
-    fetch(`${SCRIPT_URL}?action=requestTerritory&territoryId=${territoryId}&userId=${userId}`)
-        .then(response => response.json())
-        .then(result => {
-            tg.MainButton.hide();
-            if (result.ok) {
-                showToast(result.message);
-                fetchAllData(); // Оновлюємо всі дані, щоб прибрати територію зі списку вільних
-            } else { 
-                tg.showAlert(result.message || 'Сталася невідома помилка.'); 
-                fetchAllData(); // Оновлюємо дані, щоб побачити актуальний статус території, якщо її хтось забронював раніше
-            }
-        })
-        .catch(error => { tg.MainButton.hide(); tg.showAlert('Сталася критична помилка. Спробуйте пізніше.'); });
-}
+    function requestTerritory(territoryId, buttonElement) {
+        tg.MainButton.setText("Надсилаю запит...").show();
+        fetch(`${SCRIPT_URL}?action=requestTerritory&territoryId=${territoryId}&userId=${userId}`)
+            .then(response => response.json())
+            .then(result => {
+                tg.MainButton.hide();
+                if (result.ok) {
+                    showToast(result.message);
+                    fetchAllData();
+                } else { 
+                    tg.showAlert(result.message || 'Сталася невідома помилка.'); 
+                    fetchAllData();
+                }
+            })
+            .catch(error => { tg.MainButton.hide(); tg.showAlert('Сталася критична помилка. Спробуйте пізніше.'); });
+    }
     
     function calculateDaysRemaining(assignDateStr) {
         if (!assignDateStr || typeof assignDateStr !== 'string') return null;
@@ -931,7 +991,7 @@ function requestTerritory(territoryId, buttonElement) {
         });
     }
     
-    // --- ОНОВЛЕНІ ФУНКЦІЇ ДЛЯ ЖУРНАЛУ ---
+    // --- ЖУРНАЛ ---
     function handleJournalClick() {
         loader.style.display = 'block';
         fetch(`${SCRIPT_URL}?action=getJournalHistory&userId=${userId}`)
@@ -940,7 +1000,6 @@ function requestTerritory(territoryId, buttonElement) {
                 loader.style.display = 'none';
                 if (result.ok && result.history) {
                     journalEntriesCache = result.history;
-                    // Скидаємо сортування до початкового стану при кожному відкритті
                     journalSortKey = 'date';
                     journalSortDirection = 'desc';
                     displayJournal();
@@ -961,57 +1020,38 @@ function requestTerritory(territoryId, buttonElement) {
         };
 
         const sortedEntries = [...journalEntriesCache].sort((a, b) => {
-    // 1. ПЕРЕВІРКА КЛЮЧА: Якщо сортуємо по номеру картки (ID)
-    if (journalSortKey === 'id') {
-        // Перетворюємо в чистий рядок, щоб уникнути помилок
-        const rawA = String(a.territoryId);
-        const rawB = String(b.territoryId);
+            if (journalSortKey === 'id') {
+                const rawA = String(a.territoryId);
+                const rawB = String(b.territoryId);
+                const numA = parseInt(rawA, 10) || 0;
+                const numB = parseInt(rawB, 10) || 0;
+                let comparison = 0;
+                if (numA !== numB) {
+                    comparison = numA - numB;
+                } else {
+                    comparison = rawA.localeCompare(rawB, 'uk', { numeric: true });
+                }
+                if (comparison === 0) {
+                    return a.rowId - b.rowId;
+                }
+                return journalSortDirection === 'asc' ? comparison : -comparison;
+            }
 
-        // Витягуємо числову частину (наприклад, з "12А" отримаємо 12)
-        const numA = parseInt(rawA, 10) || 0;
-        const numB = parseInt(rawB, 10) || 0;
+            let otherComparison = 0;
+            if (journalSortKey === 'user') {
+                otherComparison = a.user.localeCompare(b.user, 'uk');
+            } else {
+                const timeA = parseDateForSort(a.date).getTime() || 0;
+                const timeB = parseDateForSort(b.date).getTime() || 0;
+                otherComparison = timeA - timeB;
+            }
 
-        let comparison = 0;
+            if (otherComparison === 0) {
+                return a.rowId - b.rowId;
+            }
 
-        // ПРІОРИТЕТ 1: Числове значення (щоб 20 було перед 300)
-        if (numA !== numB) {
-            comparison = numA - numB;
-        } 
-        // ПРІОРИТЕТ 2: Буквена частина (якщо числа однакові, наприклад "12" і "12А")
-        else {
-            comparison = rawA.localeCompare(rawB, 'uk', { numeric: true });
-        }
-
-        // ПРІОРИТЕТ 3: Порядок у журналі (rowId)
-        // Якщо це одна і та ж картка (наприклад, два записи для "12")
-        if (comparison === 0) {
-            // ПОВЕРТАЄМО РЕЗУЛЬТАТ НЕГАЙНО, ігноруючи загальний напрямок (asc/desc)
-            // Це гарантує, що "Взяв" завжди буде перед "Здав" для однієї картки
-            return a.rowId - b.rowId;
-        }
-
-        // Застосовуємо вибраний користувачем напрямок (від менших чи від більших)
-        return journalSortDirection === 'asc' ? comparison : -comparison;
-    }
-
-    // 2. ЛОГІКА ДЛЯ ІНШИХ ТИПІВ (Дата, Користувач)
-    let otherComparison = 0;
-    if (journalSortKey === 'user') {
-        otherComparison = a.user.localeCompare(b.user, 'uk');
-    } else {
-        // Сортування за датою
-        const timeA = parseDateForSort(a.date).getTime() || 0;
-        const timeB = parseDateForSort(b.date).getTime() || 0;
-        otherComparison = timeA - timeB;
-    }
-
-    // Якщо дати або імена однакові — теж підстраховуємося порядком з таблиці
-    if (otherComparison === 0) {
-        return a.rowId - b.rowId;
-    }
-
-    return journalSortDirection === 'asc' ? otherComparison : -otherComparison;
-});
+            return journalSortDirection === 'asc' ? otherComparison : -otherComparison;
+        });
 
         const sortControlsHtml = `
             <div class="journal-sort-controls">
@@ -1074,12 +1114,10 @@ function requestTerritory(territoryId, buttonElement) {
         if (sortBtn) {
             const newSortKey = sortBtn.dataset.sort;
             if (journalSortKey === newSortKey) {
-                // Якщо клікнули на ту ж кнопку, міняємо напрямок
                 journalSortDirection = journalSortDirection === 'asc' ? 'desc' : 'asc';
             } else {
-                // Якщо клікнули на нову кнопку, встановлюємо її і скидаємо напрямок
                 journalSortKey = newSortKey;
-                journalSortDirection = (journalSortKey === 'date') ? 'desc' : 'asc'; // За замовчуванням: дата - новіші, решта - по зростанню
+                journalSortDirection = (journalSortKey === 'date') ? 'desc' : 'asc';
             }
             displayJournal();
         }
