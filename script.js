@@ -195,7 +195,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Кнопка "Для групи" — тільки наглядачам і тільки якщо територія ще не групова
             let groupButtonHtml = '';
             if (isSupervisor && !t.is_group) {
-                groupButtonHtml = `<button class="btn-make-group" data-id="${t.id}" data-name="${(t.name || '').replace(/"/g, '&quot;')}">👥 Для групи</button>`;
+                groupButtonHtml = `<button class="btn-make-group" data-id="${t.id}" data-name="${(t.name || '').replace(/"/g, '&quot;')}">👥 Надіслати групі</button>`;
             } else if (t.is_group) {
                 groupButtonHtml = `<div class="group-badge">👥 Групова</div>`;
             }
@@ -501,7 +501,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Обробка кліку "Для групи"
     function handleMakeGroupClick(territoryId, territoryName) {
-        tg.showConfirm(`Зробити територію "${territoryId}. ${territoryName}" доступною для всієї вашої групи?`, (ok) => {
+        tg.showConfirm(`Надіслати територію "${territoryId}. ${territoryName}" на опрацювання вашій групі?`, (ok) => {
             if (ok) {
                 postToServer(
                     { action: 'makeGroupTerritory', userId: userId, territoryId: territoryId },
