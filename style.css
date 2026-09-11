@@ -1019,8 +1019,10 @@ body.bulk-mode-active .territory-item {
 /* Фіксуємо лише колонку з хрестиком */
 .notes-table th.col-delete { width: 36px; }
 
-/* Обмежуємо "Нотатку" — щоб текст переносився, а не розтягував колонку */
+/* Змушуємо "Нотатку" зайняти МАКСИМУМ місця, а інші — мінімум */
+.notes-table th.col-note,
 .notes-table td:nth-child(3) {
+    width: 100%;
     max-width: 0;
     overflow-wrap: break-word;
     word-wrap: break-word;
