@@ -996,8 +996,7 @@ body.bulk-mode-active .territory-item {
 .notes-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: fixed;
-    min-width: 500px;
+    table-layout: auto; /* Замість fixed — автоматична ширина колонок */
 }
 
 .notes-table thead {
@@ -1017,10 +1016,11 @@ body.bulk-mode-active .territory-item {
     white-space: nowrap;
 }
 
-.notes-table th.col-object { width: 28%; }
-.notes-table th.col-status { width: 30%; }
-.notes-table th.col-note { width: 37%; }
-.notes-table th.col-delete { width: 5%; min-width: 36px; }
+/* Мінімальні ширини — щоб колонки не стискалися сильно */
+.notes-table th.col-object { min-width: 120px; }
+.notes-table th.col-status { min-width: 150px; }
+.notes-table th.col-note { min-width: 200px; }
+.notes-table th.col-delete { width: 40px; }
 
 .notes-table td {
     padding: 4px 4px;
@@ -1036,6 +1036,7 @@ body.bulk-mode-active .territory-item {
 .notes-cell-select,
 .notes-cell-textarea {
     width: 100%;
+    min-width: 100px;
     padding: 8px;
     box-sizing: border-box;
     border: 1px solid transparent;

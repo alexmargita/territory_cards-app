@@ -1119,12 +1119,13 @@ document.addEventListener('DOMContentLoaded', function() {
         notesTableBody.innerHTML = '';
     }
 
-    // Обробник кнопки "Зберегти" в шапці — зберігає всі змінені рядки і закриває модалку
-    async function handleSaveAndClose() {
+    // Обробник кнопки "Зберегти" в шапці — закриває модалку ОДРАЗУ і зберігає у фоні
+    function handleSaveAndClose() {
         const rows = Array.from(notesTableBody.querySelectorAll('tr'));
+        const territoryId = currentNotesTerritoryId;
         
-        // Знаходимо заповнені рядки і зберігаємо
-        const promises = [];
+        // Збираємо дані всіх заповнених рядків ДО закриття модалки
+        const rowsToSave = [];
         for (const tr of rows) {
             if (!isRowFilled(tr)) continue;
             
@@ -1135,34 +1136,36 @@ document.addEventListener('DOMContentLoaded', function() {
             
             let actualRowId = rowId;
             if (!actualRowId) {
-                actualRowId = generateRowId(currentNotesTerritoryId);
-                tr.dataset.rowId = actualRowId;
+                actualRowId = generateRowId(territoryId);
             }
             
-            promises.push(postToServerSilent({
+            rowsToSave.push({
                 action: 'saveGroupNote',
-                territoryId: currentNotesTerritoryId,
+                territoryId: territoryId,
                 rowId: actualRowId,
                 object: objectVal,
                 status: statusVal,
                 note: noteVal,
                 userId: userId
-            }));
+            });
         }
         
-        if (promises.length > 0) {
-            notesSaveBtn.disabled = true;
-            try {
-                await Promise.all(promises);
-            } catch (err) {
-                console.error('Save error:', err);
-            }
-            notesSaveBtn.disabled = false;
-        }
-        
+        // ЗАКРИВАЄМО модалку одразу
         closeNotesModal();
+        
+        // Зберігаємо у фоні
+        if (rowsToSave.length > 0) {
+            Promise.all(rowsToSave.map(payload => postToServerSilent(payload)))
+                .then(() => {
+                    showToast('Збережено');
+                })
+                .catch(err => {
+                    console.error('Save error:', err);
+                    showToast('Помилка збереження');
+                });
+        }
     }
-
+    
     notesSaveBtn.addEventListener('click', handleSaveAndClose);
 
     notesTableBody.addEventListener('focusout', function(event) {
