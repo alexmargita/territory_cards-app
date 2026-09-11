@@ -1020,7 +1020,7 @@ body.bulk-mode-active .territory-item {
 .notes-table th.col-object { width: 15%; }
 .notes-table th.col-status { width: 18%; }
 .notes-table th.col-note { width: auto; }
-.notes-table th.col-delete { width: 30px; }
+.notes-table th.col-delete { width: 20px; }
 
 .notes-table td {
     padding: 4px 2px;
@@ -1090,13 +1090,13 @@ body.bulk-mode-active .territory-item {
 }
 
 .notes-delete-btn {
-    width: 30px;
-    height: 30px;
+    width: 18px;
+    height: 18px;
     border-radius: 50%;
     border: none;
     background-color: transparent;
     color: #dc3545;
-    font-size: 18px;
+    font-size: 13px;
     font-weight: bold;
     cursor: pointer;
     display: flex;
