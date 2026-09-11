@@ -1018,9 +1018,9 @@ body.bulk-mode-active .territory-item {
 
 /* Ширини колонок: Буд/кв і Статус — мінімум, Нотатка — все інше */
 .notes-table th.col-object { width: 15%; }
-.notes-table th.col-status { width: 20%; }
+.notes-table th.col-status { width: 18%; }
 .notes-table th.col-note { width: auto; }
-.notes-table th.col-delete { width: 26px; }
+.notes-table th.col-delete { width: 10px; }
 
 .notes-table td {
     padding: 4px 4px;
@@ -1072,12 +1072,14 @@ body.bulk-mode-active .territory-item {
     box-sizing: border-box;
 }
 
-/* Спрощений select — стандартна стрілка, менше padding */
+/* Select без стрілки — максимум місця для тексту */
 .notes-cell-select {
     cursor: pointer;
-    appearance: auto;
-    -webkit-appearance: auto;
+    appearance: none;
+    -webkit-appearance: none;
+    background-image: none;
     padding-right: 4px;
+    text-overflow: ellipsis;
 }
 
 .notes-delete-btn {
