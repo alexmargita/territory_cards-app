@@ -874,19 +874,16 @@ body.bulk-mode-active .territory-item {
     align-items: center;
     justify-content: center;
     gap: 4px;
-    opacity: 0.55;
 }
-.btn-group-notes:disabled {
-    cursor: not-allowed;
+
+/* Клік завжди потрапляє у саму кнопку, навіть якщо тапнути на текст/іконку */
+.btn-group-notes > * {
+    pointer-events: none;
 }
+
 .btn-notes-title {
     font-size: 16px;
     font-weight: 600;
-}
-.btn-notes-hint {
-    font-size: 12px;
-    font-style: italic;
-    opacity: 0.85;
 }
 
 .empty-message {
@@ -948,15 +945,27 @@ body.bulk-mode-active .territory-item {
     white-space: nowrap;
 }
 
-.notes-modal-close-btn {
-    font-size: 30px;
-    font-weight: bold;
-    line-height: 1;
+/* Кнопка "Зберегти" в шапці модалки (замість хрестика) */
+.notes-save-btn {
+    padding: 8px 16px;
+    background-color: #28a745;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
     cursor: pointer;
-    color: var(--tg-theme-hint-color, #888);
-    padding: 0 5px;
     flex-shrink: 0;
-    user-select: none;
+    white-space: nowrap;
+    transition: background-color 0.2s ease;
+}
+
+.notes-save-btn:hover {
+    background-color: #218838;
+}
+
+.notes-save-btn:active {
+    transform: scale(0.97);
 }
 
 .notes-save-indicator {
@@ -1008,9 +1017,9 @@ body.bulk-mode-active .territory-item {
     white-space: nowrap;
 }
 
-.notes-table th.col-object { width: 25%; }
+.notes-table th.col-object { width: 28%; }
 .notes-table th.col-status { width: 30%; }
-.notes-table th.col-note { width: 40%; }
+.notes-table th.col-note { width: 37%; }
 .notes-table th.col-delete { width: 5%; min-width: 36px; }
 
 .notes-table td {
@@ -1036,6 +1045,12 @@ body.bulk-mode-active .territory-item {
     font-size: 14px;
     font-family: inherit;
     transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.notes-cell-input::placeholder,
+.notes-cell-textarea::placeholder {
+    color: var(--tg-theme-hint-color, #888);
+    opacity: 1;
 }
 
 .notes-cell-input:focus,

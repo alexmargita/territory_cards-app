@@ -12,7 +12,6 @@ if ('serviceWorker' in navigator) {
 const GITHUB_BASE_URL = "https://raw.githubusercontent.com/alexmargita/territory_cards-app/main/images/";
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwNlnmNwi2adHqGtxBRoer2-jvJWwkrr-gt3z6ZqpAtF1wIKsiWxa2HWi0HK_H4gdny/exec";
 
-// Дозволені статуси нотаток
 const NOTES_STATUSES = ['', 'НД', 'Відбулася розмова', 'Повторна', 'Вивчення', 'Відмова'];
 
 async function fetchWithRetry(url, options = {}, maxRetries = 3) {
@@ -44,7 +43,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // --- DOM елементи ---
     const appContainer = document.querySelector('.app-container');
     const loader = document.getElementById('loader');
     const myTerritoryList = document.getElementById('my-territory-list');
@@ -70,10 +68,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const notesModal = document.getElementById('notes-modal');
     const notesModalTitle = document.getElementById('notes-modal-title');
     const notesTableBody = document.getElementById('notes-table-body');
-    const notesModalClose = document.getElementById('notes-modal-close');
+    const notesSaveBtn = document.getElementById('notes-save-btn');
     const notesSaveIndicator = document.getElementById('notes-save-indicator');
 
-    // --- Глобальні змінні ---
     let allTerritories = [];
     let allUsers = [];
     let isAdmin = false;
@@ -91,12 +88,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let journalSortDirection = 'desc';
     const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
 
-    // --- Notes Modal State ---
     let currentNotesTerritoryId = null;
     let currentNotesTerritoryName = null;
     let notesSaveTimeout = null;
 
-    // --- Ініціалізація вкладок ---
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
     
@@ -183,8 +178,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
-
     function createPhotoBlock(territory) {
         if (!territory.picture_id) { return `<div class="placeholder-photo">Немає фото</div>`; }
         const imageUrl = GITHUB_BASE_URL + encodeURIComponent(territory.picture_id);
@@ -258,7 +251,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
             }
 
-            // Кнопка "Нотатки" — тепер АКТИВНА
             const notesButtonHtml = `
                 <button class="btn-group-notes" data-id="${t.id}" data-name="${(t.name || '').replace(/"/g, '&quot;')}">
                     <span class="btn-notes-title">📝 Нотатки</span>
@@ -500,7 +492,9 @@ document.addEventListener('DOMContentLoaded', function() {
             if (target.classList.contains('btn-return')) handleReturnClick(target.dataset.id, target);
             if (target.classList.contains('btn-book')) handleBookClick(target.dataset.id, target.dataset.name, target);
             if (target.classList.contains('btn-make-group')) handleMakeGroupClick(target.dataset.id, target.dataset.name);
-            if (target.classList.contains('btn-group-notes')) handleOpenNotesClick(target.dataset.id, target.dataset.name);
+            // Фікс: клік на кнопку "Нотатки" — навіть якщо тапнути на span всередині
+            const notesBtn = target.closest('.btn-group-notes');
+            if (notesBtn) handleOpenNotesClick(notesBtn.dataset.id, notesBtn.dataset.name);
             if (target.classList.contains('filter-btn')) handleFilterClick(target);
             if (target.classList.contains('btn-admin-assign')) handleAdminAssign(target.dataset.id);
             if (target.classList.contains('btn-admin-return')) handleAdminReturn(target.dataset.id);
@@ -541,7 +535,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- НОТАТКИ: обробник кліку ---
     function handleOpenNotesClick(territoryId, territoryName) {
         openNotesModal(territoryId, territoryName);
     }
@@ -689,8 +682,6 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // --- ЛОГІКА ДЛЯ МАСОВИХ ДІЙ ---
-
     function toggleBulkMode(mode, button) {
         if (bulkActionMode === mode) {
             resetBulkMode();
@@ -794,8 +785,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- СТАНДАРТНІ ОДИНОЧНІ ДІЇ ---
-
     function handleAdminAssign(territoryId) {
         if (allUsers.length === 0) { tg.showAlert('Список користувачів порожній.'); return; }
         let usersHtml = '<ul>' + allUsers.map(user => `<li data-user-id="${user.id}">${user.name}</li>`).join('') + '</ul>';
@@ -863,7 +852,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // --- ФУНКЦІЯ ДЛЯ СПОВІЩЕНЬ (TOAST) ---
     function showToast(message, duration = 3000) {
         const container = document.getElementById('toast-container');
         if (!container) return;
@@ -903,7 +891,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Тихий POST — без перемальовування всього UI і без MainButton
     async function postToServerSilent(payload) {
         const res = await fetchWithRetry(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
         return res;
@@ -1054,7 +1041,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const tr = document.createElement('tr');
         tr.dataset.rowId = rowId;
         tr.innerHTML = `
-            <td><input type="text" class="notes-cell-input" data-field="object" value="${objectVal}" placeholder="кв."></td>
+            <td><input type="text" class="notes-cell-input" data-field="object" value="${objectVal}" placeholder="..."></td>
             <td>
                 <select class="notes-cell-select" data-field="status">
                     ${createStatusOptions(statusVal)}
@@ -1073,14 +1060,13 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function ensureMinimumEmptyRows() {
-        // Гарантуємо, що в кінці завжди є 1 порожній рядок
         const rows = Array.from(notesTableBody.querySelectorAll('tr'));
         if (rows.length === 0) {
             addEmptyNoteRow();
             return;
         }
         const lastRow = rows[rows.length - 1];
-        if (!isRowFilled(lastRow)) return; // Вже порожній — ок
+        if (!isRowFilled(lastRow)) return;
         addEmptyNoteRow();
     }
 
@@ -1091,15 +1077,10 @@ document.addEventListener('DOMContentLoaded', function() {
         return obj !== '' || stat !== '' || note !== '';
     }
 
-    function isRowEmpty(tr) {
-        return !isRowFilled(tr);
-    }
-
     function renderNotesTable(notes) {
         notesTableBody.innerHTML = '';
         
         if (!notes || notes.length === 0) {
-            // 4 порожніх рядки
             for (let i = 0; i < 4; i++) addEmptyNoteRow();
             return;
         }
@@ -1107,7 +1088,6 @@ document.addEventListener('DOMContentLoaded', function() {
         notes.forEach(note => {
             notesTableBody.appendChild(createNoteRow(note));
         });
-        // Додаємо 4 порожніх рядки для нових записів
         for (let i = 0; i < 4; i++) addEmptyNoteRow();
     }
 
@@ -1139,9 +1119,52 @@ document.addEventListener('DOMContentLoaded', function() {
         notesTableBody.innerHTML = '';
     }
 
-    notesModalClose.addEventListener('click', closeNotesModal);
+    // Обробник кнопки "Зберегти" в шапці — зберігає всі змінені рядки і закриває модалку
+    async function handleSaveAndClose() {
+        const rows = Array.from(notesTableBody.querySelectorAll('tr'));
+        
+        // Знаходимо заповнені рядки і зберігаємо
+        const promises = [];
+        for (const tr of rows) {
+            if (!isRowFilled(tr)) continue;
+            
+            const rowId = tr.dataset.rowId;
+            const objectVal = tr.querySelector('[data-field="object"]').value.trim();
+            const statusVal = tr.querySelector('[data-field="status"]').value;
+            const noteVal = tr.querySelector('[data-field="note"]').value.trim();
+            
+            let actualRowId = rowId;
+            if (!actualRowId) {
+                actualRowId = generateRowId(currentNotesTerritoryId);
+                tr.dataset.rowId = actualRowId;
+            }
+            
+            promises.push(postToServerSilent({
+                action: 'saveGroupNote',
+                territoryId: currentNotesTerritoryId,
+                rowId: actualRowId,
+                object: objectVal,
+                status: statusVal,
+                note: noteVal,
+                userId: userId
+            }));
+        }
+        
+        if (promises.length > 0) {
+            notesSaveBtn.disabled = true;
+            try {
+                await Promise.all(promises);
+            } catch (err) {
+                console.error('Save error:', err);
+            }
+            notesSaveBtn.disabled = false;
+        }
+        
+        closeNotesModal();
+    }
 
-    // Делегування подій для таблиці нотаток
+    notesSaveBtn.addEventListener('click', handleSaveAndClose);
+
     notesTableBody.addEventListener('focusout', function(event) {
         const input = event.target;
         if (!input.matches('[data-field]')) return;
@@ -1162,7 +1185,6 @@ document.addEventListener('DOMContentLoaded', function() {
         handleDeleteNoteRow(tr);
     });
 
-    // Автододавання рядків: при введенні в передостанній рядок — додаємо новий
     notesTableBody.addEventListener('input', function(event) {
         const input = event.target;
         if (!input.matches('[data-field]')) return;
@@ -1170,11 +1192,9 @@ document.addEventListener('DOMContentLoaded', function() {
         const tr = input.closest('tr');
         if (!tr) return;
         
-        // Якщо це передостанній рядок і він заповнений — додати новий
         const allRows = Array.from(notesTableBody.querySelectorAll('tr'));
         const rowIndex = allRows.indexOf(tr);
         if (rowIndex >= allRows.length - 2 && isRowFilled(tr)) {
-            // Перевіряємо, чи останній рядок заповнений
             const lastRow = allRows[allRows.length - 1];
             if (isRowFilled(lastRow)) {
                 addEmptyNoteRow();
@@ -1188,10 +1208,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const statusVal = tr.querySelector('[data-field="status"]').value;
         const noteVal = tr.querySelector('[data-field="note"]').value.trim();
         
-        // Якщо рядок повністю порожній — нічого не робимо
         if (!objectVal && !statusVal && !noteVal) return;
         
-        // Генеруємо row_id, якщо його ще немає
         let actualRowId = rowId;
         if (!actualRowId) {
             actualRowId = generateRowId(currentNotesTerritoryId);
@@ -1236,7 +1254,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const rowId = tr.dataset.rowId;
         const isFilled = isRowFilled(tr);
         
-        // Якщо рядок не в БД (немає row_id) — просто видаляємо з DOM
         if (!rowId || !isFilled) {
             tr.remove();
             ensureMinimumEmptyRows();
