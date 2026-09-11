@@ -945,7 +945,7 @@ body.bulk-mode-active .territory-item {
     white-space: nowrap;
 }
 
-/* Кнопка "Зберегти" в шапці модалки (замість хрестика) */
+/* Кнопка "Зберегти" в шапці модалки */
 .notes-save-btn {
     padding: 8px 16px;
     background-color: #28a745;
@@ -988,7 +988,7 @@ body.bulk-mode-active .territory-item {
 .notes-table-wrapper {
     flex-grow: 1;
     overflow-y: auto;
-    overflow-x: auto;
+    overflow-x: hidden;
     padding: 10px;
     -webkit-overflow-scrolling: touch;
 }
@@ -996,7 +996,7 @@ body.bulk-mode-active .territory-item {
 .notes-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: auto;
+    table-layout: fixed; /* Фіксовані ширини колонок */
 }
 
 .notes-table thead {
@@ -1016,28 +1016,11 @@ body.bulk-mode-active .territory-item {
     white-space: nowrap;
 }
 
-/* Буд/кв і Статус — мінімальна ширина (тільки під вміст) */
-.notes-table th.col-object,
-.notes-table td:nth-child(1),
-.notes-table th.col-status,
-.notes-table td:nth-child(2) {
-    width: 1%;
-    white-space: nowrap;
-}
-
-/* Нотатка — забирає все інше */
-.notes-table th.col-note,
-.notes-table td:nth-child(3) {
-    width: 99%;
-    max-width: 0;
-    overflow-wrap: break-word;
-    word-wrap: break-word;
-}
-
-/* Хрестик — фіксований */
-.notes-table th.col-delete {
-    width: 36px;
-}
+/* Ширини колонок: Буд/кв і Статус — мінімум, Нотатка — все інше */
+.notes-table th.col-object { width: 26%; }
+.notes-table th.col-status { width: 36%; }
+.notes-table th.col-note { width: auto; }
+.notes-table th.col-delete { width: 36px; }
 
 .notes-table td {
     padding: 4px 4px;
@@ -1089,15 +1072,12 @@ body.bulk-mode-active .territory-item {
     box-sizing: border-box;
 }
 
+/* Спрощений select — стандартна стрілка, менше padding */
 .notes-cell-select {
     cursor: pointer;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
-    background-repeat: no-repeat;
-    background-position: right 6px center;
-    background-size: 14px;
-    padding-right: 26px;
+    appearance: auto;
+    -webkit-appearance: auto;
+    padding-right: 4px;
 }
 
 .notes-delete-btn {
