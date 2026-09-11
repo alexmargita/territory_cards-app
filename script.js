@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-      function fetchAllData() {
+    function fetchAllData() {
         if (!userId) {
             document.body.innerHTML = '<p>Не вдалося ідентифікувати користувача. Спробуйте перезапустити додаток.</p>';
             return;
@@ -1038,6 +1038,34 @@ document.addEventListener('DOMContentLoaded', function() {
         textarea.style.height = textarea.scrollHeight + 'px';  // ставимо по вмісту
     }
 
+    // Запам'ятовує поточний стан рядка як "збережений"
+    function updateSavedState(tr) {
+        if (!tr) return;
+        const objectVal = tr.querySelector('[data-field="object"]').value.trim();
+        const statusVal = tr.querySelector('[data-field="status"]').value;
+        const noteVal = tr.querySelector('[data-field="note"]').value.trim();
+        tr.dataset.savedState = JSON.stringify({ object: objectVal, status: statusVal, note: noteVal });
+    }
+
+    // Перевіряє, чи змінився рядок від моменту останнього збереження
+    function hasChanges(tr) {
+        if (!tr) return false;
+        if (!tr.dataset.savedState) return true;  // якщо стану немає — вважаємо, що зміни є
+        const current = {
+            object: tr.querySelector('[data-field="object"]').value.trim(),
+            status: tr.querySelector('[data-field="status"]').value,
+            note: tr.querySelector('[data-field="note"]').value.trim()
+        };
+        try {
+            const saved = JSON.parse(tr.dataset.savedState);
+            return current.object !== saved.object
+                || current.status !== saved.status
+                || current.note !== saved.note;
+        } catch (e) {
+            return true;
+        }
+    }
+
     function createNoteRow(note) {
         const rowId = note.row_id || '';
         const objectVal = (note.object || '').replace(/"/g, '&quot;');
@@ -1056,6 +1084,9 @@ document.addEventListener('DOMContentLoaded', function() {
             <td><textarea class="notes-cell-textarea" data-field="note" rows="1" placeholder="...">${noteVal}</textarea></td>
             <td><button class="notes-delete-btn" title="Видалити рядок">×</button></td>
         `;
+        
+        // Запам'ятовуємо початковий стан (щоб не зберігати без змін)
+        updateSavedState(tr);
         
         // Автоматичне зростання textarea
         const textarea = tr.querySelector('[data-field="note"]');
@@ -1129,19 +1160,26 @@ document.addEventListener('DOMContentLoaded', function() {
 
     function closeNotesModal() {
         notesModal.classList.remove('active');
+        notesModal.classList.remove('saving-state');
+        // Скидаємо стан кнопки збереження (на випадок, якщо модалку закрили під час збереження)
+        notesSaveBtn.disabled = false;
+        notesSaveBtn.textContent = 'Зберегти і закрити';
         currentNotesTerritoryId = null;
         currentNotesTerritoryName = null;
         notesTableBody.innerHTML = '';
     }
 
-    // Обробник кнопки "Зберегти" в шапці — закриває модалку ОДРАЗУ і зберігає у фоні
-    function handleSaveAndClose() {
+    // Обробник кнопки "Зберегти і закрити" — чекає реального завершення збереження
+    async function handleSaveAndClose() {
         const rows = Array.from(notesTableBody.querySelectorAll('tr'));
         const territoryId = currentNotesTerritoryId;
         
         const rowsToSave = [];
         for (const tr of rows) {
             if (!isRowFilled(tr)) continue;
+            
+            // Пропускаємо рядки, які не змінилися з моменту останнього збереження
+            if (!hasChanges(tr)) continue;
             
             const rowId = tr.dataset.rowId;
             const objectVal = tr.querySelector('[data-field="object"]').value.trim();
@@ -1164,22 +1202,46 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
-        // ЗАКРИВАЄМО модалку одразу
-        closeNotesModal();
+        // Якщо нічого зберігати — закриваємо одразу
+        if (rowsToSave.length === 0) {
+            closeNotesModal();
+            return;
+        }
         
-        // Зберігаємо у фоні
-        if (rowsToSave.length > 0) {
-            Promise.all(rowsToSave.map(payload => postToServerSilent(payload)))
-                .then(() => {
-                    showToast('Збережено');
-                })
-                .catch(err => {
-                    console.error('Save error:', err);
-                    showToast('Помилка збереження');
-                });
+        // Блокуємо кнопку і показуємо стан збереження
+        notesSaveBtn.disabled = true;
+        notesSaveBtn.textContent = 'Збереження...';
+        notesModal.classList.add('saving-state');
+        
+        try {
+            // Чекаємо, поки ВСІ запити завершаться
+            const results = await Promise.all(rowsToSave.map(payload => postToServerSilent(payload)));
+            
+            // Перевіряємо, чи всі запити успішні
+            const failed = results.filter(r => !r || !r.ok);
+            if (failed.length > 0) {
+                const errMsg = failed.map(r => r && r.error).filter(Boolean).join('; ') || 'Частина записів не збереглася';
+                throw new Error(errMsg);
+            }
+            
+            // Успіх — показуємо індикатор і закриваємо модалку
+            notesModal.classList.remove('saving-state');
+            notesSaveBtn.disabled = false;
+            notesSaveBtn.textContent = 'Зберегти і закрити';
+            showNotesIndicator('Збережено ✓', false);
+            // Невелика затримка, щоб користувач побачив індикатор
+            setTimeout(() => closeNotesModal(), 300);
+        } catch (err) {
+            // Помилка — НЕ закриваємо, дозволяємо повторити
+            console.error('Save error:', err);
+            notesModal.classList.remove('saving-state');
+            notesSaveBtn.disabled = false;
+            notesSaveBtn.textContent = 'Зберегти і закрити';
+            showNotesIndicator('Помилка', true);
+            tg.showAlert('Не вдалося зберегти. Перевірте з\'єднання і спробуйте ще раз.');
         }
     }
-    
+        
     notesSaveBtn.addEventListener('click', handleSaveAndClose);
 
     notesTableBody.addEventListener('focusout', function(event) {
@@ -1232,6 +1294,9 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!objectVal && !statusVal && !noteVal) return;
         
+        // Якщо нічого не змінилося з моменту останнього збереження — не робимо запит
+        if (!hasChanges(tr)) return;
+        
         let actualRowId = rowId;
         if (!actualRowId) {
             actualRowId = generateRowId(currentNotesTerritoryId);
@@ -1254,6 +1319,7 @@ document.addEventListener('DOMContentLoaded', function() {
             tr.classList.remove('saving');
             
             if (result.ok) {
+                updateSavedState(tr);
                 tr.classList.add('saved');
                 setTimeout(() => tr.classList.remove('saved'), 800);
                 showNotesIndicator('Збережено ✓', false);
