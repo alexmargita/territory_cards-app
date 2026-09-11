@@ -1017,10 +1017,10 @@ body.bulk-mode-active .territory-item {
 }
 
 /* Ширини колонок: Буд/кв і Статус — мінімум, Нотатка — все інше */
-.notes-table th.col-object { width: 18%; }
-.notes-table th.col-status { width: 28%; }
+.notes-table th.col-object { width: 15%; }
+.notes-table th.col-status { width: 20%; }
 .notes-table th.col-note { width: auto; }
-.notes-table th.col-delete { width: 36px; }
+.notes-table th.col-delete { width: 26px; }
 
 .notes-table td {
     padding: 4px 4px;
