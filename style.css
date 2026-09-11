@@ -996,7 +996,7 @@ body.bulk-mode-active .territory-item {
 .notes-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: auto; /* Замість fixed — автоматична ширина колонок */
+    table-layout: auto; /* Автоматична ширина колонок */
 }
 
 .notes-table thead {
@@ -1025,7 +1025,7 @@ body.bulk-mode-active .territory-item {
 .notes-table td {
     padding: 4px 4px;
     border-bottom: 1px solid var(--tg-theme-secondary-bg-color, #eee);
-    vertical-align: middle;
+    vertical-align: top;
 }
 
 .notes-table tr:last-child td {
@@ -1063,9 +1063,12 @@ body.bulk-mode-active .territory-item {
 }
 
 .notes-cell-textarea {
-    resize: vertical;
+    resize: none;              /* забороняємо ручне ресайзування */
+    overflow: hidden;          /* забороняємо скрол всередині */
     min-height: 36px;
-    max-height: 120px;
+    line-height: 1.4;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
 }
 
 .notes-cell-select {

@@ -492,7 +492,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (target.classList.contains('btn-return')) handleReturnClick(target.dataset.id, target);
             if (target.classList.contains('btn-book')) handleBookClick(target.dataset.id, target.dataset.name, target);
             if (target.classList.contains('btn-make-group')) handleMakeGroupClick(target.dataset.id, target.dataset.name);
-            // Фікс: клік на кнопку "Нотатки" — навіть якщо тапнути на span всередині
             const notesBtn = target.closest('.btn-group-notes');
             if (notesBtn) handleOpenNotesClick(notesBtn.dataset.id, notesBtn.dataset.name);
             if (target.classList.contains('filter-btn')) handleFilterClick(target);
@@ -1032,6 +1031,13 @@ document.addEventListener('DOMContentLoaded', function() {
         }).join('');
     }
 
+    // Автоматично збільшує висоту textarea під вміст
+    function autoResizeTextarea(textarea) {
+        if (!textarea) return;
+        textarea.style.height = 'auto';         // скидаємо висоту
+        textarea.style.height = textarea.scrollHeight + 'px';  // ставимо по вмісту
+    }
+
     function createNoteRow(note) {
         const rowId = note.row_id || '';
         const objectVal = (note.object || '').replace(/"/g, '&quot;');
@@ -1050,6 +1056,11 @@ document.addEventListener('DOMContentLoaded', function() {
             <td><textarea class="notes-cell-textarea" data-field="note" rows="1" placeholder="...">${noteVal}</textarea></td>
             <td><button class="notes-delete-btn" title="Видалити рядок">×</button></td>
         `;
+        
+        // Автоматичне зростання textarea
+        const textarea = tr.querySelector('[data-field="note"]');
+        autoResizeTextarea(textarea);
+        
         return tr;
     }
 
@@ -1082,13 +1093,17 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (!notes || notes.length === 0) {
             for (let i = 0; i < 4; i++) addEmptyNoteRow();
-            return;
+        } else {
+            notes.forEach(note => {
+                notesTableBody.appendChild(createNoteRow(note));
+            });
+            for (let i = 0; i < 4; i++) addEmptyNoteRow();
         }
         
-        notes.forEach(note => {
-            notesTableBody.appendChild(createNoteRow(note));
-        });
-        for (let i = 0; i < 4; i++) addEmptyNoteRow();
+        // Запускаємо автозростання для всіх textarea після рендеру
+        setTimeout(() => {
+            notesTableBody.querySelectorAll('.notes-cell-textarea').forEach(autoResizeTextarea);
+        }, 0);
     }
 
     function openNotesModal(territoryId, territoryName) {
@@ -1124,7 +1139,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const rows = Array.from(notesTableBody.querySelectorAll('tr'));
         const territoryId = currentNotesTerritoryId;
         
-        // Збираємо дані всіх заповнених рядків ДО закриття модалки
         const rowsToSave = [];
         for (const tr of rows) {
             if (!isRowFilled(tr)) continue;
@@ -1191,6 +1205,11 @@ document.addEventListener('DOMContentLoaded', function() {
     notesTableBody.addEventListener('input', function(event) {
         const input = event.target;
         if (!input.matches('[data-field]')) return;
+        
+        // Автозростання textarea при введенні
+        if (input.matches('.notes-cell-textarea')) {
+            autoResizeTextarea(input);
+        }
         
         const tr = input.closest('tr');
         if (!tr) return;
