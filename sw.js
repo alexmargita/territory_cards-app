@@ -1,4 +1,4 @@
-const CACHE_NAME = 'territory-cache-v23';
+const CACHE_NAME = 'territory-cache-v24';
 const GITHUB_IMAGES_URL_PATTERN = /^https:\/\/raw\.githubusercontent\.com\/alexmargita\/territory_cards-app\/main\/images\//;
 
 const PRECACHE_URLS = [
