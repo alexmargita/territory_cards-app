@@ -12,30 +12,26 @@ if ('serviceWorker' in navigator) {
 const GITHUB_BASE_URL = "https://raw.githubusercontent.com/alexmargita/territory_cards-app/main/images/";
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwNlnmNwi2adHqGtxBRoer2-jvJWwkrr-gt3z6ZqpAtF1wIKsiWxa2HWi0HK_H4gdny/exec";
 
-// Fetch з retry — якщо Google Drive повертає HTML замість JSON (випадковий 404),
-// пробуємо ще раз через 1 сек, потім через 2 сек.
+// Дозволені статуси нотаток
+const NOTES_STATUSES = ['', 'НД', 'Відбулася розмова', 'Повторна', 'Вивчення', 'Відмова'];
+
 async function fetchWithRetry(url, options = {}, maxRetries = 3) {
     let lastError = null;
     for (let attempt = 0; attempt < maxRetries; attempt++) {
         try {
             const res = await fetch(url, options);
             const text = await res.text();
-            
-            // Якщо прийшов HTML — це помилка Google Drive, а не наш JSON
             const trimmed = text.trim();
             if (trimmed.startsWith('<!DOCTYPE') || trimmed.startsWith('<html')) {
                 throw new Error('Google Drive returned HTML instead of JSON');
             }
-            
             if (!res.ok) {
                 throw new Error('HTTP ' + res.status);
             }
-            
             return JSON.parse(text);
         } catch (e) {
             lastError = e;
             console.warn(`Fetch attempt ${attempt + 1} failed:`, e.message);
-            
             if (attempt < maxRetries - 1) {
                 await new Promise(r => setTimeout(r, 1000 * (attempt + 1)));
             }
@@ -70,6 +66,13 @@ document.addEventListener('DOMContentLoaded', function() {
     const generalModalCloseBtn = document.querySelector('.general-modal-close-btn');
     const bulkActionBar = document.getElementById('bulk-action-bar');
 
+    // --- Notes Modal DOM ---
+    const notesModal = document.getElementById('notes-modal');
+    const notesModalTitle = document.getElementById('notes-modal-title');
+    const notesTableBody = document.getElementById('notes-table-body');
+    const notesModalClose = document.getElementById('notes-modal-close');
+    const notesSaveIndicator = document.getElementById('notes-save-indicator');
+
     // --- Глобальні змінні ---
     let allTerritories = [];
     let allUsers = [];
@@ -87,7 +90,12 @@ document.addEventListener('DOMContentLoaded', function() {
     let journalSortKey = 'date';
     let journalSortDirection = 'desc';
     const userId = tg.initDataUnsafe.user ? tg.initDataUnsafe.user.id : null;
-    
+
+    // --- Notes Modal State ---
+    let currentNotesTerritoryId = null;
+    let currentNotesTerritoryName = null;
+    let notesSaveTimeout = null;
+
     // --- Ініціалізація вкладок ---
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -95,13 +103,10 @@ document.addEventListener('DOMContentLoaded', function() {
     tabs.forEach(tab => {
         tab.addEventListener('click', () => {
             if (bulkActionMode !== 'none') return;
-            
             const targetTabId = tab.dataset.tab;
-
             if (targetTabId !== 'general-maps') {
                 fetchAllData();
             }
-            
             tabs.forEach(item => item.classList.remove('active'));
             tab.classList.add('active');
             const targetTabContent = document.getElementById(targetTabId);
@@ -109,8 +114,6 @@ document.addEventListener('DOMContentLoaded', function() {
             targetTabContent.classList.add('active');
         });
     });
-    
-    // --- ОСНОВНІ ФУНКЦІЇ ЗАВАНТАЖЕННЯ ДАНИХ ---
 
       function fetchAllData() {
         if (!userId) {
@@ -128,14 +131,12 @@ document.addEventListener('DOMContentLoaded', function() {
             appContainer.classList.remove('is-loading');
             loader.style.display = 'none';
             
-            // Спочатку — глобальні змінні з allData (від них залежить рендер карток)
             if (allData.ok) {
                 allTerritories = allData.territories;
                 isAdmin = allData.isAdmin;
                 isSupervisor = allData.isSupervisor || false;
             }
             
-            // Тепер — рендер (isSupervisor вже встановлено)
             if (myData.ok) displayMyTerritories(myData.territories);
             if (groupData.ok) {
                 groupTerritories = groupData.territories || [];
@@ -182,7 +183,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-        // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
+    // --- ФУНКЦІЇ ВІДОБРАЖЕННЯ (РЕНДЕРИНГУ) ---
 
     function createPhotoBlock(territory) {
         if (!territory.picture_id) { return `<div class="placeholder-photo">Немає фото</div>`; }
@@ -224,7 +225,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 actionButtonHtml = `<button class="btn-return" data-id="${t.id}">↩️ Здати</button>`;
             }
 
-            // Кнопка "Для групи" — тільки наглядачам і тільки якщо територія ще не групова
             let groupButtonHtml = '';
             if (isSupervisor && !t.is_group) {
                 groupButtonHtml = `<button class="btn-make-group" data-id="${t.id}" data-name="${(t.name || '').replace(/"/g, '&quot;')}">👥 Надіслати групі</button>`;
@@ -250,7 +250,6 @@ document.addEventListener('DOMContentLoaded', function() {
             const item = document.createElement('div');
             item.className = 'territory-item group-territory';
 
-            // Індикатор "Залишилось днів" — як у "Моїх територіях"
             const remainingDays = calculateDaysRemaining(t.date_assigned);
             let daysBlock = '';
             if (remainingDays !== null) {
@@ -259,11 +258,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
             }
 
-            // Кнопка "Нотатки" — заглушка з написом "У розробці" всередині
+            // Кнопка "Нотатки" — тепер АКТИВНА
             const notesButtonHtml = `
-                <button class="btn-group-notes" data-id="${t.id}" disabled>
+                <button class="btn-group-notes" data-id="${t.id}" data-name="${(t.name || '').replace(/"/g, '&quot;')}">
                     <span class="btn-notes-title">📝 Нотатки</span>
-                    <span class="btn-notes-hint">У розробці</span>
                 </button>
             `;
 
@@ -342,7 +340,6 @@ document.addEventListener('DOMContentLoaded', function() {
             : allTerritories;
     
         const counts = calculateAdminFilterCounts(sourceTerritories);
-    
         const controls = adminPanelControls;
         if (!controls.innerHTML) return; 
     
@@ -503,6 +500,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (target.classList.contains('btn-return')) handleReturnClick(target.dataset.id, target);
             if (target.classList.contains('btn-book')) handleBookClick(target.dataset.id, target.dataset.name, target);
             if (target.classList.contains('btn-make-group')) handleMakeGroupClick(target.dataset.id, target.dataset.name);
+            if (target.classList.contains('btn-group-notes')) handleOpenNotesClick(target.dataset.id, target.dataset.name);
             if (target.classList.contains('filter-btn')) handleFilterClick(target);
             if (target.classList.contains('btn-admin-assign')) handleAdminAssign(target.dataset.id);
             if (target.classList.contains('btn-admin-return')) handleAdminReturn(target.dataset.id);
@@ -531,7 +529,6 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleBookClick(territoryId, territoryName, button) { tg.showConfirm(`Ви впевнені, що хочете обрати територію "${territoryId}. ${territoryName}"?`, (ok) => ok && requestTerritory(territoryId, button)); }
     function handleFilterClick(button) { filtersContainer.querySelector('.active')?.classList.remove('active'); button.classList.add('active'); displayFreeTerritories(button.dataset.filter); }
     
-    // Обробка кліку "Для групи"
     function handleMakeGroupClick(territoryId, territoryName) {
         tg.showConfirm(`Надіслати територію "${territoryId}. ${territoryName}" на опрацювання вашій групі?`, (ok) => {
             if (ok) {
@@ -542,6 +539,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 );
             }
         });
+    }
+
+    // --- НОТАТКИ: обробник кліку ---
+    function handleOpenNotesClick(territoryId, territoryName) {
+        openNotesModal(territoryId, territoryName);
     }
     
     function handleAdminFilter(button) { 
@@ -556,7 +558,6 @@ document.addEventListener('DOMContentLoaded', function() {
         const view = button.dataset.view;
         adminPanelControls.querySelector('.view-btn.active')?.classList.remove('active');
         button.classList.add('active');
-        
         adminTerritoryList.classList.remove('view-list', 'view-grid');
         adminTerritoryList.classList.add(`view-${view}`);
     }
@@ -573,7 +574,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     adminPanelControls.appendChild(searchInput);
                 }
                 searchInput.value = text;
-                
                 adminPanelControls.querySelector('.admin-filter-btn.active')?.classList.remove('active');
                 updateAndDisplayAdminTerritories();
             }
@@ -591,14 +591,12 @@ document.addEventListener('DOMContentLoaded', function() {
         generalModalBody.querySelector('.modal-sort-list').onclick = e => {
             if (e.target.tagName === 'LI') {
                 currentAdminSortKey = e.target.dataset.sort;
-                
                 const sortBtn = document.getElementById('admin-sort-btn');
                 if (currentAdminSortKey === 'days_remaining') {
                     sortBtn.classList.add('active');
                 } else {
                     sortBtn.classList.remove('active');
                 }
-                
                 hideGeneralModal();
                 updateAndDisplayAdminTerritories();
             }
@@ -624,14 +622,12 @@ document.addEventListener('DOMContentLoaded', function() {
                     selectedLocalities.push(cb.dataset.locality);
                 }
             });
-
             const filterBtn = document.getElementById('admin-locality-filter-btn');
             if (selectedLocalities.length > 0) {
                 filterBtn.classList.add('active');
             } else {
                 filterBtn.classList.remove('active');
             }
-            
             hideGeneralModal();
             updateAdminFilterCounts();
             updateAndDisplayAdminTerritories();
@@ -681,14 +677,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         selectedUsers.push(cb.dataset.userId);
                     }
                 });
-
                 const filterBtn = document.getElementById('admin-user-filter-btn');
                 if (selectedUsers.length > 0) {
                     filterBtn.classList.add('active');
                 } else {
                     filterBtn.classList.remove('active');
                 }
-                
                 hideGeneralModal();
                 updateAndDisplayAdminTerritories();
             };
@@ -873,11 +867,9 @@ document.addEventListener('DOMContentLoaded', function() {
     function showToast(message, duration = 3000) {
         const container = document.getElementById('toast-container');
         if (!container) return;
-
         const toast = document.createElement('div');
         toast.className = 'toast-message';
         toast.textContent = message;
-
         container.appendChild(toast);
         setTimeout(() => { toast.classList.add('show'); }, 10);
         setTimeout(() => {
@@ -909,6 +901,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 resolve(false);
             });
         });
+    }
+
+    // Тихий POST — без перемальовування всього UI і без MainButton
+    async function postToServerSilent(payload) {
+        const res = await fetchWithRetry(SCRIPT_URL, { method: 'POST', body: JSON.stringify(payload) });
+        return res;
     }
 
     function returnTerritory(territoryId, buttonElement) {
@@ -1012,15 +1010,264 @@ document.addEventListener('DOMContentLoaded', function() {
             const inputHtml = options.inputType === 'textarea' ? `<textarea id="modal-input-field" class="modal-textarea" placeholder="${options.placeholder || ''}">${options.initialValue || ''}</textarea>` : `<input id="modal-input-field" class="modal-input" type="text" placeholder="${options.placeholder || ''}" value="${options.initialValue || ''}">`;
             const bodyHtml = `${inputHtml}<button id="modal-save-btn" class="modal-save-btn">${options.btnText || 'Зберегти'}</button>`;
             showGeneralModal(options.title, bodyHtml);
-            
             const inputField = document.getElementById('modal-input-field');
             const saveBtn = document.getElementById('modal-save-btn');
-            
             const closeModalAndResolve = (value) => { hideGeneralModal(); resolve(value); };
             saveBtn.onclick = () => closeModalAndResolve(inputField.value);
             generalModal.querySelector('.general-modal-close-btn').onclick = () => closeModalAndResolve(null);
             generalModal.addEventListener('click', e => { if (e.target === generalModal) closeModalAndResolve(null); }, { once: true });
         });
+    }
+    
+    // ============================================
+    // --- НОТАТКИ ГРУПОВИХ ТЕРИТОРІЙ ---
+    // ============================================
+
+    function generateRowId(territoryId) {
+        return String(territoryId) + '_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+    }
+
+    function showNotesIndicator(text, isError) {
+        notesSaveIndicator.textContent = text;
+        notesSaveIndicator.classList.remove('error');
+        if (isError) notesSaveIndicator.classList.add('error');
+        notesSaveIndicator.classList.add('show');
+        clearTimeout(notesSaveTimeout);
+        notesSaveTimeout = setTimeout(() => {
+            notesSaveIndicator.classList.remove('show');
+        }, 1500);
+    }
+
+    function createStatusOptions(selectedValue) {
+        return NOTES_STATUSES.map(s => {
+            const selected = (s === selectedValue) ? ' selected' : '';
+            return `<option value="${s}"${selected}>${s || '—'}</option>`;
+        }).join('');
+    }
+
+    function createNoteRow(note) {
+        const rowId = note.row_id || '';
+        const objectVal = (note.object || '').replace(/"/g, '&quot;');
+        const statusVal = note.status || '';
+        const noteVal = (note.note || '').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        
+        const tr = document.createElement('tr');
+        tr.dataset.rowId = rowId;
+        tr.innerHTML = `
+            <td><input type="text" class="notes-cell-input" data-field="object" value="${objectVal}" placeholder="кв."></td>
+            <td>
+                <select class="notes-cell-select" data-field="status">
+                    ${createStatusOptions(statusVal)}
+                </select>
+            </td>
+            <td><textarea class="notes-cell-textarea" data-field="note" rows="1" placeholder="...">${noteVal}</textarea></td>
+            <td><button class="notes-delete-btn" title="Видалити рядок">×</button></td>
+        `;
+        return tr;
+    }
+
+    function addEmptyNoteRow() {
+        const tr = createNoteRow({ row_id: '', object: '', status: '', note: '' });
+        notesTableBody.appendChild(tr);
+        return tr;
+    }
+
+    function ensureMinimumEmptyRows() {
+        // Гарантуємо, що в кінці завжди є 1 порожній рядок
+        const rows = Array.from(notesTableBody.querySelectorAll('tr'));
+        if (rows.length === 0) {
+            addEmptyNoteRow();
+            return;
+        }
+        const lastRow = rows[rows.length - 1];
+        if (!isRowFilled(lastRow)) return; // Вже порожній — ок
+        addEmptyNoteRow();
+    }
+
+    function isRowFilled(tr) {
+        const obj = tr.querySelector('[data-field="object"]').value.trim();
+        const stat = tr.querySelector('[data-field="status"]').value.trim();
+        const note = tr.querySelector('[data-field="note"]').value.trim();
+        return obj !== '' || stat !== '' || note !== '';
+    }
+
+    function isRowEmpty(tr) {
+        return !isRowFilled(tr);
+    }
+
+    function renderNotesTable(notes) {
+        notesTableBody.innerHTML = '';
+        
+        if (!notes || notes.length === 0) {
+            // 4 порожніх рядки
+            for (let i = 0; i < 4; i++) addEmptyNoteRow();
+            return;
+        }
+        
+        notes.forEach(note => {
+            notesTableBody.appendChild(createNoteRow(note));
+        });
+        // Додаємо 4 порожніх рядки для нових записів
+        for (let i = 0; i < 4; i++) addEmptyNoteRow();
+    }
+
+    function openNotesModal(territoryId, territoryName) {
+        currentNotesTerritoryId = territoryId;
+        currentNotesTerritoryName = territoryName;
+        notesModalTitle.textContent = `📝 ${territoryId}. ${territoryName}`;
+        notesModal.classList.add('active');
+        notesTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">Завантаження...</td></tr>';
+        
+        fetchWithRetry(`${SCRIPT_URL}?action=getGroupNotes&territoryId=${encodeURIComponent(territoryId)}&userId=${userId}`)
+            .then(result => {
+                if (result.ok) {
+                    renderNotesTable(result.notes || []);
+                } else {
+                    notesTableBody.innerHTML = `<tr><td colspan="4" class="notes-empty-message">${result.error || 'Помилка завантаження'}</td></tr>`;
+                }
+            })
+            .catch(err => {
+                console.error('Notes load error:', err);
+                notesTableBody.innerHTML = '<tr><td colspan="4" class="notes-empty-message">Помилка мережі</td></tr>';
+            });
+    }
+
+    function closeNotesModal() {
+        notesModal.classList.remove('active');
+        currentNotesTerritoryId = null;
+        currentNotesTerritoryName = null;
+        notesTableBody.innerHTML = '';
+    }
+
+    notesModalClose.addEventListener('click', closeNotesModal);
+
+    // Делегування подій для таблиці нотаток
+    notesTableBody.addEventListener('focusout', function(event) {
+        const input = event.target;
+        if (!input.matches('[data-field]')) return;
+        
+        const tr = input.closest('tr');
+        if (!tr) return;
+        
+        handleNoteBlur(tr);
+    });
+
+    notesTableBody.addEventListener('click', function(event) {
+        const btn = event.target.closest('.notes-delete-btn');
+        if (!btn) return;
+        
+        const tr = btn.closest('tr');
+        if (!tr) return;
+        
+        handleDeleteNoteRow(tr);
+    });
+
+    // Автододавання рядків: при введенні в передостанній рядок — додаємо новий
+    notesTableBody.addEventListener('input', function(event) {
+        const input = event.target;
+        if (!input.matches('[data-field]')) return;
+        
+        const tr = input.closest('tr');
+        if (!tr) return;
+        
+        // Якщо це передостанній рядок і він заповнений — додати новий
+        const allRows = Array.from(notesTableBody.querySelectorAll('tr'));
+        const rowIndex = allRows.indexOf(tr);
+        if (rowIndex >= allRows.length - 2 && isRowFilled(tr)) {
+            // Перевіряємо, чи останній рядок заповнений
+            const lastRow = allRows[allRows.length - 1];
+            if (isRowFilled(lastRow)) {
+                addEmptyNoteRow();
+            }
+        }
+    });
+
+    async function handleNoteBlur(tr) {
+        const rowId = tr.dataset.rowId;
+        const objectVal = tr.querySelector('[data-field="object"]').value.trim();
+        const statusVal = tr.querySelector('[data-field="status"]').value;
+        const noteVal = tr.querySelector('[data-field="note"]').value.trim();
+        
+        // Якщо рядок повністю порожній — нічого не робимо
+        if (!objectVal && !statusVal && !noteVal) return;
+        
+        // Генеруємо row_id, якщо його ще немає
+        let actualRowId = rowId;
+        if (!actualRowId) {
+            actualRowId = generateRowId(currentNotesTerritoryId);
+            tr.dataset.rowId = actualRowId;
+        }
+        
+        tr.classList.add('saving');
+        
+        try {
+            const result = await postToServerSilent({
+                action: 'saveGroupNote',
+                territoryId: currentNotesTerritoryId,
+                rowId: actualRowId,
+                object: objectVal,
+                status: statusVal,
+                note: noteVal,
+                userId: userId
+            });
+            
+            tr.classList.remove('saving');
+            
+            if (result.ok) {
+                tr.classList.add('saved');
+                setTimeout(() => tr.classList.remove('saved'), 800);
+                showNotesIndicator('Збережено ✓', false);
+                ensureMinimumEmptyRows();
+            } else {
+                tr.classList.add('error');
+                setTimeout(() => tr.classList.remove('error'), 2000);
+                showNotesIndicator('Помилка', true);
+            }
+        } catch (err) {
+            console.error('Save note error:', err);
+            tr.classList.remove('saving');
+            tr.classList.add('error');
+            setTimeout(() => tr.classList.remove('error'), 2000);
+            showNotesIndicator('Помилка мережі', true);
+        }
+    }
+
+    async function handleDeleteNoteRow(tr) {
+        const rowId = tr.dataset.rowId;
+        const isFilled = isRowFilled(tr);
+        
+        // Якщо рядок не в БД (немає row_id) — просто видаляємо з DOM
+        if (!rowId || !isFilled) {
+            tr.remove();
+            ensureMinimumEmptyRows();
+            return;
+        }
+        
+        const confirm = await new Promise(resolve => {
+            tg.showConfirm('Видалити цей рядок?', ok => resolve(ok));
+        });
+        
+        if (!confirm) return;
+        
+        try {
+            const result = await postToServerSilent({
+                action: 'deleteGroupNote',
+                territoryId: currentNotesTerritoryId,
+                rowId: rowId,
+                userId: userId
+            });
+            
+            if (result.ok) {
+                tr.remove();
+                showNotesIndicator('Видалено', false);
+                ensureMinimumEmptyRows();
+            } else {
+                tg.showAlert(result.error || 'Не вдалося видалити рядок.');
+            }
+        } catch (err) {
+            console.error('Delete note error:', err);
+            tg.showAlert('Помилка мережі при видаленні.');
+        }
     }
     
     // --- ЖУРНАЛ ---
@@ -1121,9 +1368,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (markBtn) {
             const entryElement = markBtn.closest('.journal-entry');
             const rowId = parseInt(entryElement.dataset.rowId, 10);
-            
             markBtn.disabled = true;
-
             postToServer({ action: 'markJournalEntry', userId: userId, rowId: rowId }, "Відмічаю...", "Не вдалося відмітити.")
             .then(success => {
                 if (success) {

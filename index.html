@@ -65,6 +65,32 @@
         </div>
     </div>
 
+    <!-- ============================================ -->
+    <!-- МОДАЛКА НОТАТОК ГРУПОВИХ ТЕРИТОРІЙ -->
+    <!-- ============================================ -->
+    <div id="notes-modal" class="notes-modal">
+        <div class="notes-modal-content">
+            <div class="notes-modal-header">
+                <div class="notes-modal-title" id="notes-modal-title">📝 Нотатки</div>
+                <div class="notes-save-indicator" id="notes-save-indicator"></div>
+                <span class="notes-modal-close-btn" id="notes-modal-close">&times;</span>
+            </div>
+            <div class="notes-table-wrapper">
+                <table class="notes-table" id="notes-table">
+                    <thead>
+                        <tr>
+                            <th class="col-object">Об'єкт</th>
+                            <th class="col-status">Статус</th>
+                            <th class="col-note">Нотатка</th>
+                            <th class="col-delete"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="notes-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
     <div id="bulk-action-bar" class="bulk-action-bar">
         <button id="bulk-cancel-btn" class="bulk-bar-btn cancel">Відмінити</button>
         <button id="bulk-confirm-assign-btn" class="bulk-bar-btn confirm" style="display: none;">OK</button>
