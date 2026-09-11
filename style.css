@@ -996,7 +996,7 @@ body.bulk-mode-active .territory-item {
 .notes-table {
     width: 100%;
     border-collapse: collapse;
-    table-layout: auto; /* Автоматична ширина колонок */
+    table-layout: auto;
 }
 
 .notes-table thead {
@@ -1016,16 +1016,27 @@ body.bulk-mode-active .territory-item {
     white-space: nowrap;
 }
 
-/* Фіксуємо лише колонку з хрестиком */
-.notes-table th.col-delete { width: 36px; }
+/* Буд/кв і Статус — мінімальна ширина (тільки під вміст) */
+.notes-table th.col-object,
+.notes-table td:nth-child(1),
+.notes-table th.col-status,
+.notes-table td:nth-child(2) {
+    width: 1%;
+    white-space: nowrap;
+}
 
-/* Змушуємо "Нотатку" зайняти МАКСИМУМ місця, а інші — мінімум */
+/* Нотатка — забирає все інше */
 .notes-table th.col-note,
 .notes-table td:nth-child(3) {
-    width: 100%;
+    width: 99%;
     max-width: 0;
     overflow-wrap: break-word;
     word-wrap: break-word;
+}
+
+/* Хрестик — фіксований */
+.notes-table th.col-delete {
+    width: 36px;
 }
 
 .notes-table td {
