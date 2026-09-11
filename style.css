@@ -1007,10 +1007,10 @@ body.bulk-mode-active .territory-item {
 }
 
 .notes-table th {
-    padding: 10px 8px;
+    padding: 10px 4px;
     font-size: 13px;
     font-weight: 600;
-    text-align: left;
+    text-align: center;
     color: var(--tg-theme-hint-color, #555);
     border-bottom: 2px solid var(--tg-theme-hint-color, #ccc);
     white-space: nowrap;
@@ -1020,12 +1020,18 @@ body.bulk-mode-active .territory-item {
 .notes-table th.col-object { width: 15%; }
 .notes-table th.col-status { width: 18%; }
 .notes-table th.col-note { width: auto; }
-.notes-table th.col-delete { width: 10px; }
+.notes-table th.col-delete { width: 30px; }
 
 .notes-table td {
-    padding: 4px 4px;
+    padding: 4px 2px;
     border-bottom: 1px solid var(--tg-theme-secondary-bg-color, #eee);
     vertical-align: top;
+}
+
+.notes-table td:last-child {
+    padding: 0;
+    text-align: center;
+    vertical-align: middle;
 }
 
 .notes-table tr:last-child td {
@@ -1070,6 +1076,7 @@ body.bulk-mode-active .territory-item {
     overflow-wrap: break-word;
     white-space: pre-wrap;
     box-sizing: border-box;
+    padding: 8px 2px 8px 8px; /* правий padding = 2px, щоб текст дійшов до ✕ */
 }
 
 /* Select без стрілки — максимум місця для тексту */
