@@ -940,6 +940,8 @@ body.bulk-mode-active .territory-item {
     font-weight: 600;
     font-size: 16px;
     flex-grow: 1;
+    flex-shrink: 1;
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -956,7 +958,9 @@ body.bulk-mode-active .territory-item {
     font-weight: 600;
     cursor: pointer;
     flex-shrink: 0;
+    flex-grow: 0;
     white-space: nowrap;
+    min-width: fit-content;
     transition: background-color 0.2s ease, opacity 0.2s ease;
 }
 
@@ -992,9 +996,11 @@ body.bulk-mode-active .territory-item {
     opacity: 0;
     transition: opacity 0.3s ease;
     flex-shrink: 0;
+    display: none;
 }
 
 .notes-save-indicator.show {
+    display: inline-block;
     opacity: 1;
 }
 
@@ -1002,7 +1008,6 @@ body.bulk-mode-active .territory-item {
     color: #dc3545;
 }
 
-/* --- ЗМІНА: прибрано padding, щоб thead прилипав впритул --- */
 .notes-table-wrapper {
     flex-grow: 1;
     overflow-y: auto;
