@@ -12,7 +12,7 @@ if ('serviceWorker' in navigator) {
 const GITHUB_BASE_URL = "https://raw.githubusercontent.com/alexmargita/territory_cards-app/main/images/";
 const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwNlnmNwi2adHqGtxBRoer2-jvJWwkrr-gt3z6ZqpAtF1wIKsiWxa2HWi0HK_H4gdny/exec";
 
-const NOTES_STATUSES = ['', 'НД', 'Відбулася розмова', 'Повторна', 'Вивчення', 'Відмова'];
+const NOTES_STATUSES = ['', 'НД', 'Розмова', 'Повторна', 'Вивчення', 'Відмова'];
 
 async function fetchWithRetry(url, options = {}, maxRetries = 3) {
     let lastError = null;
