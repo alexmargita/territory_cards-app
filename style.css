@@ -1007,7 +1007,7 @@ body.bulk-mode-active .territory-item {
 }
 
 .notes-table th {
-    padding: 10px 4px;
+    padding: 10px 2px;
     font-size: 13px;
     font-weight: 600;
     text-align: center;
@@ -1042,7 +1042,7 @@ body.bulk-mode-active .territory-item {
 .notes-cell-select,
 .notes-cell-textarea {
     width: 100%;
-    padding: 8px;
+    padding: 8px 2px;
     box-sizing: border-box;
     border: 1px solid transparent;
     border-radius: 6px;
@@ -1076,7 +1076,6 @@ body.bulk-mode-active .territory-item {
     overflow-wrap: break-word;
     white-space: pre-wrap;
     box-sizing: border-box;
-    padding: 8px 2px 8px 8px; /* правий padding = 2px, щоб текст дійшов до ✕ */
 }
 
 /* Select без стрілки — максимум місця для тексту */
@@ -1085,7 +1084,7 @@ body.bulk-mode-active .territory-item {
     appearance: none;
     -webkit-appearance: none;
     background-image: none;
-    padding-right: 4px;
+    padding-right: 2px;
     text-overflow: ellipsis;
 }
 
