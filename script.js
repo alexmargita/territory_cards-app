@@ -122,14 +122,20 @@ document.addEventListener('DOMContentLoaded', function() {
         loader.style.display = 'block';
         appContainer.classList.add('is-loading');
         
+        // Через 3 секунди розблоковуємо UI, але loader залишаємо
+        const unblockTimer = setTimeout(() => {
+            appContainer.classList.remove('is-loading');
+        }, 3000);
+        
         Promise.all([
             fetchWithRetry(`${SCRIPT_URL}?action=getMyTerritories&userId=${userId}`),
             fetchWithRetry(`${SCRIPT_URL}?action=getGroupTerritories&userId=${userId}`),
             fetchWithRetry(`${SCRIPT_URL}?userId=${userId}`)
         ]).then(([myData, groupData, allData]) => {
+            clearTimeout(unblockTimer);
             appContainer.classList.remove('is-loading');
             loader.style.display = 'none';
-            
+                        
             if (allData.ok) {
                 allTerritories = allData.territories;
                 isAdmin = allData.isAdmin;
@@ -176,11 +182,12 @@ document.addEventListener('DOMContentLoaded', function() {
                  document.body.innerHTML = `<p>Помилка завантаження даних: ${allData.error}</p>`;
             }
         }).catch(error => {
+            clearTimeout(unblockTimer);
             appContainer.classList.remove('is-loading');
             loader.style.display = 'none';
             console.error('Critical fetch error:', error);
             document.body.innerHTML = `<p>Критична помилка. Не вдалося завантажити дані. Перевірте з'єднання з Інтернетом.</p>`;
-        });
+        });        
     }
     
     function createPhotoBlock(territory) {
