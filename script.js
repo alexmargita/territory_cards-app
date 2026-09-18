@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
         postToServerSilent({ action: 'hideNotesForUser', userId: userId })
             .then(result => {
                 if (result.ok) {
-                    tg.showAlert('Всі нотатки видалено');
+                    showToast('Всі нотатки видалено');
                 } else {
                     console.error('hideNotesForUser error:', result.error);
                 }
