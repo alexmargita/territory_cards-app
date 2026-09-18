@@ -295,7 +295,7 @@ document.addEventListener('DOMContentLoaded', function() {
         postToServerSilent({ action: 'hideNotesForUser', userId: userId })
             .then(result => {
                 if (result.ok) {
-                    tg.showAlert('Нотатки приховано.\n\nПовернути їх може тільки адміністратор.');
+                    tg.showAlert('Всі нотатки видалено');
                 } else {
                     console.error('hideNotesForUser error:', result.error);
                 }
