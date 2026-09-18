@@ -305,13 +305,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
     }
 
-    if (hideNotesBtn) {
+     if (hideNotesBtn) {
         hideNotesBtn.addEventListener('click', function() {
             tg.showConfirm(
-                '🗑 Видалити всі нотатки?\n\n' +
-                'Ви більше не бачитимете нотатки на групових територіях.\n' +
-                'Повернути їх зможе тільки адміністратор.\n\n' +
-                'Адмін отримає повідомлення.',
+                'Видалити всі нотатки?',
                 function(ok) {
                     if (ok) {
                         hideNotes();
