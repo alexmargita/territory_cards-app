@@ -1173,3 +1173,42 @@ body.bulk-mode-active .territory-item {
     font-style: italic;
     font-size: 14px;
 }
+
+/* ============================================ */
+/* --- ШАПКА ВКЛАДКИ "ТЕРИТОРІЇ ГРУПИ" --- */
+/* ============================================ */
+
+.group-territories-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.group-territories-header h2 {
+    margin: 0;
+}
+
+.hide-notes-btn {
+    padding: 8px 12px;
+    background-color: #dc3545;
+    color: #ffffff;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background-color 0.2s ease;
+    flex-shrink: 0;
+}
+
+.hide-notes-btn:hover {
+    background-color: #c82333;
+}
+
+.hide-notes-btn:active {
+    transform: scale(0.97);
+}

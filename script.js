@@ -63,6 +63,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const generalModalBody = document.getElementById('general-modal-body');
     const generalModalCloseBtn = document.querySelector('.general-modal-close-btn');
     const bulkActionBar = document.getElementById('bulk-action-bar');
+    const hideNotesBtn = document.getElementById('hide-notes-btn');
 
     // --- Notes Modal DOM ---
     const notesModal = document.getElementById('notes-modal');
@@ -91,6 +92,9 @@ document.addEventListener('DOMContentLoaded', function() {
     let currentNotesTerritoryId = null;
     let currentNotesTerritoryName = null;
     let notesSaveTimeout = null;
+
+    // Стан прихованих нотаток (з сервера)
+    let notesHiddenFromServer = false;
 
     const tabs = document.querySelectorAll('.tab-button');
     const tabContents = document.querySelectorAll('.tab-content');
@@ -135,6 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (myData.ok) displayMyTerritories(myData.territories);
             if (groupData.ok) {
                 groupTerritories = groupData.territories || [];
+                notesHiddenFromServer = groupData.notesHidden === true;
                 displayGroupTerritories(groupTerritories);
             }
             
@@ -230,8 +235,22 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    function areNotesHidden() {
+        return notesHiddenFromServer === true;
+    }
+
     function displayGroupTerritories(territories) {
         groupTerritoryList.innerHTML = '';
+        
+        // Оновлюємо стан кнопки "🗑 Видалити всі нотатки" у шапці
+        if (hideNotesBtn) {
+            if (areNotesHidden()) {
+                hideNotesBtn.style.display = 'none';
+            } else {
+                hideNotesBtn.style.display = 'inline-block';
+            }
+        }
+        
         if (!territories || territories.length === 0) {
             groupTerritoryList.innerHTML = '<p class="empty-message">Наразі групових територій не призначено.</p>';
             return;
@@ -251,6 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 daysBlock = `<div class="progress-bar-container ${endingSoonClass}"><div class="progress-bar-track"><div class="progress-bar-fill" style="width: ${progressPercent}%;"></div></div><span class="progress-bar-text">Залишилось днів: ${remainingDays}</span></div>`;
             }
 
+            // Кнопка "📝 Нотатки" — ЗАВЖДИ показується
             const notesButtonHtml = `
                 <button class="btn-group-notes" data-id="${t.id}" data-name="${(t.name || '').replace(/"/g, '&quot;')}">
                     <span class="btn-notes-title">📝 Нотатки</span>
@@ -263,6 +283,41 @@ document.addEventListener('DOMContentLoaded', function() {
                 ${daysBlock}
             `;
             groupTerritoryList.appendChild(item);
+        });
+    }
+
+    function hideNotes() {
+        // Миттєво — локально
+        notesHiddenFromServer = true;
+        displayGroupTerritories(groupTerritories);
+        
+        // Відправляємо на сервер у фоні
+        postToServerSilent({ action: 'hideNotesForUser', userId: userId })
+            .then(result => {
+                if (result.ok) {
+                    tg.showAlert('Нотатки приховано.\n\nПовернути їх може тільки адміністратор.');
+                } else {
+                    console.error('hideNotesForUser error:', result.error);
+                }
+            })
+            .catch(err => {
+                console.error('hideNotesForUser network error:', err);
+            });
+    }
+
+    if (hideNotesBtn) {
+        hideNotesBtn.addEventListener('click', function() {
+            tg.showConfirm(
+                '🗑 Видалити всі нотатки?\n\n' +
+                'Ви більше не бачитимете нотатки на групових територіях.\n' +
+                'Повернути їх зможе тільки адміністратор.\n\n' +
+                'Адмін отримає повідомлення.',
+                function(ok) {
+                    if (ok) {
+                        hideNotes();
+                    }
+                }
+            );
         });
     }
 
@@ -1142,6 +1197,20 @@ document.addEventListener('DOMContentLoaded', function() {
         currentNotesTerritoryName = territoryName;
         notesModalTitle.textContent = `📝 ${territoryId}. ${territoryName}`;
         notesModal.classList.add('active');
+        
+        // Якщо нотатки приховані — показуємо "Нотаток немає" БЕЗ запиту на сервер
+        if (areNotesHidden()) {
+            notesTableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="notes-empty-message" style="padding: 40px 20px; font-size: 15px;">
+                        Нотаток немає
+                    </td>
+                </tr>
+            `;
+            return;
+        }
+        
+        // Інакше — завантажуємо нотатки
         notesTableBody.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;">Завантаження...</td></tr>';
         
         fetchWithRetry(`${SCRIPT_URL}?action=getGroupNotes&territoryId=${encodeURIComponent(territoryId)}&userId=${userId}`)
@@ -1171,6 +1240,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Обробник кнопки "Зберегти і закрити" — чекає реального завершення збереження
     async function handleSaveAndClose() {
+        // Якщо нотатки приховані — просто закриваємо модалку
+        if (areNotesHidden()) {
+            closeNotesModal();
+            return;
+        }
+        
         const rows = Array.from(notesTableBody.querySelectorAll('tr'));
         const territoryId = currentNotesTerritoryId;
         
@@ -1287,6 +1362,9 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     async function handleNoteBlur(tr) {
+        // Якщо нотатки приховані — не зберігаємо
+        if (areNotesHidden()) return;
+        
         const rowId = tr.dataset.rowId;
         const objectVal = tr.querySelector('[data-field="object"]').value.trim();
         const statusVal = tr.querySelector('[data-field="status"]').value;
